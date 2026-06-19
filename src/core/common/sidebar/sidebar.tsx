@@ -2,12 +2,19 @@ import { useEffect, useState } from 'react'
 import ImageWithBasePath from '../imageWithBasePath'
 import { all_routes } from '../../../feature-module/router/all_routes'
 import { Link, useLocation } from 'react-router-dom'
+import { useAuth } from '../../contexts/AuthContext'
 
 const Sidebar = () => {
 
     const routes = all_routes
     const location = useLocation();
+    const { userProfile } = useAuth();
     const [subdroptoggle, setsubdroptoggle] = useState<boolean[]>([false, false]);
+    const displayName = userProfile?.displayName || userProfile?.email || 'Customer';
+    const memberSince = userProfile?.joinedAt
+        ? new Date(userProfile.joinedAt).toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' })
+        : 'Member profile';
+    const avatarSrc = userProfile?.photoURL || 'assets/img/users/user-01.jpg';
 
     const handleToggle = (index: number) => {
         setsubdroptoggle((prev) =>
@@ -35,13 +42,13 @@ const Sidebar = () => {
                             <div className="d-flex align-items-center justify-content-between ">
                                 <div className=" d-flex align-items-center justify-content-center ">
                                     <ImageWithBasePath
-                                        src="assets/img/users/user-01.jpg"
-                                        alt="image"
+                                        src={avatarSrc}
+                                        alt={displayName}
                                         className="img-fluid avatar avatar-lg rounded-circle flex-shrink-0 me-1"
                                     />
                                     <div>
-                                        <h6 className="fs-16">Jeffrey Wilson</h6>
-                                        <span className="fs-14 text-gray-6">Since 10 May 2025</span>
+                                        <h6 className="fs-16">{displayName}</h6>
+                                        <span className="fs-14 text-gray-6">Since {memberSince}</span>
                                     </div>
                                 </div>
                                 <div>

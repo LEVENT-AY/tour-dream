@@ -1,14 +1,22 @@
-
+import { Link } from 'react-router-dom';
 import { all_routes } from '../../router/all_routes';
 import Breadcrumb from '../../../core/common/Breadcrumb/breadcrumb';
 import Sidebar from '../../../core/common/sidebar/sidebar';
 import ImageWithBasePath from '../../../core/common/imageWithBasePath';
-import { Link } from 'react-router-dom';
+import { useAuth } from '../../../core/contexts/AuthContext';
+
+const formatDate = (value?: string) => {
+  if (!value) return 'Not available';
+  const date = new Date(value);
+  return Number.isNaN(date.getTime())
+    ? 'Not available'
+    : date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+};
 
 const MyProfile = () => {
-
   const routes = all_routes;
-  //Breadcrumb Data
+  const { userProfile, loading } = useAuth();
+
   const breadcrumbs = [
     {
       label: 'My Profile',
@@ -21,141 +29,99 @@ const MyProfile = () => {
     },
   ];
 
+  const displayName = userProfile?.displayName || userProfile?.email || 'Customer';
+  const avatarSrc = userProfile?.photoURL || 'assets/img/users/user-01.jpg';
+
   return (
     <div>
-      <Breadcrumb
-        title="My Profile"
-        breadcrumbs={breadcrumbs}
-        backgroundClass="breadcrumb-bg-01"
-      />
+      <Breadcrumb title="My Profile" breadcrumbs={breadcrumbs} backgroundClass="breadcrumb-bg-01" />
 
-      {/* Page Wrapper */}
       <div className="content">
         <div className="container">
           <div className="row">
-            {/* Sidebar */}
             <div className="col-xl-3 col-lg-4">
               <Sidebar />
             </div>
-            {/* /Sidebar */}
-            {/* My Profile */}
             <div className="col-xl-9 col-lg-8">
               <div className="card shadow-none mb-0">
                 <div className="card-header d-flex align-items-center justify-content-between">
                   <h6>My Profile</h6>
-                  <div className="d-flex align-items-center justify-content-center">
-                    <Link
-                      to={routes.profileSettings}
-                      className="p-1 rounded-circle btn btn-light d-flex align-items-center justify-content-center"
-                    >
-                      <i className="isax isax-edit-2 fs-14" />
-                    </Link>
-                  </div>
+                  <Link to={routes.profileSettings} className="p-1 rounded-circle btn btn-light d-flex align-items-center justify-content-center">
+                    <i className="isax isax-edit-2 fs-14" />
+                  </Link>
                 </div>
                 <div className="card-body">
-                  <h6 className="fs-16 mb-3">Basic Information</h6>
-                  <div className="d-flex align-items-center mb-3">
-                    <span className="avatar avatar-xl flex-shrink-0 me-3 ">
-                      <ImageWithBasePath
-                        src="assets/img/users/user-01.jpg"
-                        alt="Img"
-                        className="img-fluid rounded"
-                      />
-                    </span>
-                    <div className="profile-upload">
-                      <div className="mb-2">
-                        <p className="fs-12">
-                          Recommended image size is 40px x 40px
-                        </p>
-                      </div>
-                      <div className="profile-uploader d-flex align-items-center">
-                        <div className="drag-upload-btn btn btn-sm btn-primary me-2">
-                          Upload
-                          <input
-                            type="file"
-                            className="form-control image-sign"
-                            multiple
-                          />
+                  {loading ? (
+                    <div className="text-gray-6">Loading profile...</div>
+                  ) : userProfile ? (
+                    <>
+                      <h6 className="fs-16 mb-3">Basic Information</h6>
+                      <div className="d-flex align-items-center mb-3">
+                        <span className="avatar avatar-xl flex-shrink-0 me-3">
+                          <ImageWithBasePath src={avatarSrc} alt={displayName} className="img-fluid rounded-circle" />
+                        </span>
+                        <div>
+                          <h5 className="mb-1">{displayName}</h5>
+                          <p className="mb-1 text-gray-6">{userProfile.email || 'No email on file'}</p>
+                          <span className="badge badge-soft-info rounded-pill">Customer</span>
                         </div>
-                        <Link
-                          to="#"
-                          className="btn btn-light btn-sm"
-                        >
-                          Cancel
-                        </Link>
                       </div>
-                    </div>
-                  </div>
-                  <div className="row border-bottom pb-2 mb-3">
-                    <div className="col-md-6">
-                      <div className="mb-2">
-                        <h6 className="fs-14">First Name</h6>
-                        <p>Jeffrey </p>
+                      <div className="row border-bottom pb-2 mb-3">
+                        <div className="col-md-6">
+                          <div className="mb-2">
+                            <h6 className="fs-14">Display Name</h6>
+                            <p>{displayName}</p>
+                          </div>
+                        </div>
+                        <div className="col-md-6">
+                          <div className="mb-2">
+                            <h6 className="fs-14">Email</h6>
+                            <p>{userProfile.email || 'Not available'}</p>
+                          </div>
+                        </div>
+                        <div className="col-md-6">
+                          <div className="mb-2">
+                            <h6 className="fs-14">Phone</h6>
+                            <p>{userProfile.phone || 'Not set'}</p>
+                          </div>
+                        </div>
+                        <div className="col-md-6">
+                          <div className="mb-2">
+                            <h6 className="fs-14">Member Since</h6>
+                            <p>{formatDate(userProfile.joinedAt || userProfile.createdAt)}</p>
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                    <div className="col-md-6">
-                      <div className="mb-2">
-                        <h6 className="fs-14">Last Name</h6>
-                        <p>Wilson</p>
+                      <h6 className="fs-16 mb-3">Account Information</h6>
+                      <div className="row g-2">
+                        <div className="col-md-6">
+                          <div>
+                            <h6 className="fs-14">Role</h6>
+                            <p className="text-capitalize">{userProfile.role}</p>
+                          </div>
+                        </div>
+                        <div className="col-md-6">
+                          <div>
+                            <h6 className="fs-14">User ID</h6>
+                            <p>{userProfile.uid}</p>
+                          </div>
+                        </div>
+                        <div className="col-12">
+                          <div className="alert alert-light mb-0">Profile data is read from `users/{userProfile.uid}`.</div>
+                        </div>
                       </div>
-                    </div>
-                    <div className="col-md-6">
-                      <div className="mb-2">
-                        <h6 className="fs-14">Email</h6>
-                        <p>chrfo2356@example.com</p>
-                      </div>
-                    </div>
-                    <div className="col-md-6">
-                      <div className="mb-2">
-                        <h6 className="fs-14">Phone</h6>
-                        <p>+1 12656 26654</p>
-                      </div>
-                    </div>
-                  </div>
-                  <h6 className="fs-16 mb-3">Address Information</h6>
-                  <div className="row g-2">
-                    <div className="col-md-12">
-                      <div>
-                        <h6 className="fs-14">Address</h6>
-                        <p>4530 Clousson Road, Houston </p>
-                      </div>
-                    </div>
-                    <div className="col-md-6">
-                      <div>
-                        <h6 className="fs-14">Country</h6>
-                        <p>United States Of America</p>
-                      </div>
-                    </div>
-                    <div className="col-md-6">
-                      <div>
-                        <h6 className="fs-14">State</h6>
-                        <p>California</p>
-                      </div>
-                    </div>
-                    <div className="col-md-6">
-                      <div>
-                        <h6 className="fs-14">City</h6>
-                        <p>San Francisco</p>
-                      </div>
-                    </div>
-                    <div className="col-md-6">
-                      <div>
-                        <h6 className="fs-14">Postal Code</h6>
-                        <p>94105</p>
-                      </div>
-                    </div>
-                  </div>
+                    </>
+                  ) : (
+                    <div className="alert alert-light mb-0">No customer profile found.</div>
+                  )}
                 </div>
               </div>
             </div>
-            {/* /My Profile */}
           </div>
         </div>
       </div>
-      {/* /Page Wrapper */}
-
     </div>
-  )
-}
+  );
+};
 
-export default MyProfile
+export default MyProfile;
