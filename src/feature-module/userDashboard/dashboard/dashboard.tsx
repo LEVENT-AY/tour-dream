@@ -129,8 +129,8 @@ const Dashboard = () => {
                                             <div className="card shadow-none h-100 mb-0">
                                                 <div className="card-body">
                                                     <p className="text-gray-6 mb-1">Orders</p>
-                                                    <h3 className="mb-1">—</h3>
-                                                    <p className="mb-0 text-gray-6">Not connected yet</p>
+                                                    <h3 className="mb-1">0</h3>
+                                                    <p className="mb-0 text-gray-6">No orders yet</p>
                                                 </div>
                                             </div>
                                         </div>
@@ -138,8 +138,8 @@ const Dashboard = () => {
                                             <div className="card shadow-none h-100 mb-0">
                                                 <div className="card-body">
                                                     <p className="text-gray-6 mb-1">Favorites</p>
-                                                    <h3 className="mb-1">—</h3>
-                                                    <p className="mb-0 text-gray-6">Wishlist data not wired yet</p>
+                                                    <h3 className="mb-1">0</h3>
+                                                    <p className="mb-0 text-gray-6">No saved items yet</p>
                                                 </div>
                                             </div>
                                         </div>
