@@ -1,0 +1,150 @@
+
+import { Link } from 'react-router-dom'
+import { all_routes } from '../../../router/all_routes'
+import ImageWithBasePath from '../../../../core/common/imageWithBasePath';
+import type { Booking } from '../../../../core/services/firebaseServices';
+import { bookingStatusDisplay } from '../../../../core/services/agentServices';
+
+interface AgentTourBookingModalProps {
+    booking?: Booking | null;
+}
+
+const AgentTourBookingModal = ({ booking }: AgentTourBookingModalProps) => {
+
+    const routes = all_routes;
+    const status = bookingStatusDisplay(booking?.status);
+    const amount = typeof booking?.totalAmount === 'number' ? booking.totalAmount : booking?.price || 0;
+    const currency = booking?.currency || 'USD';
+
+    const formatDate = (value?: string) => {
+        if (!value) return '—';
+        try {
+            return new Date(value).toLocaleString(undefined, { year: 'numeric', month: 'short', day: '2-digit' });
+        } catch {
+            return value;
+        }
+    };
+
+    const ModalContent = () => (
+        <div className="modal-content">
+            <div className="modal-header">
+                <h5>
+                    Booking Info{" "}
+                    <span className="fs-14 fw-medium text-primary">#{booking?.id?.slice(-6).toUpperCase() || '—'}</span>
+                </h5>
+                <Link
+                    to="#"
+                    data-bs-dismiss="modal"
+                    className="btn-close text-dark"
+                />
+            </div>
+            <div className="modal-body">
+                <div className="upcoming-content">
+                    <div className="upcoming-title mb-4 d-flex align-items-center justify-content-between p-3 rounded">
+                        <div className="d-flex align-items-center flex-wrap">
+                            <div className="me-2">
+                                <ImageWithBasePath
+                                    src={booking?.itemImage || "assets/img/tours/tours-21.jpg"}
+                                    alt="image"
+                                    className="avatar avartar-md avatar-rounded"
+                                    fallbackSrc="assets/img/tours/tours-21.jpg"
+                                />
+                            </div>
+                            <div>
+                                <h6 className="mb-1">{booking?.itemTitle || 'Tour'}</h6>
+                                <div className="title-list">
+                                    <p className="d-flex align-items-center pe-2 me-2 border-end border-light fw-normal">
+                                        <i className="isax isax-signpost5 me-2" />
+                                        {booking?.itemType ? booking.itemType.charAt(0).toUpperCase() + booking.itemType.slice(1) : 'Tour'}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        <div>
+                            <span className={`badge ${status.badge} rounded-pill d-inline-flex align-items-center fs-10`}>
+                                <i className="fa-solid fa-circle fs-5 me-1" />
+                                {status.label}
+                            </span>
+                        </div>
+                    </div>
+                    <div className="upcoming-details ">
+                        <h6 className="mb-2">Booking Info</h6>
+                        <div className="row gy-3">
+                            <div className="col-lg-3">
+                                <h6 className="fs-14">Customer</h6>
+                                <p className="text-gray-6 fs-16 ">{booking?.userName || booking?.userEmail || '—'}</p>
+                            </div>
+                            <div className="col-lg-3">
+                                <h6 className="fs-14">Booked On</h6>
+                                <p className="text-gray-6 fs-16 ">{formatDate(booking?.createdAt)}</p>
+                            </div>
+                            <div className="col-lg-3">
+                                <h6 className="fs-14">Booking Date</h6>
+                                <p className="text-gray-6 fs-16 ">{formatDate(booking?.bookingDate)}</p>
+                            </div>
+                            <div className="col-lg-3">
+                                <h6 className="fs-14">Amount</h6>
+                                <p className="text-gray-6 fs-16 ">{new Intl.NumberFormat(undefined, { style: 'currency', currency }).format(amount)}</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="upcoming-details">
+                        <h6 className="mb-2">Customer Info</h6>
+                        <div className="row gy-3">
+                            <div className="col-lg-3">
+                                <h6 className="fs-14">Name</h6>
+                                <p className="text-gray-6 fs-16 ">{booking?.userName || '—'}</p>
+                            </div>
+                            <div className="col-lg-3">
+                                <h6 className="fs-14">Email</h6>
+                                <p className="text-gray-6 fs-16 ">{booking?.userEmail || '—'}</p>
+                            </div>
+                            <div className="col-lg-3">
+                                <h6 className="fs-14">Phone</h6>
+                                <p className="text-gray-6 fs-16 ">{booking?.userPhone || '—'}</p>
+                            </div>
+                        </div>
+                    </div>
+                    {booking?.cancellationReason && (
+                        <div className="upcoming-details mb-0">
+                            <h6 className="mb-2">Cancel Reason</h6>
+                            <div className="row">
+                                <div className="col-lg-5">
+                                    <h6 className="fs-14">Reason</h6>
+                                    <p className="text-gray-6 fs-16 ">{booking.cancellationReason}</p>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            </div>
+            <div className="modal-footer">
+                <Link to={routes.tourDetails} className="btn btn-md btn-primary">
+                    View Listing
+                </Link>
+            </div>
+        </div>
+    );
+
+    return (
+        <>
+            <div className="modal fade" id="upcoming">
+                <div className="modal-dialog modal-dialog-centered modal-xl">
+                    <ModalContent />
+                </div>
+            </div>
+            <div className="modal fade" id="completed">
+                <div className="modal-dialog modal-dialog-centered modal-xl">
+                    <ModalContent />
+                </div>
+            </div>
+            <div className="modal fade" id="cancelled">
+                <div className="modal-dialog modal-dialog-centered modal-xl">
+                    <ModalContent />
+                </div>
+            </div>
+        </>
+    );
+}
+
+export default AgentTourBookingModal

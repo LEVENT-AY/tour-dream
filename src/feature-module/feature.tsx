@@ -1,0 +1,117 @@
+import { Outlet, useLocation } from "react-router";
+import { useEffect, useState } from "react";
+import Header from "../core/common/header/header";
+import Cursor from "../core/common/cursor/cursor";
+import BackToTop from "../core/common/backtotop/backToTop";
+import Footer from "../core/common/footer/footer";
+import FooterSeven from "./home-seven/footerSeven";
+
+const Feature = () => {
+  const [showLoader, setShowLoader] = useState(false);
+
+  const location = useLocation();
+  const isDashboardRoute =
+    location.pathname.startsWith('/agent') ||
+    location.pathname.startsWith('/admin') ||
+    location.pathname.startsWith('/user');
+
+  const Preloader = () => {
+    return (
+      <div id="loader-wrapper">
+        <div id="loader">
+          <span className="loader-line" />
+        </div>
+      </div>
+    );
+  };
+useEffect(() => {
+  window.scrollTo({
+    top: 0,
+    left: 0,
+    behavior: "instant", // or "smooth"
+  });
+
+  if (location.pathname.includes("index")) {
+    setShowLoader(true);
+    const timeoutId = setTimeout(() => {
+      setShowLoader(false);
+    }, 2000);
+
+    return () => clearTimeout(timeoutId);
+  }
+}, [location.pathname]);
+  return (
+    <>
+      <div>
+        <>
+          {isDashboardRoute ? (
+            <Outlet />
+          ) : showLoader ? (
+            <>
+              <Preloader />
+              <div>
+                {location.pathname === "/index-10" || location.pathname === "/index-12" ? (
+                  <></>
+                ) : (
+                  <Header />
+                )}
+                <Outlet />
+                {location.pathname === "/index-4" ||
+                location.pathname === "/index-5" ||
+                location.pathname === "/index-6" ||
+                location.pathname === "/index-7" ||
+                location.pathname === "/index-8" || 
+                location.pathname === "/index-10" ? (
+                  <></>
+                ) : (
+                  <Footer />
+                )}
+
+                <Cursor />
+                <BackToTop />
+              </div>
+            </>
+          ) : (
+            <>
+              <div>
+                {location.pathname === "/index-10" || location.pathname === "/index-12" ? (
+                  <></>
+                ) : (
+                  <Header />
+                )}
+                <Outlet />
+                {/* Show Footer on all routes except index-2 to index-6 */}
+                {![
+                  "/index",
+                  "/index-2",
+                  "/index-4",
+                  "/index-5",
+                  "/index-6",
+                  "/index-7",
+                  "/index-8",
+                  "/index-9",
+                  "/index-10",
+                  "/index-11",
+                  "/index-12",
+                ].includes(location.pathname) && <Footer />}
+
+                {/* Show FooterSeven only on /index-7 */}
+                {location.pathname === "/index-9" && <FooterSeven />}
+                {
+                  location.pathname === '/index-2'?(<></>):(<BackToTop />)
+                }
+                <Cursor />
+                
+              </div>
+            </>
+          )}
+        </>
+        {/* <Loader/> */}
+
+        <div className="sidebar-overlay"></div>
+      </div>
+    </>
+  );
+};
+
+export default Feature;

@@ -1,0 +1,170 @@
+# Project Status
+
+## Completed
+- Phase 1 Auth/RBAC complete.
+- Admin dashboard complete and deployed.
+- Public catalog migrated to Firestore.
+- Demo images repaired and uploaded to Firebase Storage.
+- Agent Phase 2B approval/access bug fixed; stale hosting build issue resolved.
+- Temporary Phase 2B test accounts and test Firestore records cleaned up.
+- Admin account still works.
+- Latest build passed.
+- Agent Profile and Settings are now Firestore-backed.
+- Agent safe profile fields can be updated.
+- Protected role/approval/status fields are blocked.
+- Agent profile image upload works through Firebase Storage.
+- Firestore and Storage rules were updated and deployed.
+- Production build passed.
+- Firebase Hosting was redeployed.
+- Temporary verification accounts and artifacts were cleaned up.
+- Agent Tours listing flow is now Firestore-backed.
+- Agent can create/edit owned Tour drafts.
+- Agent can submit Tour for review.
+- Agent cannot publish or feature Tours directly.
+- Admin can approve and publish Agent Tours.
+- Approved published Agent Tours appear on public `/tour-grid`.
+- Required public visibility fields confirmed:
+  - published
+  - title
+  - image
+  - location
+  - price
+  - duration
+- Build passed.
+- Hosting was redeployed successfully.
+- Temporary test tour and test data were cleaned up.
+- No remaining issue for Agent Tours.
+- Agent Hotels listing flow is now Firestore-backed.
+- Agent can create/edit owned Hotel drafts.
+- Agent can submit Hotel for review.
+- Agent cannot publish or feature Hotels directly.
+- Admin can approve and publish Agent Hotels.
+- Approved published Agent Hotels appear on public `/hotel-grid`.
+- Required public visibility fields confirmed:
+  - published
+  - title
+  - image
+  - location
+  - price
+- Storage path used:
+  - `agents/{uid}/listings/hotels/{hotelId}/{fileName}`
+- Build passed.
+- Hosting was redeployed successfully.
+- Temporary test hotel, test account, and storage files were cleaned up.
+- No remaining issue for Agent Hotels.
+- Agent Flights listing flow is now Firestore-backed.
+- Agent can create/edit owned Flight drafts.
+- Agent can submit Flight for review.
+- Agent cannot publish or feature Flights directly.
+- Admin can approve and publish Agent Flights.
+- Approved published Agent Flights appear on public `/flight-grid`.
+- Public flight query no longer fetches all documents and filters in the browser.
+- Firestore flight read rules now allow:
+  - anyone to read published flights
+  - admin to read all flights
+  - approved owning agent to read their own unpublished flights
+- Signed-in customers can read published flights.
+- Customers and non-owning agents cannot read unpublished flights.
+- Required public visibility fields confirmed:
+  - published
+  - title
+  - image
+  - location or route fields
+  - price
+  - airline/origin/destination when used
+- Firestore rules tests passed: 17 passed, 0 failed.
+- Firestore rules were deployed successfully.
+- Hosting was redeployed successfully for the frontend flight visibility fix.
+- Temporary test flights and data were cleaned up.
+- No remaining issue for Agent Flights.
+- Agent Cars listing flow is now Firestore-backed.
+- Agent can create/edit owned Car drafts.
+- Agent can submit Car for review.
+- Agent cannot publish or feature Cars directly.
+- Admin can approve and publish Agent Cars.
+- Approved published Agent Cars appear on public `/car-grid`.
+- Public car query now requests only published cars from Firestore.
+- Firestore car read rules now allow:
+  - anyone to read published cars
+  - admin to read all cars
+  - approved owning agent to read their own unpublished cars
+- Signed-in customers can read published cars.
+- Customers and non-owning agents cannot read unpublished cars.
+- Required public visibility fields confirmed:
+  - published
+  - title
+  - brand/model/type fields where used
+  - location
+  - price
+  - image
+  - transmission/fuelType/doors where used
+- Firestore rules tests passed: 23 passed, 0 failed.
+- Firestore rules were deployed successfully.
+- Hosting was redeployed successfully for the frontend car visibility fix.
+- Temporary test cars and data were cleaned up.
+- No remaining issue for Agent Cars.
+- Agent Activities listing flow is now Firestore-backed.
+- Agent can create/edit owned Activity drafts.
+- Agent can submit Activity for review.
+- Agent cannot publish or feature Activities directly.
+- Admin can approve and publish Agent Activities.
+- Approved published Agent Activities appear on public `/activity/activity-grid`.
+- Public activity query now requests only published activities from Firestore.
+- Firestore activity read rules now allow:
+  - anyone to read published activities
+  - admin to read all activities
+  - approved owning agent to read their own unpublished activities
+- Signed-in customers can read published activities.
+- Customers and non-owning agents cannot read unpublished activities.
+- Required public visibility fields confirmed:
+  - published
+  - title
+  - image
+  - location
+  - price
+  - duration
+  - rating
+  - reviewsCount
+- Firestore rules tests passed: 29 passed, 0 failed.
+- Firestore rules were deployed successfully.
+- Hosting was redeployed successfully for the frontend activity visibility fix.
+- Temporary test activity docs and test customer account were cleaned up.
+- No remaining issue for Agent Activities.
+- Agent Resorts listing flow is Firestore-backed.
+- Agent can create/edit owned Resort drafts.
+- Agent can submit Resort for review.
+- Admin can approve and publish Resorts from Admin UI.
+- Admin approval sets approvalStatus = approved and published = true.
+- No public resort route exists yet.
+- Public Firestore read works for approved+published Resorts.
+- Draft/pending Resorts are hidden.
+- Build passed.
+- Deployment completed.
+- Temporary test data cleaned.
+- No remaining issue for Agent Resorts.
+- Agent Chalets listing flow is Firestore-backed.
+- Agent can create/edit owned Chalet drafts.
+- Agent can submit Chalet for review.
+- Agent cannot publish or feature Chalets directly.
+- Admin can approve and publish Chalets from Admin UI.
+- Admin approval sets approvalStatus = approved, status = approved, and published = true.
+- Rejection sets approvalStatus = rejected, status = rejected, published = false, and records rejectionReason.
+- Unpublish keeps approval history.
+- Storage path used:
+  - `agents/{uid}/listings/chalets/{chaletId}/{fileName}`
+- No public chalet route exists yet.
+- Public Firestore read works for approved+published Chalets.
+- Draft/pending Chalets are hidden.
+- Build passed.
+- No deployment was required.
+- Temporary test data cleaned.
+- No remaining issue for Agent Chalets.
+- Stable Agent/Admin chalet verification helpers were added.
+- Real Agent Chalets verification passed end to end.
+
+## Workflow Rules
+- Always use localhost:5174 with `npm run dev:5174`.
+- After frontend code changes, always run `npm run build` before Firebase Hosting deploy.
+- Never deploy hosting from a stale `dist` folder.
+- Use small scoped tasks only.
+- Do not repeat previous audits.

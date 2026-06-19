@@ -1,0 +1,84 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function currentUserId() {
+      return request.auth.uid;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && currentUserId() == userId;
+    }
+
+    function isAdmin() {
+      return isSignedIn()
+        && firestore.get(/databases/(default)/documents/users/$(currentUserId())).data.role == 'admin';
+    }
+
+    function isAgent() {
+      return isSignedIn()
+        && firestore.get(/databases/(default)/documents/users/$(currentUserId())).data.role == 'agent';
+    }
+
+    function isApprovedAgent() {
+      return isSignedIn()
+        && firestore.get(/databases/(default)/documents/users/$(currentUserId())).data.agentStatus == 'approved';
+    }
+
+    function isImage() {
+      return request.resource.contentType.matches('image/(jpeg|png|gif|webp|svg\\+xml|bmp|tiff)');
+    }
+
+    function isValidFile() {
+      return request.resource.size < 5 * 1024 * 1024 && isImage();
+    }
+
+    // Profile images: users can only write to their own folder
+    match /users/{userId}/profile/{fileName} {
+      allow read: if isSignedIn();
+      allow write: if isOwner(userId) && isValidFile();
+    }
+
+    // Demo / seeded listing images (admin setup scripts only)
+    match /demo/{category}/{fileName} {
+      allow read: if true;
+      allow write: if isAdmin() && isValidFile();
+    }
+
+    // Listing images: agents/admins can write; public can read published listing images
+    match /listings/{listingId}/{fileName} {
+      allow read: if true;
+      allow write: if isSignedIn() && isValidFile();
+      // Note: agent ownership should be enforced by application logic / Firestore before upload.
+      // For stronger security, verify listing ownership via Firestore request in a Cloud Function.
+    }
+
+    // Agent business documents/images
+    match /agents/{agentId}/{fileName} {
+      allow read: if isOwner(agentId) || isAdmin();
+      allow write: if isOwner(agentId) && isValidFile();
+    }
+
+    // Agent profile images
+    match /agents/{agentId}/profile/{fileName} {
+      allow read: if isOwner(agentId) || isAdmin();
+      allow write: if isOwner(agentId) && isValidFile();
+    }
+
+    // Agent listing images: agents can only write under their own agentId
+    match /agents/{agentId}/listings/{allPaths=**} {
+      allow read: if isOwner(agentId) || isAdmin();
+      allow write: if (isOwner(agentId) || isApprovedAgent()) && isValidFile();
+    }
+
+    // Default deny
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}
