@@ -75,6 +75,10 @@ service cloud.firestore {
       allow update: if (isOwner(userId) && isSafeUserUpdate()) || (isAdmin() && isAdminUserUpdate());
     }
 
+    match /users/{userId}/wishlist/{itemId} {
+      allow read, create, update, delete: if isOwner(userId);
+    }
+
     // ---------- Agent applications ----------
     match /agentApplications/{applicationId} {
       allow read: if isAdmin() || isOwner(resource.data.userId);

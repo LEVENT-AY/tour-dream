@@ -5,7 +5,7 @@ import Breadcrumb from '../../../core/common/Breadcrumb/breadcrumb';
 import Sidebar from '../../../core/common/sidebar/sidebar';
 import ImageWithBasePath from '../../../core/common/imageWithBasePath';
 import { useAuth } from '../../../core/contexts/AuthContext';
-import { fetchUserBookings, type Booking } from '../../../core/services/firebaseServices';
+import { fetchUserBookings, fetchUserWishlist, type Booking } from '../../../core/services/firebaseServices';
 
 const formatDate = (value?: string) => {
     if (!value) return 'Not available';
@@ -28,6 +28,7 @@ const Dashboard = () => {
     const routes = all_routes;
     const { userProfile } = useAuth();
     const [bookings, setBookings] = useState<Booking[]>([]);
+    const [wishlistCount, setWishlistCount] = useState(0);
     const [bookingsLoading, setBookingsLoading] = useState(false);
     const [bookingsError, setBookingsError] = useState<string | null>(null);
 
@@ -50,12 +51,18 @@ const Dashboard = () => {
         setBookingsLoading(true);
         setBookingsError(null);
 
-        fetchUserBookings(userProfile.uid)
-            .then((data) => {
-                if (isMounted) setBookings(data);
+        Promise.all([
+            fetchUserBookings(userProfile.uid),
+            fetchUserWishlist(userProfile.uid),
+        ])
+            .then(([bookingData, wishlistData]) => {
+                if (isMounted) {
+                    setBookings(bookingData);
+                    setWishlistCount(wishlistData.length);
+                }
             })
             .catch((error) => {
-                console.error('Failed to load customer bookings:', error);
+                console.error('Failed to load customer dashboard data:', error);
                 if (isMounted) setBookingsError('Bookings are not connected yet.');
             })
             .finally(() => {
@@ -137,9 +144,9 @@ const Dashboard = () => {
                                         <div className="col-md-4">
                                             <div className="card shadow-none h-100 mb-0">
                                                 <div className="card-body">
-                                                    <p className="text-gray-6 mb-1">Favorites</p>
-                                                    <h3 className="mb-1">0</h3>
-                                                    <p className="mb-0 text-gray-6">No saved items yet</p>
+                                                    <p className="text-gray-6 mb-1">Wishlist</p>
+                                                    <h3 className="mb-1">{wishlistCount}</h3>
+                                                    <p className="mb-0 text-gray-6">{wishlistCount === 0 ? 'No saved items yet' : 'Saved items'}</p>
                                                 </div>
                                             </div>
                                         </div>

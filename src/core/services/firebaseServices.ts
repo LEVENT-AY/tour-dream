@@ -430,6 +430,42 @@ export interface Booking {
   updatedAt?: string;
 }
 
+export interface WishlistItem {
+  id?: string;
+  userId: string;
+  itemId: string;
+  itemType: "tour" | "hotel" | "car" | "flight" | "activities" | "visa" | "cruise" | "resort" | "chalet";
+  itemTitle: string;
+  itemImage?: string;
+  location?: string;
+  price?: number;
+  currency?: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export const fetchUserWishlist = async (userId: string): Promise<WishlistItem[]> => {
+  const snapshot = await getDocs(collection(db, "users", userId, "wishlist"));
+  return snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as WishlistItem));
+};
+
+export const addToWishlist = async (
+  userId: string,
+  item: Omit<WishlistItem, "id" | "userId" | "createdAt" | "updatedAt">
+): Promise<void> => {
+  const now = new Date().toISOString();
+  await setDoc(doc(db, "users", userId, "wishlist", item.itemId), {
+    ...item,
+    userId,
+    createdAt: now,
+    updatedAt: now,
+  });
+};
+
+export const removeFromWishlist = async (userId: string, itemId: string): Promise<void> => {
+  await deleteDoc(doc(db, "users", userId, "wishlist", itemId));
+};
+
 export const createBooking = async (bookingData: Omit<Booking, "createdAt" | "status">): Promise<string> => {
   const docRef = await addDoc(collection(db, "bookings"), {
     ...bookingData,
