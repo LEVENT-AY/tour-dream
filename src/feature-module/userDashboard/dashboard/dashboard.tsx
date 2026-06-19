@@ -5,7 +5,7 @@ import Breadcrumb from '../../../core/common/Breadcrumb/breadcrumb';
 import Sidebar from '../../../core/common/sidebar/sidebar';
 import ImageWithBasePath from '../../../core/common/imageWithBasePath';
 import { useAuth } from '../../../core/contexts/AuthContext';
-import { fetchUserBookings, fetchUserWishlist, type Booking } from '../../../core/services/firebaseServices';
+import { fetchUserBookings, fetchUserOrders, fetchUserWishlist, type Booking } from '../../../core/services/firebaseServices';
 
 const formatDate = (value?: string) => {
     if (!value) return 'Not available';
@@ -29,6 +29,7 @@ const Dashboard = () => {
     const { userProfile } = useAuth();
     const [bookings, setBookings] = useState<Booking[]>([]);
     const [wishlistCount, setWishlistCount] = useState(0);
+    const [ordersCount, setOrdersCount] = useState(0);
     const [bookingsLoading, setBookingsLoading] = useState(false);
     const [bookingsError, setBookingsError] = useState<string | null>(null);
 
@@ -53,11 +54,13 @@ const Dashboard = () => {
 
         Promise.all([
             fetchUserBookings(userProfile.uid),
+            fetchUserOrders(userProfile.uid),
             fetchUserWishlist(userProfile.uid),
         ])
-            .then(([bookingData, wishlistData]) => {
+            .then(([bookingData, orderData, wishlistData]) => {
                 if (isMounted) {
                     setBookings(bookingData);
+                    setOrdersCount(orderData.length);
                     setWishlistCount(wishlistData.length);
                 }
             })
@@ -136,8 +139,8 @@ const Dashboard = () => {
                                             <div className="card shadow-none h-100 mb-0">
                                                 <div className="card-body">
                                                     <p className="text-gray-6 mb-1">Orders</p>
-                                                    <h3 className="mb-1">0</h3>
-                                                    <p className="mb-0 text-gray-6">No orders yet</p>
+                                                    <h3 className="mb-1">{ordersCount}</h3>
+                                                    <p className="mb-0 text-gray-6">{ordersCount === 0 ? 'No orders yet' : 'Saved orders'}</p>
                                                 </div>
                                             </div>
                                         </div>

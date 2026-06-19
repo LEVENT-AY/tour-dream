@@ -444,6 +444,19 @@ export interface WishlistItem {
   updatedAt?: string;
 }
 
+export interface UserOrder {
+  id?: string;
+  userId: string;
+  orderId: string;
+  title: string;
+  itemType?: string;
+  status?: string;
+  totalAmount?: number;
+  currency?: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+
 export const fetchUserWishlist = async (userId: string): Promise<WishlistItem[]> => {
   const snapshot = await getDocs(collection(db, "users", userId, "wishlist"));
   return snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as WishlistItem));
@@ -464,6 +477,11 @@ export const addToWishlist = async (
 
 export const removeFromWishlist = async (userId: string, itemId: string): Promise<void> => {
   await deleteDoc(doc(db, "users", userId, "wishlist", itemId));
+};
+
+export const fetchUserOrders = async (userId: string): Promise<UserOrder[]> => {
+  const snapshot = await getDocs(collection(db, "users", userId, "orders"));
+  return snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as UserOrder));
 };
 
 export const createBooking = async (bookingData: Omit<Booking, "createdAt" | "status">): Promise<string> => {
