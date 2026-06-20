@@ -18,6 +18,7 @@
     "smoke:booking-notifications": "node scripts/smoke-booking-notifications.mjs",
     "smoke:tour-booking-expansion": "node scripts/smoke-tour-booking-expansion.mjs",
     "smoke:activity-booking-expansion": "node scripts/smoke-activity-booking-expansion.mjs",
+    "smoke:car-booking-expansion": "node scripts/smoke-car-booking-expansion.mjs",
     "smoke:lodging-public-details": "node scripts/smoke-lodging-public-details.mjs",
     "smoke:lodging-discovery": "node scripts/smoke-lodging-discovery.mjs",
     "smoke:agent-owned-hotel-booking": "node scripts/smoke-agent-owned-hotel-booking.mjs",

@@ -36,6 +36,21 @@ async function login(page, email, password) {
   await page.waitForTimeout(4000);
 }
 
+async function waitForBookingStatus(docRef, expectedStatus, timeoutMs = 15000) {
+  const started = Date.now();
+
+  while (Date.now() - started < timeoutMs) {
+    const snap = await docRef.get();
+    if (snap.exists && snap.data().status === expectedStatus) {
+      return snap.data();
+    }
+    await new Promise((resolve) => setTimeout(resolve, 500));
+  }
+
+  const finalSnap = await docRef.get();
+  return finalSnap.exists ? finalSnap.data() : null;
+}
+
 async function main() {
   const { auth, db } = initFirebase();
   const browser = await chromium.launch({ headless: true });
@@ -132,11 +147,10 @@ async function main() {
     adminSawBooking = true;
 
     await row.getByRole('button', { name: 'Confirm' }).click();
-    await adminPage.waitForTimeout(2500);
-    const afterConfirm = await bookingRef.get();
-    const topAfterConfirm = await topLevelBookingRef.get();
-    confirmed = afterConfirm.exists && afterConfirm.data().status === 'confirmed';
-    mirroredConfirmed = topAfterConfirm.exists && topAfterConfirm.data().status === 'confirmed' && confirmed;
+    const afterConfirm = await waitForBookingStatus(bookingRef, 'confirmed');
+    const topAfterConfirm = await waitForBookingStatus(topLevelBookingRef, 'confirmed');
+    confirmed = afterConfirm?.status === 'confirmed';
+    mirroredConfirmed = topAfterConfirm?.status === 'confirmed' && confirmed;
 
     const customerContext2 = await browser.newContext();
     const customerPage2 = await customerContext2.newPage();
@@ -156,11 +170,10 @@ async function main() {
     const row2 = adminPage2.locator('tr', { hasText: 'Hotel Plaza Athenee' }).filter({ hasText: CUSTOMER_EMAIL }).first();
     await row2.waitFor({ state: 'visible', timeout: 20000 });
     await row2.getByRole('button', { name: 'Cancel' }).click();
-    await adminPage2.waitForTimeout(2500);
-    const afterCancel = await bookingRef.get();
-    const topAfterCancel = await topLevelBookingRef.get();
-    cancelled = afterCancel.exists && afterCancel.data().status === 'cancelled';
-    mirroredCancelled = topAfterCancel.exists && topAfterCancel.data().status === 'cancelled' && cancelled;
+    const afterCancel = await waitForBookingStatus(bookingRef, 'cancelled');
+    const topAfterCancel = await waitForBookingStatus(topLevelBookingRef, 'cancelled');
+    cancelled = afterCancel?.status === 'cancelled';
+    mirroredCancelled = topAfterCancel?.status === 'cancelled' && cancelled;
 
     console.log(JSON.stringify({ adminSawBooking, topLevelCreated, confirmed, mirroredConfirmed, customerSawStatus, cancelled, mirroredCancelled, adminUrl, adminBodyPreview: adminBody.slice(0, 200).replace(/\s+/g, ' '), errors }));
     process.exitCode = adminSawBooking && topLevelCreated && confirmed && mirroredConfirmed && customerSawStatus && cancelled && mirroredCancelled ? 0 : 1;

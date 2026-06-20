@@ -12,6 +12,8 @@ import CarFilter from '../carFilter';
 import { fetchCars } from '../../../core/services/firebaseServices';
 
 const CarGrid = () => {
+    const buildCarDetailsLink = (carId?: string) =>
+        carId ? `${all_routes.carDetails}?id=${encodeURIComponent(carId)}` : all_routes.carDetails;
 
     const [cars, setCars] = useState<any[]>([]);
     const [loadingCars, setLoadingCars] = useState(true);
@@ -168,7 +170,7 @@ const CarGrid = () => {
                                                             <Slider {...imgslideroption}>
                                                                 {car.gallery.map((img: string, i: number) => (
                                                                     <div className="slide-images" key={i}>
-                                                                        <Link to={routes.carDetails}>
+                                                                        <Link to={buildCarDetailsLink(car.id)}>
                                                                             <ImageWithBasePath src={img} className="img-fluid" alt={car.title || "Car image"} fallbackSrc={getCategoryFallbackSrc("cars")} />
                                                                         </Link>
                                                                     </div>
@@ -176,7 +178,7 @@ const CarGrid = () => {
                                                             </Slider>
                                                         </div>
                                                     ) : (
-                                                        <Link to={routes.carDetails}>
+                                                        <Link to={buildCarDetailsLink(car.id)}>
                                                             <ImageWithBasePath src={car.image || car.gallery?.[0]} className="img-fluid" alt={car.title || "Car image"} fallbackSrc={getCategoryFallbackSrc("cars")} />
                                                         </Link>
                                                     )}
@@ -197,7 +199,7 @@ const CarGrid = () => {
                                                             <span className="badge badge-secondary fs-10 fw-medium me-1">{car.type || 'Sedan'}</span>
                                                         </div>
                                                     </div>
-                                                    <h5 className="mb-1 text-truncate"><Link to={routes.carDetails}>{car.title}</Link></h5>
+                                                    <h5 className="mb-1 text-truncate"><Link to={buildCarDetailsLink(car.id)}>{car.title}</Link></h5>
                                                     <p className="d-flex align-items-center mb-3"><i className="isax isax-location5 me-2"></i>{car.location}</p>
                                                     <div className="mb-3 p-2 border rounded">
                                                         <div className="row">

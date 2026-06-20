@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { all_routes } from '../../router/all_routes';
 import Breadcrumb from '../../../core/common/Breadcrumb/breadcrumb';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import ImageWithBasePath from '../../../core/common/imageWithBasePath';
 import Reviews from '../../../core/common/reviews/reviews';
 import Lightbox from "yet-another-react-lightbox";
@@ -11,11 +11,15 @@ import Slider from 'react-slick';
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
 import CarInfo from './carInfo';
+import { fetchCarById } from '../../../core/services/firebaseServices';
 
 const CarDetails = () => {
     const routes = all_routes
+    const [searchParams] = useSearchParams();
+    const carId = searchParams.get('id');
     const [showModal, setShowModal] = React.useState(false);
     const videoUrl = 'https://www.youtube.com/watch?v=4fMuE_t5YL4';
+    const [carData, setCarData] = useState<any | null>(null);
 
     const handleOpenModal = () => setShowModal(true);
     const handleCloseModal = () => setShowModal(false);
@@ -57,6 +61,61 @@ const CarDetails = () => {
             sliderNav: sliderForRef.current,
         });
     }, []);
+
+    useEffect(() => {
+        let active = true;
+
+        const loadCar = async () => {
+            if (!carId) {
+                setCarData(null);
+                return;
+            }
+
+            try {
+                const data = await fetchCarById(carId);
+                if (active) {
+                    setCarData(data);
+                }
+            } catch (error) {
+                console.error('Error loading car details:', error);
+                if (active) {
+                    setCarData(null);
+                }
+            }
+        };
+
+        loadCar();
+
+        return () => {
+            active = false;
+        };
+    }, [carId]);
+
+    const fallbackCar = {
+        id: 'car-demo',
+        title: 'Audi A3 2019',
+        name: 'Audi A3 2019',
+        type: 'Sedan',
+        location: 'Ciutat Vella, Barcelona',
+        price: 500,
+        priceUnit: 'day',
+        rating: 4.5,
+        reviewsCount: 500,
+        image: 'assets/img/cars/car-large-01.jpg',
+        gallery: [
+            'assets/img/cars/car-large-01.jpg',
+            'assets/img/cars/car-large-02.jpg',
+            'assets/img/cars/car-large-03.jpg',
+            'assets/img/cars/car-large-04.jpg',
+            'assets/img/cars/car-large-05.jpg',
+            'assets/img/cars/car-large-06.jpg',
+        ],
+    };
+    const displayCar = carData || fallbackCar;
+    const sliderImages = displayCar.gallery?.length
+        ? displayCar.gallery
+        : [displayCar.image || fallbackCar.image];
+
     const sliderNavSettings = {
         slidesToShow: 4,
         slidesToScroll: 1,
@@ -158,15 +217,15 @@ const CarDetails = () => {
                     <div className="d-flex align-items-center justify-content-between flex-wrap row-gap-2">
                         <div>
                             <div className="d-flex align-items-center mb-2">
-                                <h4 className="d-flex align-items-center flex-wrap fw-bold">Audi A3 2019</h4>
+                                <h4 className="d-flex align-items-center flex-wrap fw-bold">{displayCar.title || displayCar.name}</h4>
                                 <div className="d-flex align-items-center ms-2">
-                                    <span className="badge badge-warning badge-xs text-gray-9 fs-13 fw-medium me-2">4.5</span>
-                                    <p className="fs-14"><Link to="#field_nine">(500 Reviews)</Link></p>
+                                    <span className="badge badge-warning badge-xs text-gray-9 fs-13 fw-medium me-2">{displayCar.rating || 4.5}</span>
+                                    <p className="fs-14"><Link to="#field_nine">({displayCar.reviewsCount || 0} Reviews)</Link></p>
                                 </div>
                             </div>
                             <div className="d-flex align-items-center flex-wrap row-gap-2">
-                                <p className="fs-14 mb-0 me-3 pe-3 border-end d-inline-flex align-items-center"><span><i className="isax isax-smart-car text-primary me-2"></i></span>Sedan</p>
-                                <p className="fs-14 mb-0 me-3 pe-3 border-end"><i className="isax isax-location5 me-2"></i>Ciutat Vella, Barcelona
+                                <p className="fs-14 mb-0 me-3 pe-3 border-end d-inline-flex align-items-center"><span><i className="isax isax-smart-car text-primary me-2"></i></span>{displayCar.type || 'Sedan'}</p>
+                                <p className="fs-14 mb-0 me-3 pe-3 border-end"><i className="isax isax-location5 me-2"></i>{displayCar.location || fallbackCar.location}
                                     <Link to="#field_seven" className="link-primary text-decoration-underline fw-medium ms-2">View Location</Link>
                                 </p>
                                 <div className="d-flex align-items-center flex-wrap row-gap-2">
@@ -182,7 +241,7 @@ const CarDetails = () => {
                             <span className="badge badge-light text-gray-9 badge-md fs-13 fw-medium rounded-pill me-4">No of Bookings : 96</span>
                             <div>
                                 <p className="fs-13 fw-medium mb-1">Starts From</p>
-                                <h5 className="text-primary">$500 <span className="fs-14 text-default fw-normal">/ Night</span></h5>
+                                <h5 className="text-primary">${displayCar.price ?? fallbackCar.price} <span className="fs-14 text-default fw-normal">/ {displayCar.priceUnit || 'day'}</span></h5>
                             </div>
                         </div>
                     </div>
@@ -202,40 +261,23 @@ const CarDetails = () => {
                                     <div className="card-body">
                                         <div className="slider-wrap list-full vertical-slider vertical-slider-two d-flex align-items-center">
                                             <Slider {...sliderNavSettings} ref={sliderNavRef} className="slider-nav small-slick nav-center" >
-                                                <div><ImageWithBasePath src="assets/img/cars/car-thumb-01.jpg" className="img-fluid" alt="Slider Img" /></div>
-                                                <div><ImageWithBasePath src="assets/img/cars/car-thumb-02.jpg" className="img-fluid" alt="Slider Img" /></div>
-                                                <div><ImageWithBasePath src="assets/img/cars/car-thumb-03.jpg" className="img-fluid" alt="Slider Img" /></div>
-                                                <div><ImageWithBasePath src="assets/img/cars/car-thumb-04.jpg" className="img-fluid" alt="Slider Img" /></div>
-                                                <div><ImageWithBasePath src="assets/img/cars/car-thumb-05.jpg" className="img-fluid" alt="Slider Img" /></div>
+                                                {sliderImages.map((image: string, index: number) => (
+                                                    <div key={`car-thumb-${index}`}>
+                                                        <ImageWithBasePath src={image} className="img-fluid" alt={displayCar.title || "Slider Img"} />
+                                                    </div>
+                                                ))}
                                             </Slider>
                                             <Slider {...sliderForSettings} ref={sliderForRef} className="slider-for nav-center">
-                                                <div className="service-img">
-                                                    <ImageWithBasePath src="assets/img/cars/car-large-01.jpg" className="img-fluid" alt="Slider Img" />
-                                                </div>
-                                                <div className="service-img">
-                                                    <ImageWithBasePath src="assets/img/cars/car-large-02.jpg" className="img-fluid" alt="Slider Img" />
-                                                </div>
-                                                <div className="service-img">
-                                                    <ImageWithBasePath src="assets/img/cars/car-large-03.jpg" className="img-fluid" alt="Slider Img" />
-                                                </div>
-                                                <div className="service-img">
-                                                    <ImageWithBasePath src="assets/img/cars/car-large-04.jpg" className="img-fluid" alt="Slider Img" />
-                                                </div>
-                                                <div className="service-img">
-                                                    <ImageWithBasePath src="assets/img/cars/car-large-05.jpg" className="img-fluid" alt="Slider Img" />
-                                                </div>
+                                                {sliderImages.map((image: string, index: number) => (
+                                                    <div className="service-img" key={`car-large-${index}`}>
+                                                        <ImageWithBasePath src={image} className="img-fluid" alt={displayCar.title || "Slider Img"} />
+                                                    </div>
+                                                ))}
                                             </Slider>
                                             <Lightbox
                                                 open={gallery}
                                                 close={() => setGallery(false)}
-                                                slides={[
-                                                    { src: "assets/img/cars/car-large-01.jpg" },
-                                                    { src: "assets/img/cars/car-large-02.jpg" },
-                                                    { src: "assets/img/cars/car-large-03.jpg" },
-                                                    { src: "assets/img/cars/car-large-04.jpg" },
-                                                    { src: "assets/img/cars/car-large-05.jpg" },
-                                                    { src: "assets/img/cars/car-large-06.jpg" },
-                                                ]}
+                                                slides={sliderImages.map((image: string) => ({ src: image }))}
                                             />
                                             <Link
                                                 data-fancybox="gallery"
@@ -831,7 +873,7 @@ const CarDetails = () => {
                             </div>
                         </div>
                         <div className="col-xl-4">
-                            <CarInfo />
+                            <CarInfo car={displayCar} />
                         </div>
                     </div>
                 </div>
