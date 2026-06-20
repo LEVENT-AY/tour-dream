@@ -16,6 +16,7 @@
 - Agent Booking Requests V1 is now validated.
 - Booking mirror consistency is now validated across customer, admin, and agent flows.
 - Booking notifications and status UX are now validated for customer and agent flows.
+- Tour booking expansion is now validated on the real mirrored booking flow.
 - Agent Profile and Settings are now Firestore-backed.
 - Agent safe profile fields can be updated.
 - Protected role/approval/status fields are blocked.

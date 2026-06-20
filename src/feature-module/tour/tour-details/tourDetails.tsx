@@ -2,19 +2,43 @@ import React from 'react'
 import { all_routes } from '../../router/all_routes';
 import Breadcrumb from '../../../core/common/Breadcrumb/breadcrumb';
 import TourDetailSlick from './tourDetailSlider';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import ImageWithBasePath from '../../../core/common/imageWithBasePath';
 import Slider from 'react-slick';
 import Lightbox from "yet-another-react-lightbox";
 import Reviews from '../../../core/common/reviews/reviews';
 import StickyContent from './stickyContent';
+import { fetchTourById } from '../../../core/services/firebaseServices';
 
 
 const TourDetails = () => {
 
     const routes = all_routes
+    const [searchParams] = useSearchParams();
+    const [tourData, setTourData] = React.useState<any>(null);
 
     const [gallery, setGallery] = React.useState(false);
+    const tourId = searchParams.get('id');
+
+    React.useEffect(() => {
+        let isMounted = true;
+
+        const loadTour = async () => {
+            if (!tourId) return;
+            try {
+                const data = await fetchTourById(tourId);
+                if (isMounted && data) setTourData(data);
+            } catch (error) {
+                console.error('Failed to load tour:', error);
+            }
+        };
+
+        loadTour();
+
+        return () => {
+            isMounted = false;
+        };
+    }, [tourId]);
 
     //Breadcrumb Data
     const breadcrumbs = [
@@ -76,10 +100,25 @@ const TourDetails = () => {
         ],
     };
 
+    const displayTour = tourData || {
+        id: 'tour-demo',
+        title: 'DreamsTour',
+        name: 'DreamsTour',
+        image: 'assets/img/tours/tours-16.jpg',
+        gallery: [
+            'assets/img/tours/gallery-tour-01.jpg',
+            'assets/img/tours/gallery-tour-02.jpg',
+            'assets/img/tours/gallery-tour-03.jpg',
+        ],
+        price: 500,
+        location: 'Los Angeles',
+        duration: '4 Day, 3 Night',
+    };
+
     return (
         <div>
             <Breadcrumb
-                title="Tour Details"
+                title={displayTour.title || displayTour.name || 'Tour Details'}
                 breadcrumbs={breadcrumbs}
                 backgroundClass="breadcrumb-bg-02"
             />
@@ -90,6 +129,10 @@ const TourDetails = () => {
                     <div className="row">
                         <div className="col-xl-8">
                             <TourDetailSlick />
+                            <div className="bg-light-200 card-bg-light mb-4">
+                                <h4 className="mb-2">{displayTour.title || displayTour.name || 'Tour Details'}</h4>
+                                <p className="text-muted mb-0">{displayTour.location || 'Tour destination details'}</p>
+                            </div>
                             {/* Description */}
                             <div className="bg-light-200 card-bg-light mb-4">
                                 <h5 className="fs-18 mb-3">Description</h5>
@@ -534,7 +577,7 @@ const TourDetails = () => {
                         {/* /Reviews */}
                         {/* Tour Sidebar */}
                         <div className="col-xl-4 ">
-                            <StickyContent />
+                            <StickyContent tour={displayTour} />
                         </div>
                         {/* /Tour Sidebar */}
                     </div>

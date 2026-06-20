@@ -289,6 +289,12 @@ export const getCatalogItem = async (collectionName: string, itemId: string): Pr
 export const fetchHotelById = async (hotelId: string): Promise<DocumentData | null> =>
   getCatalogItem('hotels', hotelId);
 
+export const fetchTourById = async (tourId: string): Promise<DocumentData | null> =>
+  getCatalogItem('tours', tourId);
+
+export const fetchCarById = async (carId: string): Promise<DocumentData | null> =>
+  getCatalogItem('cars', carId);
+
 export const updateCatalogItem = async (collectionName: string, itemId: string, itemData: any): Promise<void> => {
   await setDoc(doc(db, collectionName, itemId), {
     ...itemData,

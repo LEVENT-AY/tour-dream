@@ -396,7 +396,7 @@ const TourGrid = () => {
                                                         <div className="img-slider image-slide owl-carousel nav-center">
                                                             <Slider {...imgslideroption}>
                                                                 <div className="slide-images">
-                                                                    <Link to={routes.tourDetails}>
+                                                                    <Link to={`${routes.tourDetails}?id=${tour.id}`}>
                                                                         <ImageWithBasePath
                                                                             src={tour.image}
                                                                             className="img-fluid"
@@ -438,7 +438,7 @@ const TourGrid = () => {
                                                             </div>
                                                         </div>
                                                         <h5 className="mb-1 text-truncate">
-                                                            <Link to={routes.tourDetails}>{tour.title}</Link>
+                                                            <Link to={`${routes.tourDetails}?id=${tour.id}`}>{tour.title}</Link>
                                                         </h5>
                                                         <p className="d-flex align-items-center mb-3">
                                                             <i className="isax isax-location5 me-2" />
@@ -464,7 +464,7 @@ const TourGrid = () => {
                                                                 </span>
                                                                 <p className="fs-14 text-gray-9">{tour.duration}</p>
                                                             </div>
-                                                            <Link to={routes.tourBooking} className="btn btn-outline-primary btn-sm">
+                                                            <Link to={`${routes.tourDetails}?id=${tour.id}`} className="btn btn-outline-primary btn-sm">
                                                                 Book Now
                                                             </Link>
                                                         </div>

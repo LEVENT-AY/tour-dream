@@ -1,17 +1,79 @@
 import dayjs from 'dayjs';
 import  { useState } from 'react'
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import ImageWithBasePath from '../../../core/common/imageWithBasePath';
 import { DatePicker } from 'antd';
 import BannerCounter from '../../../core/common/banner-counter/counter';
 import { all_routes } from '../../router/all_routes';
+import { useAuth } from '../../../core/contexts/AuthContext';
+import { createBookingRequest } from '../../../core/services/firebaseServices';
 
+interface StickyContentProps {
+    tour?: {
+        id?: string;
+        title?: string;
+        name?: string;
+        image?: string;
+        gallery?: string[];
+        price?: number;
+        currency?: string;
+        ownerId?: string | null;
+        agentId?: string | null;
+        createdBy?: string | null;
+        location?: string;
+        duration?: string;
+    } | null;
+}
 
-const StickyContent = () => {
+const StickyContent = ({ tour }: StickyContentProps) => {
 
      const routes = all_routes;
+     const navigate = useNavigate();
+     const { userProfile } = useAuth();
 
     const [defaultDate] = useState(dayjs());
+    const [startDate, setStartDate] = useState(defaultDate);
+    const [endDate, setEndDate] = useState(defaultDate.add(1, 'day'));
+    const [submitting, setSubmitting] = useState(false);
+    const [message, setMessage] = useState('');
+
+    const handleBookNow = async (event: React.FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+        if (!userProfile?.uid) {
+            setMessage('Sign in to request this booking.');
+            return;
+        }
+
+        setSubmitting(true);
+        setMessage('');
+
+        try {
+            const ownerId = tour?.ownerId || tour?.agentId || tour?.createdBy || null;
+            await createBookingRequest(userProfile.uid, {
+                listingId: tour?.id || 'tour-demo',
+                listingType: 'tour',
+                title: tour?.title || tour?.name || 'Tour Booking',
+                customerId: userProfile.uid,
+                customerName: userProfile.displayName || userProfile.email || 'Customer',
+                customerEmail: userProfile.email,
+                customerPhone: userProfile.phone,
+                ownerId,
+                agentId: ownerId,
+                listingOwnerId: ownerId,
+                createdBy: tour?.createdBy || null,
+                checkInDate: startDate.toISOString(),
+                checkOutDate: endDate.toISOString(),
+                price: tour?.price ?? 500,
+                currency: tour?.currency || 'USD',
+            });
+            navigate(routes.userTourBooking);
+        } catch (error) {
+            console.error('Failed to create tour booking request:', error);
+            setMessage('Unable to create booking request right now.');
+        } finally {
+            setSubmitting(false);
+        }
+    };
 
     return (
         <div className=''>
@@ -61,7 +123,7 @@ const StickyContent = () => {
                         </h5>
                     </div>
                     <div className="banner-form">
-                        <form >
+                        <form onSubmit={handleBookNow}>
                             <div className="form-info border-0">
                                 <div className="form-item border rounded p-3 mb-3 w-100">
                                     <label className="form-label fs-14 text-default mb-0">
@@ -70,7 +132,8 @@ const StickyContent = () => {
                                     <DatePicker
                                         className="form-control datetimepicker"
                                         placeholder="dd/mm/yyyy"
-                                        defaultValue={defaultDate}
+                                        value={startDate}
+                                        onChange={(date) => setStartDate(date || defaultDate)}
                                         format="DD-MM-YYYY"
                                     />
                                     <p className="fs-12">Monday</p>
@@ -82,7 +145,8 @@ const StickyContent = () => {
                                     <DatePicker
                                         className="form-control datetimepicker"
                                         placeholder="dd/mm/yyyy"
-                                        defaultValue={defaultDate}
+                                        value={endDate}
+                                        onChange={(date) => setEndDate(date || defaultDate.add(1, 'day'))}
                                         format="DD-MM-YYYY"
                                     />
                                     <p className="fs-12">Monday</p>
@@ -123,10 +187,12 @@ const StickyContent = () => {
                             </div>
                             <button
                                 type="submit"
+                                disabled={submitting}
                                 className="btn btn-primary btn-lg search-btn ms-0 w-100 fs-14 d-flex justify-content-center"
                             >
-                                Book Now
+                                {submitting ? 'Requesting...' : 'Book Now'}
                             </button>
+                            {message && <p className="fs-14 text-gray-6 mb-0 mt-2">{message}</p>}
                         </form>
                     </div>
                 </div>
