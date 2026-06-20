@@ -17,6 +17,7 @@
     "smoke:booking-mirror-consistency": "node scripts/smoke-booking-mirror-consistency.mjs",
     "smoke:booking-notifications": "node scripts/smoke-booking-notifications.mjs",
     "smoke:tour-booking-expansion": "node scripts/smoke-tour-booking-expansion.mjs",
+    "smoke:lodging-public-details": "node scripts/smoke-lodging-public-details.mjs",
     "smoke:agent-owned-hotel-booking": "node scripts/smoke-agent-owned-hotel-booking.mjs",
     "smoke:agent-booking-requests": "node scripts/smoke-agent-booking-requests.mjs",
     "smoke:admin-booking-lifecycle": "node scripts/smoke-admin-booking-lifecycle.cjs",

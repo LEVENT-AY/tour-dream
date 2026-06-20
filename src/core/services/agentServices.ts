@@ -278,8 +278,21 @@ export const createAgentListing = async (
   data: Omit<AgentListing, "id">,
   agentId: string
 ): Promise<string> => {
+  const lodgingPropertyType = collectionName === 'hotels'
+    ? 'hotel'
+    : collectionName === 'chalets'
+    ? 'chalet'
+    : collectionName === 'resorts'
+    ? 'resort'
+    : undefined;
   const docRef = await addDoc(collection(db, collectionName), {
     ...data,
+    ...(lodgingPropertyType
+      ? {
+          listingCategory: 'lodging',
+          propertyType: data.propertyType || lodgingPropertyType,
+        }
+      : {}),
     agentId,
     ownerId: agentId,
     createdBy: agentId,

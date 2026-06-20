@@ -3,9 +3,9 @@ import CustomerBookingsPage from '../CustomerBookingsPage';
 const UserHotelsBooking = () => (
   <CustomerBookingsPage
     title="My Bookings"
-    sectionLabel="Hotels"
+    sectionLabel="Lodging"
     emptyMessage="No bookings yet"
-    itemTypes={['hotel']}
+    itemTypes={['hotel', 'chalet', 'resort']}
   />
 );
 

@@ -18,6 +18,7 @@
 - Booking notifications and status UX are now validated for customer and agent flows.
 - Tour booking expansion is now validated on the real mirrored booking flow.
 - Lodging expansion foundation classified chalets/resorts as blocked on public detail routes and deferred villas/apartments to product schema decision.
+- Chalet public details and mirrored booking entry are now validated on the lodging model.
 - Agent Profile and Settings are now Firestore-backed.
 - Agent safe profile fields can be updated.
 - Protected role/approval/status fields are blocked.

@@ -148,6 +148,9 @@ export const fetchHotels = async (): Promise<DocumentData[]> => {
       return {
       ...hotel,
       title: data.title || data.name || '',
+      name: data.name || data.title || '',
+      listingCategory: data.listingCategory || 'lodging',
+      propertyType: data.propertyType || 'hotel',
       image: data.image || (Array.isArray(data.gallery) ? data.gallery[0] : ''),
       price: data.price ?? data.pricePerNight ?? 0,
       rating: data.rating ?? data.starRating ?? 0,
@@ -233,6 +236,40 @@ export const fetchActivities = async (): Promise<DocumentData[]> => {
     });
 };
 
+export const fetchChalets = async (): Promise<DocumentData[]> => {
+  const q = query(collection(db, 'chalets'), where('published', '==', true));
+  const snapshot = await getDocs(q);
+  return snapshot.docs
+    .map((doc) => ({ id: doc.id, ...(doc.data() as DocumentData) }))
+    .filter((chalet) => {
+      const data = chalet as DocumentData;
+      const approvalStatus = String(data.approvalStatus || data.status || 'approved').toLowerCase();
+      return data.published === true && approvalStatus !== 'rejected' && approvalStatus !== 'suspended';
+    })
+    .map((chalet) => {
+      const data = chalet as DocumentData;
+      return {
+        ...chalet,
+        title: data.title || data.name || '',
+        name: data.name || data.title || '',
+        listingCategory: data.listingCategory || 'lodging',
+        propertyType: data.propertyType || 'chalet',
+        location: data.location || data.city || data.country || '',
+        price: data.price ?? data.pricePerNight ?? 0,
+        rating: data.rating ?? 0,
+        reviewsCount: data.reviewsCount ?? 0,
+        image: data.mainImage || data.image || (Array.isArray(data.gallery) ? data.gallery[0] : ''),
+        gallery: Array.isArray(data.gallery) ? data.gallery : [],
+        description: data.description || '',
+        amenities: Array.isArray(data.amenities) ? data.amenities : typeof data.amenities === 'string' && data.amenities ? [data.amenities] : [],
+        availability: data.availability,
+        capacity: data.capacity ?? 0,
+        bedrooms: data.bedrooms ?? 0,
+        bathrooms: data.bathrooms ?? 0,
+      };
+    });
+};
+
 export const fetchResorts = async (): Promise<DocumentData[]> => {
   const q = query(collection(db, "resorts"), where("published", "==", true));
   const snapshot = await getDocs(q);
@@ -250,6 +287,8 @@ export const fetchResorts = async (): Promise<DocumentData[]> => {
         ...resort,
         title: data.title || data.name || '',
         name: data.name || data.title || '',
+        listingCategory: data.listingCategory || 'lodging',
+        propertyType: data.propertyType || 'resort',
         location: data.location || data.city || data.country || '',
         price: data.price ?? data.startingPrice ?? 0,
         rating: data.rating ?? 0,
@@ -294,6 +333,12 @@ export const fetchTourById = async (tourId: string): Promise<DocumentData | null
 
 export const fetchCarById = async (carId: string): Promise<DocumentData | null> =>
   getCatalogItem('cars', carId);
+
+export const fetchChaletById = async (chaletId: string): Promise<DocumentData | null> =>
+  getCatalogItem('chalets', chaletId);
+
+export const fetchResortById = async (resortId: string): Promise<DocumentData | null> =>
+  getCatalogItem('resorts', resortId);
 
 export const updateCatalogItem = async (collectionName: string, itemId: string, itemData: any): Promise<void> => {
   await setDoc(doc(db, collectionName, itemId), {

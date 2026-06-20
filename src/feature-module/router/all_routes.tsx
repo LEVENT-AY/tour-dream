@@ -38,6 +38,8 @@ export const all_routes = {
     hotelDetails: "/hotel/hotel-details",
     hotelBooking: "/hotel/hotel-booking",
     hotelBookingConfirmation: "/hotel/hotel-booking-confirmation",
+    chaletDetails: "/chalet/chalet-details",
+    resortDetails: "/resort/resort-details",
 
     //Car
     addCar: "/car/add-car",
