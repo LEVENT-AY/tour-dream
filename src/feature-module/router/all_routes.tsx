@@ -128,6 +128,7 @@ export const all_routes = {
     //Agent 
     agentDashboard: "/agent/agent-dashboard",
     agentListing:"/agent/agent-listings",
+    agentBookingRequests: "/agent/agent-booking-requests",
     editHotel: "/edit-hotel",
     editCar: "/edit-car",
     editFlight: "/edit-flight",

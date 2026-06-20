@@ -111,6 +111,13 @@ const Sidebar = () => {
                                 </li>
                                 <li>
                                     <Link
+                                        to={routes.agentBookingRequests}
+                                        className={`fs-14 d-inline-flex align-items-center ${location.pathname.includes('agent-booking-requests') ? 'active' : ''}`}>
+                                        Requests
+                                    </Link>
+                                </li>
+                                <li>
+                                    <Link
                                         to={routes.agentCarBooking}
                                         className={`fs-14 d-inline-flex align-items-center ${location.pathname.includes('agent-car-booking') ? 'active' : ''}`}
                                     >

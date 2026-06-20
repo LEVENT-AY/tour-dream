@@ -13,6 +13,7 @@
 - Hotel ownership foundation now persists agent ownership fields for future listings.
 - Dynamic hotel details now loads hotel docs by query id when available.
 - Agent-owned hotel booking smoke validated.
+- Agent Booking Requests V1 is now validated.
 - Agent Profile and Settings are now Firestore-backed.
 - Agent safe profile fields can be updated.
 - Protected role/approval/status fields are blocked.

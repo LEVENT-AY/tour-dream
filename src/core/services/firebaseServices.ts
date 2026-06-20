@@ -524,7 +524,9 @@ export const createUserBookingRequest = async (
 ): Promise<string> => {
   const now = new Date().toISOString();
   const bookingOwnerId = bookingData.ownerId || bookingData.listingOwnerId || bookingData.agentId || null;
-  const docRef = await addDoc(collection(db, "users", userId, "bookings"), {
+  const bookingRef = doc(collection(db, "users", userId, "bookings"));
+  const bookingId = bookingRef.id;
+  const bookingPayload = {
     userId,
     userName: bookingData.customerName || "",
     userEmail: bookingData.customerEmail || "",
@@ -549,8 +551,12 @@ export const createUserBookingRequest = async (
     status: "pending",
     createdAt: now,
     updatedAt: now,
-  });
-  return docRef.id;
+  };
+  await setDoc(bookingRef, bookingPayload);
+  if (bookingOwnerId) {
+    await setDoc(doc(db, "bookings", bookingId), bookingPayload);
+  }
+  return bookingId;
 };
 
 export const createBooking = async (bookingData: Omit<Booking, "createdAt" | "status">): Promise<string> => {

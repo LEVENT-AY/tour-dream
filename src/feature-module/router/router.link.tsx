@@ -105,6 +105,7 @@ import SecuritySettings from "../userDashboard/settings/securitySettings";
 import AgentDashboard from "../agent-dashboard/dashboard/agentDashboard";
 import AgentListings from "../agent-dashboard/listing/agentListings";
 import AgentHotelBooking from "../agent-dashboard/Booking/hotel-booking/agentHotelBooking";
+import AgentBookingRequests from "../agent-dashboard/Booking/booking-requests/agentBookingRequests";
 import AgentCarBooking from "../agent-dashboard/Booking/car-booking/agentCarBooking";
 import AgentCruiseBooking from "../agent-dashboard/Booking/cruise-booking/agentCruiseBooking";
 import AgentTourBooking from "../agent-dashboard/Booking/tour-booking/agentTourBooking";
@@ -713,6 +714,11 @@ export const publicRoutes = [
   {
     path: routes.agentHotelBooking,
     element: <AgentHotelBooking />,
+    route: Route,
+  },
+  {
+    path: routes.agentBookingRequests,
+    element: <AgentBookingRequests />,
     route: Route,
   },
   {

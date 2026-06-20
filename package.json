@@ -15,6 +15,7 @@
     "smoke:customer-dashboard": "node scripts/smoke-customer-dashboard.cjs",
     "smoke:booking-request-v1": "node scripts/smoke-booking-request-v1.cjs",
     "smoke:agent-owned-hotel-booking": "node scripts/smoke-agent-owned-hotel-booking.mjs",
+    "smoke:agent-booking-requests": "node scripts/smoke-agent-booking-requests.mjs",
     "smoke:admin-booking-lifecycle": "node scripts/smoke-admin-booking-lifecycle.cjs",
     "cleanup:temp-test-data": "node scripts/cleanup-temp-test-data.cjs",
     "test:rules:firestore": "node scripts/test-firestore-rules.cjs",

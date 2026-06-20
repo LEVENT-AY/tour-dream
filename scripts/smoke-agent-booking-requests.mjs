@@ -16,15 +16,15 @@ function initAdminSdk() {
 
 async function createTempCustomer() {
   const { auth, db } = initAdminSdk();
-  const email = `temp.hotel.customer.${Date.now()}@example.com`;
-  const password = 'TempHotelCustomer123!';
-  const user = await auth.createUser({ email, password, displayName: 'Temp Hotel Customer' });
+  const email = `temp.booking.requests.customer.${Date.now()}@example.com`;
+  const password = 'TempBookingRequests123!';
+  const user = await auth.createUser({ email, password, displayName: 'Temp Booking Requests Customer' });
   await auth.setCustomUserClaims(user.uid, { role: 'customer' });
   const now = new Date().toISOString();
   await db.collection('users').doc(user.uid).set({
     uid: user.uid,
     email,
-    displayName: 'Temp Hotel Customer',
+    displayName: 'Temp Booking Requests Customer',
     role: 'customer',
     createdAt: now,
     joinedAt: now,
@@ -41,27 +41,25 @@ async function login(page, email, password) {
 }
 
 async function main() {
-  const { auth, db } = initAdminSdk();
+  const { db, auth } = initAdminSdk();
   const agent = await createTemporaryApprovedAgent();
   const customer = await createTempCustomer();
   const browser = await chromium.launch({ headless: true });
   const page = await browser.newPage();
+
   let hotelId = '';
   let bookingId = '';
-  let openedRealHotel = false;
-  let bookingCreated = false;
-  let bookingOwnerMatch = false;
-  let userBookingsVisible = false;
-  const errors = [];
+  let agentSawRequest = false;
+  let pageUrl = '';
+  let bodyText = '';
 
   try {
-    // Create agent-owned hotel with reliable ownership metadata.
     const hotelDoc = await db.collection('hotels').add({
       agentId: agent.uid,
       ownerId: agent.uid,
       createdBy: agent.uid,
-      title: `Temp Agent Hotel ${Date.now()}`,
-      name: `Temp Agent Hotel ${Date.now()}`,
+      title: `Temp Booking Requests Hotel ${Date.now()}`,
+      name: `Temp Booking Requests Hotel ${Date.now()}`,
       image: 'assets/img/hotels/hotel-large-01.jpg',
       gallery: ['assets/img/hotels/hotel-large-01.jpg'],
       location: 'Test City',
@@ -80,31 +78,26 @@ async function main() {
     await login(page, customer.email, customer.password);
     await page.goto(`${BASE_URL}/hotel/hotel-details?id=${hotelId}`, { waitUntil: 'domcontentloaded' });
     await page.waitForTimeout(5000);
-    const bodyBefore = (await page.textContent('body')) || '';
-    openedRealHotel = bodyBefore.includes('Temp Agent Hotel') || bodyBefore.includes('Test City');
-
     await page.getByRole('button', { name: 'Book Now' }).click();
     await page.waitForURL((url) => url.toString().includes('/user/customer-hotel-booking'), { timeout: 30000 });
     await page.waitForTimeout(4000);
 
     const bookingSnap = await db.collection('users').doc(customer.uid).collection('bookings').orderBy('createdAt', 'desc').limit(1).get();
     if (!bookingSnap.empty) {
-      const doc = bookingSnap.docs[0];
-      bookingId = doc.id;
-      const data = doc.data();
-      bookingCreated = data.listingType === 'hotel' && data.status === 'pending' && data.customerId === customer.uid && !!data.createdAt;
-      bookingOwnerMatch = data.ownerId === agent.uid || data.agentId === agent.uid || data.listingOwnerId === agent.uid;
+      bookingId = bookingSnap.docs[0].id;
     }
 
-    await page.goto(`${BASE_URL}/user/customer-hotel-booking`, { waitUntil: 'domcontentloaded' });
-    await page.waitForTimeout(3000);
-    const userBookingsBody = (await page.textContent('body')) || '';
-    userBookingsVisible = userBookingsBody.includes('Temp Agent Hotel') || userBookingsBody.toLowerCase().includes('pending');
+    await login(page, agent.email, agent.password);
+    await page.goto(`${BASE_URL}/agent/agent-booking-requests`, { waitUntil: 'domcontentloaded' });
+    await page.waitForTimeout(4000);
+    pageUrl = page.url();
+    bodyText = (await page.textContent('body')) || '';
+    agentSawRequest = bodyText.includes('Temp Booking Requests Hotel') && bodyText.includes(customer.email) && !bodyText.includes('No booking requests found');
 
-    console.log(JSON.stringify({ hotelId, bookingId, openedRealHotel, bookingCreated, bookingOwnerMatch, userBookingsVisible, errors }));
-    process.exitCode = openedRealHotel && bookingCreated && bookingOwnerMatch && userBookingsVisible ? 0 : 1;
+    console.log(JSON.stringify({ hotelId, bookingId, agentSawRequest, pageUrl, bodyPreview: bodyText.slice(0, 500) }));
+    process.exitCode = agentSawRequest ? 0 : 1;
   } catch (err) {
-    console.log(JSON.stringify({ hotelId, bookingId, openedRealHotel, bookingCreated, bookingOwnerMatch, userBookingsVisible, errors, reason: err.message || String(err) }));
+    console.log(JSON.stringify({ hotelId, bookingId, agentSawRequest, pageUrl, bodyPreview: bodyText.slice(0, 500), reason: err.message || String(err) }));
     process.exitCode = 1;
   } finally {
     try {

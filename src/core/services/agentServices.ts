@@ -387,6 +387,10 @@ export const fetchAgentBookings = async (agentId: string): Promise<Booking[]> =>
   }
 };
 
+export const fetchAgentBookingRequests = async (agentId: string): Promise<Booking[]> => {
+  return fetchAgentBookings(agentId);
+};
+
 export const updateBookingStatus = async (
   bookingId: string,
   status: "pending" | "confirmed" | "completed" | "cancelled" | "rejected",
