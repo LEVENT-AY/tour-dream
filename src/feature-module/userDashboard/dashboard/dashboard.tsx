@@ -64,9 +64,9 @@ const Dashboard = () => {
                     setWishlistCount(wishlistData.length);
                 }
             })
-            .catch((error) => {
+                .catch((error) => {
                 console.error('Failed to load customer dashboard data:', error);
-                if (isMounted) setBookingsError('Bookings are not connected yet.');
+                if (isMounted) setBookingsError('Unable to load bookings right now.');
             })
             .finally(() => {
                 if (isMounted) setBookingsLoading(false);
@@ -172,7 +172,7 @@ const Dashboard = () => {
                                     ) : bookingsError ? (
                                         <div className="alert alert-light mb-0">{bookingsError}</div>
                                     ) : bookings.length === 0 ? (
-                                        <div className="alert alert-light mb-0">No bookings yet. New bookings will appear here when the customer bookings collection is live.</div>
+                                        <div className="alert alert-light mb-0">No bookings yet.</div>
                                     ) : (
                                         <div className="row g-3">
                                             {bookings.slice(0, 3).map((booking) => (

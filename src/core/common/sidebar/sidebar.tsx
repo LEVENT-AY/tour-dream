@@ -278,7 +278,7 @@ const Sidebar = () => {
                                     to={routes.profileSettings}
                                     className={`d-flex align-items-center ${location.pathname.includes('settings') ? 'active' : ''}`}
                                 >
-                                    <i className="isax isax-setting-25" /> Settings
+                                    <i className="isax isax-setting-25" /> Profile Settings
                                 </Link>
                             </li>
                             <li>

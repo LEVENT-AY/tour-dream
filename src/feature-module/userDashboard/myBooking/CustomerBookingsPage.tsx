@@ -57,7 +57,7 @@ const CustomerBookingsPage = ({ title, sectionLabel, emptyMessage, itemTypes, fo
       })
       .catch((err) => {
         console.error('Failed to load customer bookings:', err);
-        if (isMounted) setError('Bookings are not connected yet.');
+        if (isMounted) setError('Unable to load bookings right now.');
       })
       .finally(() => {
         if (isMounted) setLoading(false);

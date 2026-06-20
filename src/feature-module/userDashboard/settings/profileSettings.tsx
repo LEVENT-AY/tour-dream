@@ -30,7 +30,7 @@ const ProfileSettings = () => {
 
     const breadcrumbs = [
         {
-            label: 'Settings',
+            label: 'Profile Settings',
             link: routes.allService1,
             active: false,
         },
@@ -81,7 +81,7 @@ const ProfileSettings = () => {
 
     return (
         <div>
-            <Breadcrumb title="Settings" breadcrumbs={breadcrumbs} backgroundClass="breadcrumb-bg-04" />
+            <Breadcrumb title="Profile Settings" breadcrumbs={breadcrumbs} backgroundClass="breadcrumb-bg-04" />
 
             <div className="content">
                 <div className="container">
@@ -92,7 +92,7 @@ const ProfileSettings = () => {
                         <div className="col-xl-9 col-lg-8">
                             <div className="card settings mb-0">
                                 <div className="card-header">
-                                    <h6>Settings</h6>
+                                    <h6>Profile Settings</h6>
                                 </div>
                                 <div className="card-body pb-3">
                                     <div className="settings-link d-flex align-items-center flex-wrap">
