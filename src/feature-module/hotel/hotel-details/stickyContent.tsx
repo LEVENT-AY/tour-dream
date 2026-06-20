@@ -1,16 +1,56 @@
-import  { useState } from 'react'
+import { useState } from 'react'
 import ImageWithBasePath from '../../../core/common/imageWithBasePath'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import BannerCounter from '../../../core/common/banner-counter/counter'
 import { DatePicker } from 'antd'
 import dayjs from "dayjs";
 import { all_routes } from '../../router/all_routes'
+import { useAuth } from '../../../core/contexts/AuthContext'
+import { createUserBookingRequest } from '../../../core/services/firebaseServices'
 
 const StickyContent = () => {
 
     const routes = all_routes
-
+    const navigate = useNavigate();
+    const { userProfile } = useAuth();
     const [defaultDate] = useState(dayjs());
+    const [checkInDate, setCheckInDate] = useState(defaultDate);
+    const [checkOutDate, setCheckOutDate] = useState(defaultDate.add(1, 'day'));
+    const [submitting, setSubmitting] = useState(false);
+    const [message, setMessage] = useState('');
+
+    const handleBookNow = async () => {
+        if (!userProfile?.uid) {
+            setMessage('Sign in to request this booking.');
+            return;
+        }
+
+        setSubmitting(true);
+        setMessage('');
+
+        try {
+            await createUserBookingRequest(userProfile.uid, {
+                listingId: 'hotel-plaza-athenee',
+                listingType: 'hotel',
+                title: 'Hotel Plaza Athenee',
+                customerId: userProfile.uid,
+                customerName: userProfile.displayName || userProfile.email || 'Customer',
+                customerEmail: userProfile.email,
+                customerPhone: userProfile.phone,
+                checkInDate: checkInDate.toISOString(),
+                checkOutDate: checkOutDate.toISOString(),
+                price: 500,
+                currency: 'USD',
+            });
+            navigate(routes.userHotlesBooking);
+        } catch (error) {
+            console.error('Failed to create booking request:', error);
+            setMessage('Unable to create booking request right now.');
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
   return (
     <div className='sticky-components'>
     {/* Availability */}
@@ -28,7 +68,8 @@ const StickyContent = () => {
                             <DatePicker
                                 className="form-control datetimepicker"
                                 placeholder="dd/mm/yyyy"
-                                defaultValue={defaultDate}
+                                value={checkInDate}
+                                onChange={(date) => setCheckInDate(date || defaultDate)}
                                 format="DD-MM-YYYY"
                               />
                             <p className="fs-12">Monday</p>
@@ -38,7 +79,8 @@ const StickyContent = () => {
                             <DatePicker 
                                 className="form-control datetimepicker"
                                 placeholder="dd/mm/yyyy"
-                                defaultValue={defaultDate}
+                                value={checkOutDate}
+                                onChange={(date) => setCheckOutDate(date || defaultDate.add(1, 'day'))}
                                 format="DD-MM-YYYY"
                               />
                             <p className="fs-12">Monday</p>
@@ -65,7 +107,10 @@ const StickyContent = () => {
                             </div>
                         </div>
                     </div>
-                    <button type="button" className="btn btn-primary btn-lg search-btn ms-0 mb-3 w-100 fs-14 d-flex justify-content-center">Book Now</button>
+                    <button type="button" className="btn btn-primary btn-lg search-btn ms-0 mb-3 w-100 fs-14 d-flex justify-content-center" onClick={handleBookNow} disabled={submitting}>
+                        {submitting ? 'Requesting...' : 'Book Now'}
+                    </button>
+                    {message && <p className="fs-14 text-gray-6 mb-0">{message}</p>}
                 </form>
             </div>
             <div className="d-flex align-items-center justify-content-between mt-1">

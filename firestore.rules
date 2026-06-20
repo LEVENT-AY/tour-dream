@@ -83,6 +83,10 @@ service cloud.firestore {
       allow read: if isOwner(userId);
     }
 
+    match /users/{userId}/bookings/{bookingId} {
+      allow read, create, update, delete: if isOwner(userId);
+    }
+
     // ---------- Agent applications ----------
     match /agentApplications/{applicationId} {
       allow read: if isAdmin() || isOwner(resource.data.userId);

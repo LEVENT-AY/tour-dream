@@ -16,6 +16,7 @@ import {
   addDoc, 
   query, 
   where,
+  orderBy,
   updateDoc,
   deleteDoc,
   serverTimestamp,
@@ -430,6 +431,20 @@ export interface Booking {
   updatedAt?: string;
 }
 
+export interface UserBookingRequest {
+  listingId?: string;
+  listingType?: Booking["itemType"];
+  title: string;
+  customerId: string;
+  customerName?: string;
+  customerEmail?: string;
+  customerPhone?: string;
+  checkInDate?: string;
+  checkOutDate?: string;
+  price?: number;
+  currency?: string;
+}
+
 export interface WishlistItem {
   id?: string;
   userId: string;
@@ -484,6 +499,35 @@ export const fetchUserOrders = async (userId: string): Promise<UserOrder[]> => {
   return snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as UserOrder));
 };
 
+export const createUserBookingRequest = async (
+  userId: string,
+  bookingData: UserBookingRequest
+): Promise<string> => {
+  const now = new Date().toISOString();
+  const docRef = await addDoc(collection(db, "users", userId, "bookings"), {
+    userId,
+    userName: bookingData.customerName || "",
+    userEmail: bookingData.customerEmail || "",
+    userPhone: bookingData.customerPhone || "",
+    customerId: bookingData.customerId,
+    customerName: bookingData.customerName || "",
+    customerEmail: bookingData.customerEmail || "",
+    customerPhone: bookingData.customerPhone || "",
+    itemId: bookingData.listingId || bookingData.title,
+    itemTitle: bookingData.title,
+    itemType: bookingData.listingType || "hotel",
+    listingId: bookingData.listingId || bookingData.title,
+    listingType: bookingData.listingType || "hotel",
+    title: bookingData.title,
+    price: bookingData.price,
+    currency: bookingData.currency,
+    status: "pending",
+    createdAt: now,
+    updatedAt: now,
+  });
+  return docRef.id;
+};
+
 export const createBooking = async (bookingData: Omit<Booking, "createdAt" | "status">): Promise<string> => {
   const docRef = await addDoc(collection(db, "bookings"), {
     ...bookingData,
@@ -494,7 +538,7 @@ export const createBooking = async (bookingData: Omit<Booking, "createdAt" | "st
 };
 
 export const fetchUserBookings = async (userId: string): Promise<Booking[]> => {
-  const q = query(collection(db, "bookings"), where("userId", "==", userId));
+  const q = query(collection(db, "users", userId, "bookings"), orderBy("createdAt", "desc"));
   const querySnapshot = await getDocs(q);
   const bookings: Booking[] = [];
   querySnapshot.forEach((doc) => {
