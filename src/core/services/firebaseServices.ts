@@ -331,6 +331,9 @@ export const fetchHotelById = async (hotelId: string): Promise<DocumentData | nu
 export const fetchTourById = async (tourId: string): Promise<DocumentData | null> =>
   getCatalogItem('tours', tourId);
 
+export const fetchActivityById = async (activityId: string): Promise<DocumentData | null> =>
+  getCatalogItem('activities', activityId);
+
 export const fetchCarById = async (carId: string): Promise<DocumentData | null> =>
   getCatalogItem('cars', carId);
 
@@ -479,10 +482,10 @@ export interface Booking {
   itemTitle: string;
   itemImage?: string;
   name?: string;
-  itemType: "tour" | "hotel" | "car" | "flight" | "bus" | "visa" | "cruise" | "activities" | "resort" | "chalet";
+  itemType: "tour" | "hotel" | "car" | "flight" | "bus" | "visa" | "cruise" | "activity" | "activities" | "resort" | "chalet";
   title?: string;
   listingId?: string;
-  listingType?: "tour" | "hotel" | "car" | "flight" | "bus" | "visa" | "cruise" | "activities" | "resort" | "chalet";
+  listingType?: "tour" | "hotel" | "car" | "flight" | "bus" | "visa" | "cruise" | "activity" | "activities" | "resort" | "chalet";
   assignmentScope?: "agent" | "admin";
   price?: number;
   totalAmount?: number;
@@ -513,6 +516,9 @@ export interface UserBookingRequest {
   createdBy?: string | null;
   checkInDate?: string;
   checkOutDate?: string;
+  startDate?: string;
+  endDate?: string;
+  bookingDate?: string;
   price?: number;
   currency?: string;
 }
@@ -567,8 +573,13 @@ const buildBookingPayload = (userId: string, bookingId: string, bookingData: Use
     assignmentScope: assignedAgentId ? "agent" : "admin",
     price: bookingData.price,
     currency: bookingData.currency,
-    checkInDate: bookingData.checkInDate,
-    checkOutDate: bookingData.checkOutDate,
+    ...(bookingData.bookingDate || bookingData.startDate || bookingData.checkInDate
+      ? { bookingDate: bookingData.bookingDate || bookingData.startDate || bookingData.checkInDate }
+      : {}),
+    ...(bookingData.checkInDate ? { checkInDate: bookingData.checkInDate } : {}),
+    ...(bookingData.checkOutDate ? { checkOutDate: bookingData.checkOutDate } : {}),
+    ...(bookingData.startDate ? { startDate: bookingData.startDate } : {}),
+    ...(bookingData.endDate ? { endDate: bookingData.endDate } : {}),
     status: "pending",
     createdAt: now,
     updatedAt: now,
@@ -669,7 +680,7 @@ export interface WishlistItem {
   id?: string;
   userId: string;
   itemId: string;
-  itemType: "tour" | "hotel" | "car" | "flight" | "activities" | "visa" | "cruise" | "resort" | "chalet";
+  itemType: "tour" | "hotel" | "car" | "flight" | "activity" | "activities" | "visa" | "cruise" | "resort" | "chalet";
   itemTitle: string;
   itemImage?: string;
   location?: string;

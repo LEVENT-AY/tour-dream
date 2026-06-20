@@ -5,7 +5,7 @@ const UserAcitivitiesBooking = () => (
     title="My Bookings"
     sectionLabel="Activities"
     emptyMessage="No bookings yet"
-    itemTypes={['activities']}
+    itemTypes={['activity', 'activities']}
   />
 );
 

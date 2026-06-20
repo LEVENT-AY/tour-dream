@@ -171,6 +171,7 @@
 - No remaining issue for Agent Chalets.
 - Stable Agent/Admin chalet verification helpers were added.
 - Real Agent Chalets verification passed end to end.
+- Activity public dynamic details now load Firestore docs by real id, booking requests use the mirrored booking helper with preserved owner metadata, and activity booking expansion smoke passed end to end.
 
 ## Workflow Rules
 - Always use localhost:5174 with `npm run dev:5174`.

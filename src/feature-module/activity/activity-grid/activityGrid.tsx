@@ -348,7 +348,7 @@ const ActivityGrid = () => {
                     <div className="col-xl-4 col-md-6 d-flex" key={activity.id || index}>
                       <div className="place-item mb-4 flex-fill">
                         <div className="place-img">
-                          <Link to={routes.activityDetails}>
+                          <Link to={`${routes.activityDetails}?id=${activity.id}`} data-testid={`activity-card-link-${activity.id}`}>
                             <ImageWithBasePath
                               src={activity.image || activity.gallery?.[0]}
                               className="img-fluid"
@@ -384,7 +384,7 @@ const ActivityGrid = () => {
                             </p>
                           </div>
                           <h5 className="mt-3 mb-1 text-truncate">
-                            <Link to={routes.activityDetails}>{activity.title}</Link>
+                            <Link to={`${routes.activityDetails}?id=${activity.id}`} data-testid={`activity-title-link-${activity.id}`}>{activity.title}</Link>
                           </h5>
                           <div className="d-flex align-items-center justify-content-between mb-2">
                             <p className="d-flex align-items-center fs-14 mb-0">

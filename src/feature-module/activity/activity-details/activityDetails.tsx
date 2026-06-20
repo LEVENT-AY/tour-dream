@@ -2,13 +2,12 @@ import { all_routes } from "../../router/all_routes";
 import Breadcrumb from "../../../core/common/Breadcrumb/breadcrumb";
 import ImageWithBasePath from "../../../core/common/imageWithBasePath";
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import VideoModal from "../../home-Two/videoModal";
 import Slider from "react-slick";
 import Lightbox from "yet-another-react-lightbox";
-import { DatePicker } from "antd";
-import dayjs from "dayjs";
-import BannerCounter from "../../../core/common/banner-counter/counter";
+import { fetchActivityById } from "../../../core/services/firebaseServices";
+import ActivityStickyContent from "./ActivityStickyContent";
 const ActivityDetails = () => {
   const routes = all_routes;
   const [showModal, setShowModal] = React.useState(false);
@@ -16,11 +15,30 @@ const ActivityDetails = () => {
   const [open, setOpen] = React.useState(false);
   const [open2, setOpen2] = React.useState(false);
   const [open3, setOpen3] = React.useState(false);
-  const [defaultDate] = useState(dayjs());
+  const [searchParams] = useSearchParams();
+  const [activityData, setActivityData] = React.useState<any>(null);
   const videoUrl = "https://www.youtube.com/watch?v=4fMuE_t5YL4";
-const disabledDate = (current: any) => {
-  return current && current < dayjs().startOf("day");
-};
+  const activityId = searchParams.get("id");
+
+  React.useEffect(() => {
+    let isMounted = true;
+
+    const loadActivity = async () => {
+      if (!activityId) return;
+      try {
+        const data = await fetchActivityById(activityId);
+        if (isMounted && data) setActivityData(data);
+      } catch (error) {
+        console.error("Failed to load activity:", error);
+      }
+    };
+
+    loadActivity();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [activityId]);
   const handleOpenModal = () => setShowModal(true);
   const handleCloseModal = () => setShowModal(false);
 
@@ -96,10 +114,40 @@ const disabledDate = (current: any) => {
       },
     ],
   };
+
+  const displayActivity = activityData || {
+    id: "activity-demo",
+    title: "Tropical Reef Snorkeling Adventure",
+    name: "Tropical Reef Snorkeling Adventure",
+    category: "Water Sports",
+    image: "assets/img/activities/activity-14.jpg",
+    gallery: [
+      "assets/img/activities/activity-12.jpg",
+      "assets/img/activities/activity-13.jpg",
+      "assets/img/activities/activity-14.jpg",
+      "assets/img/activities/activity-15.jpg",
+      "assets/img/activities/activity-16.jpg",
+    ],
+    description:
+      "Discover colorful coral reefs and exotic marine life in crystal clear tropical waters with a professionally guided snorkeling experience designed for comfort, safety, and fun.",
+    location: "Phuket, Thailand",
+    price: 400,
+    duration: "04 hours",
+    rating: 5,
+    reviewsCount: 400,
+  };
+  const activityGallery = (displayActivity.gallery || [displayActivity.image]).filter(Boolean);
+  const topGallery = [
+    activityGallery[0] || "assets/img/activities/activity-12.jpg",
+    activityGallery[1] || activityGallery[0] || "assets/img/activities/activity-13.jpg",
+    activityGallery[2] || activityGallery[0] || "assets/img/activities/activity-14.jpg",
+    activityGallery[3] || activityGallery[0] || "assets/img/activities/activity-15.jpg",
+    activityGallery[4] || activityGallery[0] || "assets/img/activities/activity-16.jpg",
+  ];
   return (
     <>
       <Breadcrumb
-        title="Activity"
+        title={displayActivity.title || displayActivity.name || "Activity"}
         breadcrumbs={breadcrumbs}
         backgroundClass="breadcrumb-bg-01"
       />
@@ -113,23 +161,7 @@ const disabledDate = (current: any) => {
                   <Lightbox
                       open={open2}
                       close={() => setOpen2(false)}
-                      slides={[
-                        {
-                          src: "assets/img/activities/activity-12.jpg",
-                        },
-                        {
-                          src: "assets/img/activities/activity-13.jpg",
-                        },
-                        {
-                          src: "assets/img/activities/activity-14.jpg",
-                        },
-                        {
-                          src: "assets/img/activities/activity-15.jpg",
-                        },
-                        {
-                          src: "assets/img/activities/activity-16.jpg",
-                        },
-                      ]}
+                      slides={topGallery.map((src) => ({ src }))}
                     />
                   <div className="col-lg-3">
                     <div className="activitys-img">
@@ -140,7 +172,7 @@ const disabledDate = (current: any) => {
                         onClick={()=>setOpen2(true)}
                       >
                         <ImageWithBasePath
-                          src="assets/img/activities/activity-12.jpg"
+                          src={topGallery[0]}
                           alt="img"
                         />
                       </Link>
@@ -153,7 +185,7 @@ const disabledDate = (current: any) => {
                         onClick={()=>setOpen2(true)}
                       >
                         <ImageWithBasePath
-                          src="assets/img/activities/activity-13.jpg"
+                          src={topGallery[1]}
                           alt="img"
                         />
                       </Link>
@@ -164,7 +196,7 @@ const disabledDate = (current: any) => {
                       <div className="position-relative h-100">
                         <Link to="#" className="h-100 d-block">
                           <ImageWithBasePath
-                            src="assets/img/activities/activity-14.jpg"
+                            src={topGallery[2]}
                             className="rounded"
                             alt="Img"
                           />
@@ -196,7 +228,7 @@ const disabledDate = (current: any) => {
                         onClick={()=>setOpen2(true)}
                       >
                         <ImageWithBasePath
-                          src="assets/img/activities/activity-15.jpg"
+                          src={topGallery[3]}
                           alt="img"
                         />
                       </Link>
@@ -209,7 +241,7 @@ const disabledDate = (current: any) => {
                         onClick={()=>setOpen2(true)}
                       >
                         <ImageWithBasePath
-                          src="assets/img/activities/activity-16.jpg"
+                          src={topGallery[4]}
                           alt="img"
                         />
                       </Link>
@@ -221,11 +253,11 @@ const disabledDate = (current: any) => {
                 <div className="d-flex align-items-center mb-2">
                   <div className="me-2 pe-2 border-end d-flex align-items-center">
                     <span className="badge badge-warning badge-xs text-gray-9 fs-13 fw-medium me-2">
-                      5.0
+                      {displayActivity.rating ?? 0}
                     </span>
                     <p className="fs-14">
                       <Link to="#" onClick={scrollToReview}>
-                        (400 Reviews)
+                        ({displayActivity.reviewsCount ?? 0} Reviews)
                       </Link>
                     </p>
                   </div>
@@ -237,16 +269,16 @@ const disabledDate = (current: any) => {
                 <div className="d-flex align-items-center justify-content-between mb-2">
                   <div className="mb-2">
                     <h4 className="mb-1 d-flex align-items-center flex-wrap mb-2">
-                      Tropical Reef Snorkeling Adventure
+                      {displayActivity.title || displayActivity.name}
                     </h4>
                     <div className="d-flex align-items-center flex-wrap">
                       <p className="fs-14 mb-2 me-2 pe-2 border-end">
                         <i className="isax isax-receipt text-primary me-2" />
-                        Water Sports
+                        {displayActivity.category || "Activity"}
                       </p>
                       <p className="fs-14 mb-2">
                         <i className="isax isax-location5 me-2" />
-                        Phuket, Thailand
+                        {displayActivity.location || "Location unavailable"}
                         <Link
                           to="#"
                           onClick={scrollToLocation}
@@ -293,13 +325,8 @@ const disabledDate = (current: any) => {
                   >
                     <div className="accordion-body">
                       <p className="mb-2">
-                        Discover colorful coral reefs and exotic marine life in
-                        crystal clear tropical waters with a professionally
-                        guided snorkeling experience designed for comfort,
-                        safety, and fun. Glide over vibrant coral gardens, spot
-                        tropical fish and other fascinating marine species, and
-                        enjoy shallow reef areas that are ideal for first time
-                        snorkelers.
+                        {displayActivity.description ||
+                          "Discover colorful coral reefs and exotic marine life in crystal clear tropical waters with a professionally guided snorkeling experience designed for comfort, safety, and fun."}
                       </p>
                       <div className="read-more">
                         <div
@@ -1348,194 +1375,7 @@ const disabledDate = (current: any) => {
               </div>
             </div>
             <div className="col-xl-4 theiaStickySidebar">
-              <div className="card shadow-none">
-                <div className="card-body">
-                  <div className=" pb-3 mb-3 border-bottom">
-                    <div className="row">
-                      <div className="col-lg-6">
-                        <p className="mb-2">Starts From</p>
-                        <h4 className="text-primary">
-                          $400{" "}
-                          <span className="fs-14 text-default fw-normal">
-                            / Night
-                          </span>
-                        </h4>
-                      </div>
-                      <div className="col-lg-6">
-                        <label>Select your Date</label>
-                        <div className="input-icon-end position-relative">
-                          <DatePicker
-                            className="form-control datetimepicker"
-                            placeholder="dd/mm/yyyy"
-                            defaultValue={defaultDate}
-                            format="DD-MM-YYYY"
-                            disabledDate={disabledDate}
-                          />
-                          <span className="input-icon-addon">
-                            <i className="isax isax-calendar" />
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="mb-3 timeslot-details">
-                    <span className="mb-2 fw-medium d-block">
-                      Choose Your Timeslot
-                    </span>
-                    <ul>
-                      <li>
-                        <div className="timeslot">
-                          <input
-                            type="radio"
-                            id="timeslot1"
-                            name="timeslot"
-                            defaultChecked
-                          />
-                          <label htmlFor="timeslot1">
-                            <i className="isax isax-clock me-1" />
-                            08:00 AM - 12:00 PM
-                          </label>
-                        </div>
-                      </li>
-                      <li>
-                        <div className="timeslot">
-                          <input type="radio" id="timeslot2" name="timeslot" />
-                          <label htmlFor="timeslot2">
-                            <i className="isax isax-clock me-1" />
-                            10:00 AM - 02:00 PM
-                          </label>
-                        </div>
-                      </li>
-                      <li>
-                        <div className="timeslot">
-                          <input type="radio" id="timeslot3" name="timeslot" />
-                          <label htmlFor="timeslot3">
-                            <i className="isax isax-clock me-1" />
-                            12:00 PM - 04:00 PM
-                          </label>
-                        </div>
-                      </li>
-                      <li>
-                        <div className="timeslot">
-                          <input type="radio" id="timeslot4" name="timeslot" />
-                          <label htmlFor="timeslot4">
-                            <i className="isax isax-clock me-1" />
-                            02:00 PM - 06:00 PM
-                          </label>
-                        </div>
-                      </li>
-                    </ul>
-                  </div>
-                  <div className="mb-3 pb-3 border-bottom">
-                    <div className="card shadow-none mb-0">
-                      <div className="card-body p-3 pb-0">
-                        <div className="border-bottom pb-2 mb-2">
-                          <h6>Details</h6>
-                        </div>
-                        <div className="custom-increment">
-                          <div className="mb-3 d-flex align-items-center justify-content-between">
-                            <label className="form-label text-gray-9 mb-0">
-                              Adults
-                            </label>
-                            <BannerCounter/>
-                          </div>
-                          <div className="mb-3 d-flex align-items-center justify-content-between">
-                            <label className="form-label text-gray-9 mb-0">
-                              Children{" "}
-                              <span className="text-default fw-normal">
-                                ( 2-12 Yrs )
-                              </span>
-                            </label>
-                            <BannerCounter/>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="card shadow-none mb-0">
-                    <div className="card-body p-3 pb-0">
-                      <div className="border-bottom pb-2 mb-3">
-                        <h6>Extra Services</h6>
-                      </div>
-                      <div className="form-check d-flex align-items-center ps-0 mb-3">
-                        <input
-                          className="form-check-input ms-0 mt-0"
-                          name="guest1"
-                          type="checkbox"
-                          id="guest1"
-                          defaultChecked
-                        />
-                        <label
-                          className="form-check-label ms-2 w-100"
-                          htmlFor="guest1"
-                        >
-                          <div className="d-flex align-items-center justify-content-between">
-                            Hotel Pickup &amp; Drop
-                            <span className="fw-semibold">$20</span>
-                          </div>
-                        </label>
-                      </div>
-                      <div className="form-check d-flex align-items-center ps-0 mb-3">
-                        <input
-                          className="form-check-input ms-0 mt-0"
-                          name="guest2"
-                          type="checkbox"
-                          id="guest2"
-                        />
-                        <label
-                          className="form-check-label ms-2 w-100"
-                          htmlFor="guest2"
-                        >
-                          <div className="d-flex align-items-center justify-content-between">
-                            Photo Package
-                            <span className="fw-semibold">$10</span>
-                          </div>
-                        </label>
-                      </div>
-                      <div className="form-check d-flex align-items-center ps-0 mb-3">
-                        <input
-                          className="form-check-input ms-0 mt-0"
-                          name="guest3"
-                          type="checkbox"
-                          id="guest3"
-                        />
-                        <label
-                          className="form-check-label ms-2 w-100"
-                          htmlFor="guest3"
-                        >
-                          <div className="d-flex align-items-center justify-content-between">
-                            Professional Video Clip (30 sec)
-                            <span className="fw-semibold">$40</span>
-                          </div>
-                        </label>
-                      </div>
-                      <div className="form-check d-flex align-items-center ps-0 mb-3">
-                        <input
-                          className="form-check-input ms-0 mt-0"
-                          name="guest4"
-                          type="checkbox"
-                          id="guest4"
-                        />
-                        <label
-                          className="form-check-label ms-2 w-100"
-                          htmlFor="guest4"
-                        >
-                          <div className="d-flex align-items-center justify-content-between">
-                            Refreshment Pack
-                            <span className="fw-semibold">$30</span>
-                          </div>
-                        </label>
-                      </div>
-                    </div>
-                  </div>
-                  <Link
-                    to={routes.activityBooking}
-                    className="btn btn-primary rounded-pill w-100 mt-3"
-                  >
-                    Book Now
-                  </Link>
-                </div>
-              </div>
+              <ActivityStickyContent activity={displayActivity} />
               <div className="card shadow-none">
                 <div className="card-body">
                   <h5 className="fs-18 mb-3">Why Book With Us</h5>
