@@ -417,6 +417,9 @@ export interface Booking {
   customerEmail?: string;
   customerPhone?: string;
   agentId?: string;
+  ownerId?: string | null;
+  listingOwnerId?: string | null;
+  createdBy?: string | null;
   itemId: string;
   itemTitle: string;
   itemImage?: string;
@@ -424,6 +427,7 @@ export interface Booking {
   title?: string;
   listingId?: string;
   listingType?: "tour" | "hotel" | "car" | "flight" | "bus" | "visa" | "cruise" | "activities" | "resort" | "chalet";
+  assignmentScope?: "agent" | "admin";
   price?: number;
   totalAmount?: number;
   currency?: string;
@@ -447,6 +451,10 @@ export interface UserBookingRequest {
   customerName?: string;
   customerEmail?: string;
   customerPhone?: string;
+  agentId?: string | null;
+  ownerId?: string | null;
+  listingOwnerId?: string | null;
+  createdBy?: string | null;
   checkInDate?: string;
   checkOutDate?: string;
   price?: number;
@@ -512,6 +520,7 @@ export const createUserBookingRequest = async (
   bookingData: UserBookingRequest
 ): Promise<string> => {
   const now = new Date().toISOString();
+  const bookingOwnerId = bookingData.ownerId || bookingData.listingOwnerId || bookingData.agentId || null;
   const docRef = await addDoc(collection(db, "users", userId, "bookings"), {
     userId,
     userName: bookingData.customerName || "",
@@ -521,12 +530,17 @@ export const createUserBookingRequest = async (
     customerName: bookingData.customerName || "",
     customerEmail: bookingData.customerEmail || "",
     customerPhone: bookingData.customerPhone || "",
+    agentId: bookingOwnerId,
+    ownerId: bookingOwnerId,
+    listingOwnerId: bookingData.listingOwnerId || bookingData.ownerId || bookingData.agentId || null,
+    createdBy: bookingData.createdBy || userId,
     itemId: bookingData.listingId || bookingData.title,
     itemTitle: bookingData.title,
     itemType: bookingData.listingType || "hotel",
     listingId: bookingData.listingId || bookingData.title,
     listingType: bookingData.listingType || "hotel",
     title: bookingData.title,
+    assignmentScope: bookingOwnerId ? "agent" : "admin",
     price: bookingData.price,
     currency: bookingData.currency,
     status: "pending",

@@ -9,6 +9,7 @@
 - Temporary Phase 2B test accounts and test Firestore records cleaned up.
 - Admin account still works.
 - Latest build passed.
+- Agent Booking Requests V1 is blocked until listings provide owner metadata.
 - Agent Profile and Settings are now Firestore-backed.
 - Agent safe profile fields can be updated.
 - Protected role/approval/status fields are blocked.
