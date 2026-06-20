@@ -167,6 +167,7 @@ export const all_routes = {
 
 
     payment: "/user/payment",
+    userOrders: "/user/orders",
     customerHotelBooking: "/user/customer-hotel-booking",
     userMyProfile: "/user/my-profile",
     userProfileSettings: "/user/profile-settings",

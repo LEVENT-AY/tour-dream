@@ -24,6 +24,7 @@ import Login from "../auth/login/login";
 import HomeOne from "../home-one/homeOne";
 import AddFlight from "../flight/addFlight";
 import Payment from "../userDashboard/payment/payment";
+import UserOrders from "../userDashboard/orders/userOrders";
 import Register from "../auth/register/register";
 import ForgotPassword from "../auth/forgot-password/forgotPassword";
 import ChangePassword from "../auth/change-password/changePassword";
@@ -597,6 +598,11 @@ export const publicRoutes = [
   {
     path: routes.userDashboard,
     element: <Dashboard />,
+    route: Route,
+  },
+  {
+    path: routes.userOrders,
+    element: <UserOrders />,
     route: Route,
   },
   {

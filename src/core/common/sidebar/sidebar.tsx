@@ -244,6 +244,11 @@ const Sidebar = () => {
                                     <i className="isax isax-wallet-add-15" /> Wallet
                                 </Link>
                             </li>
+                            <li>
+                                <Link to={routes.userOrders} className={`d-flex align-items-center ${location.pathname.includes('/user/orders') ? 'active' : ''}`}>
+                                    <i className="isax isax-bag-25" /> Orders
+                                </Link>
+                            </li>
                             <li className="mb-2">
                                 <Link to={routes.payment} className={`d-flex align-items-center ${location.pathname.includes('payment') ? 'active' : ''}`}>
                                     <i className="isax isax-money-recive5" /> Payments
