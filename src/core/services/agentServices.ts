@@ -22,6 +22,9 @@ import { auth, db } from "../../firebase";
 import { uploadAgentProfileImage } from "./agentStorage";
 import {
   fetchAgentBookings as fetchMirroredAgentBookings,
+  fetchUserNotifications,
+  markNotificationRead as markUserNotificationRead,
+  deleteNotification as deleteUserNotification,
   type Booking,
   type Review,
   type AppNotification,
@@ -624,40 +627,19 @@ export interface AgentNotificationItem extends AppNotification {
 export const fetchAgentNotifications = async (
   agentId: string
 ): Promise<AgentNotificationItem[]> => {
-  try {
-    const q = query(
-      collection(db, "notifications"),
-      where("userId", "==", agentId),
-      orderBy("createdAt", "desc")
-    );
-    const snap = await getDocs(q);
-    return snap.docs.map((d) => ({ id: d.id, ...d.data() }) as AgentNotificationItem);
-  } catch {
-    const snap = await getDocs(collection(db, "notifications"));
-    return snap.docs
-      .map((d) => ({ id: d.id, ...d.data() }) as AgentNotificationItem)
-      .filter((n) => n.userId === agentId || n.role === "agent" || n.role === "all")
-      .sort((a, b) => {
-        const ta = new Date(b.createdAt || 0).getTime();
-        const tb = new Date(a.createdAt || 0).getTime();
-        return ta - tb;
-      });
-  }
+  return fetchUserNotifications(agentId) as Promise<AgentNotificationItem[]>;
 };
 
 export const markAgentNotificationRead = async (
+  agentId: string,
   notificationId: string,
   read: boolean
 ): Promise<void> => {
-  await updateDoc(doc(db, "notifications", notificationId), {
-    read,
-    readAt: read ? serverTimestamp() : null,
-    updatedAt: serverTimestamp(),
-  });
+  await markUserNotificationRead(agentId, notificationId, read);
 };
 
-export const deleteAgentNotification = async (notificationId: string): Promise<void> => {
-  await deleteDoc(doc(db, "notifications", notificationId));
+export const deleteAgentNotification = async (agentId: string, notificationId: string): Promise<void> => {
+  await deleteUserNotification(agentId, notificationId);
 };
 
 // AGENT ENQUIRIES

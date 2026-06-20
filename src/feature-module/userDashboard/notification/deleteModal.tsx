@@ -1,7 +1,11 @@
 
 import { Link } from 'react-router-dom'
 
-const DeleteModal = () => {
+interface DeleteModalProps {
+  onConfirm?: () => void;
+}
+
+const DeleteModal = ({ onConfirm }: DeleteModalProps) => {
     return (
         <div>
             <>
@@ -24,7 +28,10 @@ const DeleteModal = () => {
                                             >
                                                 No
                                             </Link>
-                                            <Link to="#" data-bs-dismiss="modal" className="btn btn-primary">
+                                            <Link to="#" data-bs-dismiss="modal" className="btn btn-primary" onClick={(e) => {
+                                                e.preventDefault();
+                                                onConfirm?.();
+                                            }}>
                                                 Yes
                                             </Link>
                                         </div>

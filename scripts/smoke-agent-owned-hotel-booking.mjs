@@ -120,6 +120,10 @@ async function main() {
         await db.collection('users').doc(customer.uid).collection('bookings').doc(bookingId).delete();
         await db.collection('bookings').doc(bookingId).delete();
       }
+      const notificationSnap = await db.collection('users').doc(customer.uid).collection('notifications').get();
+      for (const doc of notificationSnap.docs) {
+        await doc.ref.delete();
+      }
       const bookingSnap = await db.collection('users').doc(customer.uid).collection('bookings').get();
       for (const doc of bookingSnap.docs) {
         await doc.ref.delete();
@@ -135,6 +139,10 @@ async function main() {
     } catch {}
 
     try {
+      const agentNotifications = await db.collection('users').doc(agent.uid).collection('notifications').get();
+      for (const doc of agentNotifications.docs) {
+        await doc.ref.delete();
+      }
       await auth.deleteUser(agent.uid);
       await db.collection('users').doc(agent.uid).delete();
     } catch {}

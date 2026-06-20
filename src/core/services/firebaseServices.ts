@@ -466,6 +466,16 @@ export interface UserBookingRequest {
   currency?: string;
 }
 
+export type NotificationType = 'booking_submitted' | 'booking_confirmed' | 'booking_cancelled';
+
+export interface NotificationInput {
+  title: string;
+  message: string;
+  type: NotificationType;
+  bookingId?: string;
+  status?: Booking['status'];
+}
+
 const sortBookingsByCreatedAtDesc = (bookings: Booking[]): Booking[] =>
   [...bookings].sort((a, b) => {
     const ta = new Date(b.createdAt || 0).getTime();
@@ -544,6 +554,66 @@ const ALLOWED_ADMIN_BOOKING_TRANSITIONS: Record<Booking["status"], Booking["stat
   rejected: [],
 };
 
+const notificationCollection = (userId: string) => collection(db, 'users', userId, 'notifications');
+
+const notificationMessageTitle = (booking: Partial<Booking>) => booking.title || booking.name || booking.itemTitle || 'Booking';
+
+const createNotificationSafe = async (userId: string, notification: NotificationInput): Promise<void> => {
+  try {
+    await createNotification(userId, notification);
+  } catch (error) {
+    console.error('Failed to create notification:', error);
+  }
+};
+
+const createBookingCreatedNotifications = async (booking: Booking): Promise<void> => {
+  const title = notificationMessageTitle(booking);
+  const recipients = new Set<string>();
+  recipients.add(booking.userId);
+  const assignedAgentId = bookingAssignedAgentId(booking);
+  if (assignedAgentId) {
+    recipients.add(assignedAgentId);
+  }
+
+  await Promise.all(
+    Array.from(recipients).map((userId) => {
+      const isCustomer = userId === booking.userId;
+      return createNotificationSafe(userId, {
+        title: isCustomer ? 'Booking request submitted' : 'New booking request',
+        message: isCustomer
+          ? `${title} booking request submitted.`
+          : `A new booking request was submitted for ${title}.`,
+        type: 'booking_submitted',
+        bookingId: booking.bookingId || booking.id,
+        status: booking.status,
+      });
+    })
+  );
+};
+
+const createBookingStatusNotifications = async (booking: Booking, status: Booking['status']): Promise<void> => {
+  if (status !== 'confirmed' && status !== 'cancelled') return;
+  const title = notificationMessageTitle(booking);
+  const recipients = new Set<string>([booking.userId]);
+  const assignedAgentId = bookingAssignedAgentId(booking);
+  if (assignedAgentId) {
+    recipients.add(assignedAgentId);
+  }
+
+  const statusLabel = status === 'confirmed' ? 'confirmed' : 'cancelled';
+  await Promise.all(
+    Array.from(recipients).map((userId) =>
+      createNotificationSafe(userId, {
+        title: `Booking ${statusLabel}`,
+        message: `${title} booking ${statusLabel}.`,
+        type: status === 'confirmed' ? 'booking_confirmed' : 'booking_cancelled',
+        bookingId: booking.bookingId || booking.id,
+        status,
+      })
+    )
+  );
+};
+
 export interface WishlistItem {
   id?: string;
   userId: string;
@@ -610,6 +680,7 @@ export const createBookingRequest = async (
   batch.set(bookingRef, bookingPayload);
   batch.set(doc(db, "bookings", bookingId), bookingPayload);
   await batch.commit();
+  await createBookingCreatedNotifications(bookingPayload);
   return bookingId;
 };
 
@@ -698,6 +769,7 @@ export const updateBookingStatus = async (
   };
   if (notes !== undefined) payload.adminNotes = notes;
   await syncBookingMirror(bookingId, payload, booking.userId);
+  await createBookingStatusNotifications({ ...booking, bookingId }, status);
 };
 
 
@@ -946,35 +1018,66 @@ export const deleteCoupon = async (couponId: string): Promise<void> => {
 export interface AppNotification {
   id?: string;
   title: string;
-  body: string;
-  userId?: string;
-  role?: UserRole | "all";
+  message: string;
+  body?: string;
+  type: NotificationType;
+  bookingId?: string;
+  status?: Booking['status'];
   read?: boolean;
   createdAt?: string;
+  updatedAt?: string;
+  readAt?: string | null;
 }
 
-export const fetchNotifications = async (): Promise<AppNotification[]> => {
-  const snapshot = await getDocs(collection(db, "notifications"));
-  return snapshot.docs
-    .map((d) => ({ id: d.id, ...d.data() } as AppNotification))
-    .sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+export const fetchUserNotifications = async (userId: string): Promise<AppNotification[]> => {
+  try {
+    const snapshot = await getDocs(query(notificationCollection(userId), orderBy('createdAt', 'desc')));
+    return snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as AppNotification));
+  } catch {
+    const snapshot = await getDocs(notificationCollection(userId));
+    return snapshot.docs
+      .map((d) => ({ id: d.id, ...d.data() } as AppNotification))
+      .sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+  }
 };
 
-export const createNotification = async (notification: Omit<AppNotification, "id" | "createdAt">): Promise<string> => {
-  const docRef = await addDoc(collection(db, "notifications"), {
+export const createNotification = async (userId: string, notification: NotificationInput): Promise<string> => {
+  const docRef = await addDoc(notificationCollection(userId), {
     ...notification,
+    body: notification.message,
     read: false,
-    createdAt: new Date().toISOString()
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
   });
   return docRef.id;
 };
 
-export const markNotificationRead = async (notificationId: string, read: boolean): Promise<void> => {
-  await updateDoc(doc(db, "notifications", notificationId), { read, updatedAt: serverTimestamp() });
+export const markNotificationRead = async (userId: string, notificationId: string, read: boolean): Promise<void> => {
+  await updateDoc(doc(db, 'users', userId, 'notifications', notificationId), {
+    read,
+    readAt: read ? new Date().toISOString() : null,
+    updatedAt: new Date().toISOString(),
+  });
 };
 
-export const deleteNotification = async (notificationId: string): Promise<void> => {
-  await deleteDoc(doc(db, "notifications", notificationId));
+export const markAllNotificationsRead = async (userId: string): Promise<void> => {
+  const notifications = await fetchUserNotifications(userId);
+  const unread = notifications.filter((notification) => notification.id && !notification.read);
+  const batch = writeBatch(db);
+  unread.forEach((notification) => {
+    batch.set(doc(db, 'users', userId, 'notifications', notification.id!), {
+      read: true,
+      readAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    }, { merge: true });
+  });
+  if (unread.length > 0) {
+    await batch.commit();
+  }
+};
+
+export const deleteNotification = async (userId: string, notificationId: string): Promise<void> => {
+  await deleteDoc(doc(db, 'users', userId, 'notifications', notificationId));
 };
 
 

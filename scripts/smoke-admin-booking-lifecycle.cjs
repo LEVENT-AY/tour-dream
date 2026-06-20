@@ -172,6 +172,8 @@ async function main() {
       const sub = db.collection('users').doc(user.uid).collection('bookings');
       const snap = await sub.get();
       for (const doc of snap.docs) await doc.ref.delete();
+      const notifications = await db.collection('users').doc(user.uid).collection('notifications').get();
+      for (const doc of notifications.docs) await doc.ref.delete();
       if (bookingId) await db.collection('bookings').doc(bookingId).delete();
       await db.collection('users').doc(user.uid).delete();
     } catch {}

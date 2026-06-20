@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { all_routes } from '../../../router/all_routes';
 import Breadcrumb from '../../../../core/common/Breadcrumb/breadcrumb';
+import BookingStatusBadge from '../../../../core/common/badge/BookingStatusBadge';
 import Sidebar from '../../sidebar/sidebar';
 import { useAuth } from '../../../../core/contexts/AuthContext';
 import { fetchAgentBookingRequests } from '../../../../core/services/agentServices';
@@ -99,7 +100,7 @@ const AgentBookingRequests = () => {
                               <td>{request.customerEmail || request.userEmail || '—'}</td>
                               <td>{request.customerPhone || request.userPhone || '—'}</td>
                               <td>
-                                <span className="badge rounded-pill bg-secondary">{request.status}</span>
+                                <BookingStatusBadge status={request.status} />
                               </td>
                               <td>{formatDate(request.createdAt)}</td>
                             </tr>

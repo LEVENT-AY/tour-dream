@@ -208,6 +208,10 @@ async function main() {
         await db.collection('users').doc(customer.uid).collection('bookings').doc(bookingId).delete();
         await db.collection('bookings').doc(bookingId).delete();
       }
+      const customerNotifications = await db.collection('users').doc(customer.uid).collection('notifications').get();
+      for (const doc of customerNotifications.docs) {
+        await doc.ref.delete();
+      }
       const bookingSnap = await db.collection('users').doc(customer.uid).collection('bookings').get();
       for (const doc of bookingSnap.docs) {
         await doc.ref.delete();
@@ -224,6 +228,10 @@ async function main() {
 
     for (const tempAgent of [agent, otherAgent]) {
       try {
+        const agentNotifications = await db.collection('users').doc(tempAgent.uid).collection('notifications').get();
+        for (const doc of agentNotifications.docs) {
+          await doc.ref.delete();
+        }
         await auth.deleteUser(tempAgent.uid);
       } catch {}
       try {

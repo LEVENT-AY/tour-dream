@@ -20,7 +20,7 @@ const AgentNotification = () => {
   const [notifications, setNotifications] = useState<AgentNotificationItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [deleteTarget, setDeleteTarget] = useState<AgentNotificationItem | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<(AgentNotificationItem | { id: 'all'; title: string; message: string; type: 'booking_submitted' }) | null>(null);
 
   const loadNotifications = async () => {
     if (!userProfile?.uid) return;
@@ -42,8 +42,9 @@ const AgentNotification = () => {
   }, [userProfile?.uid]);
 
   const handleMarkRead = async (id: string, read: boolean) => {
+    if (!userProfile?.uid) return;
     try {
-      await markAgentNotificationRead(id, read);
+      await markAgentNotificationRead(userProfile.uid, id, read);
       setNotifications((prev) =>
         prev.map((n) => (n.id === id ? { ...n, read } : n))
       );
@@ -58,9 +59,9 @@ const AgentNotification = () => {
   };
 
   const handleDelete = async () => {
-    if (!deleteTarget?.id) return;
+    if (!deleteTarget?.id || !userProfile?.uid || deleteTarget.id === 'all') return;
     try {
-      await deleteAgentNotification(deleteTarget.id);
+      await deleteAgentNotification(userProfile.uid, deleteTarget.id);
       setNotifications((prev) => prev.filter((n) => n.id !== deleteTarget.id));
       setDeleteTarget(null);
     } catch (err) {
@@ -69,8 +70,9 @@ const AgentNotification = () => {
   };
 
   const handleDeleteAll = async () => {
+    if (!userProfile?.uid) return;
     const withIds = notifications.filter((n) => n.id);
-    await Promise.all(withIds.map((n) => n.id && deleteAgentNotification(n.id)));
+    await Promise.all(withIds.map((n) => n.id && deleteAgentNotification(userProfile.uid, n.id)));
     setNotifications([]);
     setDeleteTarget(null);
   };
@@ -150,7 +152,7 @@ const AgentNotification = () => {
                         data-bs-target="#delete_modal"
                         onClick={(e) => {
                           e.preventDefault();
-                          setDeleteTarget({ title: 'all notifications', body: '' });
+                          setDeleteTarget({ id: 'all', title: 'all notifications', message: '', type: 'booking_submitted' });
                         }}
                       >
                         <i className="isax isax-trash me-2" />
@@ -215,7 +217,7 @@ const AgentNotification = () => {
                               </div>
                             </div>
                             <p className=" mb-1">
-                              {notification.body}
+                              {notification.message || notification.body}
                             </p>
                             <p className="text-gray-9">{formatDate(notification.createdAt)}</p>
                           </div>

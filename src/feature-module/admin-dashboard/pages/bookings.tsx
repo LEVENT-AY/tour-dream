@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { fetchAdminBookings, updateBookingStatus, type Booking } from '../../../core/services/firebaseServices';
+import BookingStatusBadge from '../../../core/common/badge/BookingStatusBadge';
 
 const NEXT_STATUS_OPTIONS: Record<'pending' | 'confirmed' | 'cancelled', ('confirmed' | 'cancelled')[]> = {
   pending: ['confirmed', 'cancelled'],
@@ -127,13 +128,7 @@ const AdminBookings: React.FC<AdminBookingsProps> = ({ title = "All Bookings", d
                       </td>
                       <td>{b.createdAt ? new Date(b.createdAt).toLocaleString() : '—'}</td>
                       <td>
-                        <span
-                          className={`badge ${
-                            b.status === 'confirmed' ? 'bg-success' : b.status === 'cancelled' ? 'bg-danger' : 'bg-warning text-dark'
-                          }`}
-                        >
-                          {b.status}
-                        </span>
+                        <BookingStatusBadge status={b.status} />
                       </td>
                       <td className="text-end">
                         {(b.status === 'pending' || b.status === 'confirmed' || b.status === 'cancelled'

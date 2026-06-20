@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { all_routes } from '../../router/all_routes';
 import Breadcrumb from '../../../core/common/Breadcrumb/breadcrumb';
 import Sidebar from '../../../core/common/sidebar/sidebar';
+import BookingStatusBadge from '../../../core/common/badge/BookingStatusBadge';
 import { useAuth } from '../../../core/contexts/AuthContext';
 import { fetchCustomerBookings, type Booking } from '../../../core/services/firebaseServices';
 
@@ -128,7 +129,7 @@ const CustomerBookingsPage = ({ title, sectionLabel, emptyMessage, itemTypes, fo
                             </div>
                             <div className="text-end">
                               <div className="fw-medium">{formatAmount(booking)}</div>
-                              <span className="badge badge-soft-info rounded-pill text-capitalize">{booking.status}</span>
+                              <BookingStatusBadge status={booking.status} />
                             </div>
                           </div>
                         </div>
