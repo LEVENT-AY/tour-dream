@@ -36,8 +36,12 @@ export const AuthContext = createContext<AuthContextType>({
 const VALID_ROLES: UserRole[] = ["customer", "agent", "admin"];
 
 const normalizeProfile = (user: User, data: Record<string, unknown> | undefined): UserProfile => {
-  const rawRole = (data?.role as string) || "customer";
-  const role = VALID_ROLES.includes(rawRole as UserRole) ? (rawRole as UserRole) : "customer";
+  const rawRole = data?.role as string | undefined;
+  if (!rawRole || !VALID_ROLES.includes(rawRole as UserRole)) {
+    throw new Error('User profile is missing a valid role.');
+  }
+
+  const role = rawRole as UserRole;
   const agentStatus = (data?.agentStatus as any) || 'pending';
   const approved = !!(data?.approved as boolean | undefined);
   const suspended = !!(data?.suspended as boolean | undefined);
@@ -77,14 +81,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (user) {
         try {
           const userDoc = await getDocFromServer(doc(db, 'users', user.uid));
+          if (!userDoc.exists()) {
+            throw new Error('User profile not found.');
+          }
           if (isMounted) {
-            setUserProfile(normalizeProfile(user, userDoc.exists() ? userDoc.data() : undefined));
+            setUserProfile(normalizeProfile(user, userDoc.data()));
             setLoading(false);
           }
         } catch (error) {
           console.error("Error fetching user profile:", error);
+          try {
+            await signOut(auth);
+          } catch (signOutError) {
+            console.error("Error clearing invalid auth session:", signOutError);
+          }
           if (isMounted) {
-            // Fail-safe: treat as unauthenticated so user is not stuck in loading
+            setCurrentUser(null);
             setUserProfile(null);
             setLoading(false);
           }

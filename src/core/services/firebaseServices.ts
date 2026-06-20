@@ -37,6 +37,14 @@ export interface UserProfile {
   createdAt: string;
 }
 
+const VALID_USER_ROLES: UserRole[] = ["customer", "agent", "admin"];
+
+const createProfileError = (code: string, message: string) => {
+  const error = new Error(message) as Error & { code: string };
+  error.code = code;
+  return error;
+};
+
 /**
  * Public registration. Always creates a customer role.
  * Admin/agent promotion must be done via a trusted server-side process.
@@ -77,18 +85,30 @@ export const signInUser = async (email: string, password: string): Promise<UserP
   
   // Get role from Firestore
   const userDoc = await getDoc(doc(db, "users", user.uid));
-  if (userDoc.exists()) {
-    return userDoc.data() as UserProfile;
-  } else {
-    // Default fallback
-    return {
-      uid: user.uid,
-      email: user.email || "",
-      displayName: user.displayName || "",
-      role: "customer",
-      createdAt: new Date().toISOString()
-    };
+  if (!userDoc.exists()) {
+    await signOut(auth);
+    throw createProfileError(
+      "auth/profile-not-found",
+      "We found your sign-in account, but your user profile is missing. Please contact support."
+    );
   }
+
+  const profile = userDoc.data() as Partial<UserProfile>;
+  if (!profile.role || !VALID_USER_ROLES.includes(profile.role as UserRole)) {
+    await signOut(auth);
+    throw createProfileError(
+      "auth/role-missing",
+      "Your account profile is missing a valid role. Please contact support."
+    );
+  }
+
+  return {
+    uid: user.uid,
+    email: profile.email || user.email || "",
+    displayName: profile.displayName || user.displayName || "",
+    role: profile.role,
+    createdAt: profile.createdAt || new Date().toISOString(),
+  };
 };
 
 export const signOutUser = async (): Promise<void> => {
@@ -99,17 +119,26 @@ export const subscribeToAuthChanges = (callback: (userProfile: UserProfile | nul
   return onAuthStateChanged(auth, async (user: User | null) => {
     if (user) {
       const userDoc = await getDoc(doc(db, "users", user.uid));
-      if (userDoc.exists()) {
-        callback(userDoc.data() as UserProfile);
-      } else {
-        callback({
-          uid: user.uid,
-          email: user.email || "",
-          displayName: user.displayName || "",
-          role: "customer",
-          createdAt: new Date().toISOString()
-        });
+      if (!userDoc.exists()) {
+        await signOut(auth);
+        callback(null);
+        return;
       }
+
+      const profile = userDoc.data() as Partial<UserProfile>;
+      if (!profile.role || !VALID_USER_ROLES.includes(profile.role as UserRole)) {
+        await signOut(auth);
+        callback(null);
+        return;
+      }
+
+      callback({
+        uid: user.uid,
+        email: profile.email || user.email || "",
+        displayName: profile.displayName || user.displayName || "",
+        role: profile.role,
+        createdAt: profile.createdAt || new Date().toISOString(),
+      });
     } else {
       callback(null);
     }

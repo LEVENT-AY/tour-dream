@@ -5,6 +5,26 @@ import ImageWithBasePath from "../../../core/common/imageWithBasePath";
 import { all_routes } from "../../router/all_routes";
 import { signInUser } from "../../../core/services/firebaseServices";
 
+const getLoginErrorMessage = (err: { code?: string; message?: string }) => {
+  if (
+    err.code === "auth/user-not-found" ||
+    err.code === "auth/wrong-password" ||
+    err.code === "auth/invalid-credential"
+  ) {
+    return "Invalid email or password.";
+  }
+
+  if (err.code === "auth/profile-not-found") {
+    return "Your account profile was not found. Please contact support.";
+  }
+
+  if (err.code === "auth/role-missing") {
+    return "Your account role is missing or invalid. Please contact support.";
+  }
+
+  return err.message || "Login failed. Please check your credentials.";
+};
+
 const Login = () => {
   const routes = all_routes;
   const navigate = useNavigate();
@@ -25,6 +45,7 @@ const Login = () => {
   const handleLogin = async (e: FormEvent) => {
     e.preventDefault();
     setError("");
+    setSuccess(false);
 
     if (!email.trim() || !password.trim()) {
       setError("Please fill in all fields.");
@@ -33,24 +54,19 @@ const Login = () => {
 
     setLoading(true);
     try {
-      const profile = await signInUser(email, password);
+      const profile = await signInUser(email.trim(), password);
       setSuccess(true);
-      setTimeout(() => {
-        if (profile.role === "admin") {
-          navigate(routes.adminDashboard);
-        } else if (profile.role === "agent") {
-          navigate(routes.agentDashboard);
-        } else {
-          navigate(routes.userDashboard);
-        }
-      }, 1000);
+      if (profile.role === "admin") {
+        navigate(routes.adminDashboard);
+      } else if (profile.role === "agent") {
+        navigate(routes.agentDashboard);
+      } else {
+        navigate(routes.userDashboard);
+      }
     } catch (err: any) {
       console.error(err);
-      if (err.code === "auth/user-not-found" || err.code === "auth/wrong-password" || err.code === "auth/invalid-credential") {
-        setError("Invalid email or password.");
-      } else {
-        setError("Login failed. Please check your credentials.");
-      }
+      setSuccess(false);
+      setError(getLoginErrorMessage(err));
     } finally {
       setLoading(false);
     }
