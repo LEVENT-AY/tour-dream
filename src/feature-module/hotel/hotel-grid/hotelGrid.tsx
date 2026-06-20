@@ -169,7 +169,7 @@ const HotelGrid = () => {
                                                             <Slider {...imgslideroption}>
                                                                 {hotel.gallery.map((img: string, i: number) => (
                                                                     <div className="slide-images" key={i}>
-                                                                        <Link to={routes.hotelDetails}>
+                                                                        <Link to={`${routes.hotelDetails}?id=${hotel.id}`}>
                                                                             <ImageWithBasePath src={img} className="img-fluid" alt={hotel.title || "Hotel image"} fallbackSrc={getCategoryFallbackSrc("hotels")} />
                                                                         </Link>
                                                                     </div>
@@ -177,7 +177,7 @@ const HotelGrid = () => {
                                                             </Slider>
                                                         </div>
                                                     ) : (
-                                                        <Link to={routes.hotelDetails}>
+                                                        <Link to={`${routes.hotelDetails}?id=${hotel.id}`}>
                                                             <ImageWithBasePath src={hotel.image || hotel.gallery?.[0]} className="img-fluid" alt={hotel.title || "Hotel image"} fallbackSrc={getCategoryFallbackSrc("hotels")} />
                                                         </Link>
                                                     )}
@@ -195,7 +195,7 @@ const HotelGrid = () => {
                                                         <span className="badge badge-warning badge-xs text-gray-9 fs-13 fw-medium me-2">{hotel.rating}</span>
                                                         <p className="fs-14">({hotel.reviewsCount} Reviews)</p>
                                                     </div>
-                                                    <h5 className="mb-1 text-truncate"><Link to={routes.hotelDetails}>{hotel.title}</Link></h5>
+                                                     <h5 className="mb-1 text-truncate"><Link to={`${routes.hotelDetails}?id=${hotel.id}`}>{hotel.title}</Link></h5>
                                                     <p className="d-flex align-items-center mb-2"><i className="isax isax-location5 me-2"></i>{hotel.location}</p>
                                                     <div className="border-top pt-2 mb-2">
                                                         <h6 className="d-flex align-items-center">Facillities :<i className="isax isax-home-wifi ms-2 me-2 text-primary"></i><i className="isax isax-scissor me-2 text-primary"></i><i className="isax isax-profile-2user me-2 text-primary"></i><i className="isax isax-wind-2 me-2 text-primary"></i><Link to="#" className="fs-14 fw-normal text-default d-inline-block">+2</Link></h6>

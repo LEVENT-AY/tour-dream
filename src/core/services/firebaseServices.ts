@@ -286,6 +286,9 @@ export const getCatalogItem = async (collectionName: string, itemId: string): Pr
   return docSnap.exists() ? { id: docSnap.id, ...docSnap.data() } : null;
 };
 
+export const fetchHotelById = async (hotelId: string): Promise<DocumentData | null> =>
+  getCatalogItem('hotels', hotelId);
+
 export const updateCatalogItem = async (collectionName: string, itemId: string, itemData: any): Promise<void> => {
   await setDoc(doc(db, collectionName, itemId), {
     ...itemData,

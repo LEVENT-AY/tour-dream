@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import Slider from "react-slick";
 import Breadcrumb from '../../../core/common/Breadcrumb/breadcrumb';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import ImageWithBasePath from '../../../core/common/imageWithBasePath';
 import Reviews from '../../../core/common/reviews/reviews';
 import StickyContent from './stickyContent';
@@ -12,8 +12,10 @@ import Lightbox from "yet-another-react-lightbox";
 import "yet-another-react-lightbox/styles.css";
 import RoomDetailModal from "../../../core/common/modal/roomDetailModal";
 import { all_routes } from "../../router/all_routes";
+import { fetchHotelById } from '../../../core/services/firebaseServices';
 const HotelDetails = () => {
     const routes = all_routes
+    const [searchParams] = useSearchParams();
     const [open, setOpen] = React.useState(false);
     const [open2, setOpen2] = React.useState(false);
     const [defaultDate] = useState(dayjs());
@@ -21,8 +23,30 @@ const HotelDetails = () => {
     const [isPolicy2,setIsPolicy2] = useState(false);
     const [isPolicy3,setIsPolicy3] = useState(false);
     const [isPolicy4,setIsPolicy4] = useState(false);
+    const [hotelData, setHotelData] = useState<any>(null);
 
     const [gallery, setGallery] = React.useState(false);
+    const hotelId = searchParams.get('id');
+
+    useEffect(() => {
+        let isMounted = true;
+
+        const loadHotel = async () => {
+            if (!hotelId) return;
+            try {
+                const data = await fetchHotelById(hotelId);
+                if (isMounted && data) setHotelData(data);
+            } catch (error) {
+                console.error('Failed to load hotel:', error);
+            }
+        };
+
+        loadHotel();
+
+        return () => {
+            isMounted = false;
+        };
+    }, [hotelId]);
     //Breadcrumb Data
     const breadcrumbs = [
         {
@@ -166,7 +190,22 @@ const HotelDetails = () => {
               });
             };
 
-  return (
+    const displayHotel = hotelData || {
+        id: 'hotel-plaza-athenee',
+        title: 'Hotel Plaza Athenee',
+        image: 'assets/img/hotels/hotel-large-01.jpg',
+        gallery: [
+            'assets/img/hotels/hotel-large-01.jpg',
+            'assets/img/hotels/hotel-large-02.jpg',
+            'assets/img/hotels/hotel-large-03.jpg',
+            'assets/img/hotels/hotel-large-04.jpg',
+            'assets/img/hotels/hotel-large-05.jpg',
+            'assets/img/hotels/hotel-large-06.jpg',
+        ],
+        titleText: 'Hotel Plaza Athenee',
+    };
+
+    return (
     <>
     <Breadcrumb title="Tours" breadcrumbs={breadcrumbs} backgroundClass="breadcrumb-bg-01" />
     <div className="content">
@@ -180,7 +219,7 @@ const HotelDetails = () => {
                     {/* Slider */}
                     <div className="d-flex align-items-center justify-content-between flex-wrap mb-2">
                         <div className="mb-2">
-                            <h4 className="mb-1 d-flex align-items-center flex-wrap">Hotel Plaza Athenee<span className="badge badge-xs bg-success rounded-pill ms-2"><i className="isax isax-ticket-star me-1"></i>Verified</span></h4>
+                            <h4 className="mb-1 d-flex align-items-center flex-wrap">{displayHotel.title || displayHotel.name || 'Hotel Plaza Athenee'}<span className="badge badge-xs bg-success rounded-pill ms-2"><i className="isax isax-ticket-star me-1"></i>Verified</span></h4>
                             <div className="d-flex align-items-center flex-wrap">
                                 <p className="fs-14 mb-2 me-3 pe-3 border-end"><i className="isax isax-buildings me-2"></i>Hotel</p>
                                 <p className="fs-14 mb-2 me-3 pe-3 border-end"><i className="isax isax-location5 me-2"></i>Barcelona<Link to="#location" className="link-primary text-decoration-underline fw-medium ms-2">View Location</Link></p>
@@ -204,40 +243,27 @@ const HotelDetails = () => {
                         <span className="badge badge-light text-gray-9 badge-md fs-13 fw-medium rounded-pill mb-2">Total 48 Rooms </span>
                     </div>
                     <div className="border-bottom pb-4 mb-4">
-                        <div className="service-wrap mb-4">
-                            <div className="slider-wrap">
-                                <Slider {...sliderForSettings} ref={sliderForRef} className="owl-carousel slicknavfor service-carousel nav-center mb-4" >
-                                    <div className="service-img">
-                                        <ImageWithBasePath src="assets/img/hotels/hotel-large-01.jpg" className="img-fluid" alt="Slider Img" />
-                                    </div>
-                                    <div className="service-img">
-                                        <ImageWithBasePath src="assets/img/hotels/hotel-large-02.jpg" className="img-fluid" alt="Slider Img" />
-                                    </div>
-                                    <div className="service-img">
-                                        <ImageWithBasePath src="assets/img/hotels/hotel-large-03.jpg" className="img-fluid" alt="Slider Img" />
-                                    </div>
-                                    <div className="service-img">
-                                        <ImageWithBasePath src="assets/img/hotels/hotel-large-04.jpg" className="img-fluid" alt="Slider Img" />
-                                    </div>
-                                    <div className="service-img">
-                                        <ImageWithBasePath src="assets/img/hotels/hotel-large-05.jpg" className="img-fluid" alt="Slider Img" />
-                                    </div>
-                                    <div className="service-img">
-                                        <ImageWithBasePath src="assets/img/hotels/hotel-large-06.jpg" className="img-fluid" alt="Slider Img" />
-                                    </div>
-                                </Slider>
-                                <Lightbox
-                                    open={gallery}
-                                    close={() => setGallery(false)}
-                                    slides={[
-                                        { src: "assets/img/hotels/hotel-large-01.jpg" },
-                                        { src: "assets/img/hotels/hotel-large-02.jpg" },
-                                        { src: "assets/img/hotels/hotel-large-03.jpg" },
-                                        { src: "assets/img/hotels/hotel-large-04.jpg" },
-                                        { src: "assets/img/hotels/hotel-large-05.jpg" },
-                                        { src: "assets/img/hotels/hotel-large-06.jpg" },
-                                    ]}
-                                />
+                                <div className="service-wrap mb-4">
+                                    <div className="slider-wrap">
+                                        <Slider {...sliderForSettings} ref={sliderForRef} className="owl-carousel slicknavfor service-carousel nav-center mb-4" >
+                                            <div className="service-img">
+                                                <ImageWithBasePath src={displayHotel.image || "assets/img/hotels/hotel-large-01.jpg"} className="img-fluid" alt="Slider Img" />
+                                            </div>
+                                    {Array.isArray(displayHotel.gallery) ? displayHotel.gallery.slice(1).map((img: string) => (
+                                        <div className="service-img" key={img}>
+                                            <ImageWithBasePath src={img} className="img-fluid" alt="Slider Img" />
+                                        </div>
+                                    )) : null}
+                                        </Slider>
+                                        <Lightbox
+                                            open={gallery}
+                                            close={() => setGallery(false)}
+                                            slides={[
+                                        ...(Array.isArray(displayHotel.gallery) && displayHotel.gallery.length > 0
+                                            ? displayHotel.gallery
+                                            : ["assets/img/hotels/hotel-large-01.jpg"]).map((src: string) => ({ src })),
+                                            ]}
+                                        />
                                 <Link
                                     data-fancybox="gallery"
                                     className="btn btn-white btn-xs view-btn"
@@ -1090,7 +1116,7 @@ const HotelDetails = () => {
                 {/* Sidebar Details */}
                 <div className="col-xl-4 ">
 
-                    <StickyContent/>
+                    <StickyContent hotel={displayHotel} />
 
                 </div>
                 {/* /Sidebar Details */}

@@ -8,7 +8,22 @@ import { all_routes } from '../../router/all_routes'
 import { useAuth } from '../../../core/contexts/AuthContext'
 import { createUserBookingRequest } from '../../../core/services/firebaseServices'
 
-const StickyContent = () => {
+interface StickyContentProps {
+    hotel?: {
+        id?: string;
+        title?: string;
+        name?: string;
+        image?: string;
+        gallery?: string[];
+        price?: number;
+        currency?: string;
+        ownerId?: string | null;
+        agentId?: string | null;
+        createdBy?: string | null;
+    } | null;
+}
+
+const StickyContent = ({ hotel }: StickyContentProps) => {
 
     const routes = all_routes
     const navigate = useNavigate();
@@ -29,18 +44,23 @@ const StickyContent = () => {
         setMessage('');
 
         try {
+            const ownerId = hotel?.ownerId || hotel?.agentId || hotel?.createdBy || null;
             await createUserBookingRequest(userProfile.uid, {
-                listingId: 'hotel-plaza-athenee',
+                listingId: hotel?.id || 'hotel-plaza-athenee',
                 listingType: 'hotel',
-                title: 'Hotel Plaza Athenee',
+                title: hotel?.title || hotel?.name || 'Hotel Plaza Athenee',
                 customerId: userProfile.uid,
                 customerName: userProfile.displayName || userProfile.email || 'Customer',
                 customerEmail: userProfile.email,
                 customerPhone: userProfile.phone,
+                ownerId,
+                agentId: ownerId,
+                listingOwnerId: ownerId,
+                createdBy: hotel?.createdBy || null,
                 checkInDate: checkInDate.toISOString(),
                 checkOutDate: checkOutDate.toISOString(),
-                price: 500,
-                currency: 'USD',
+                price: hotel?.price ?? 500,
+                currency: hotel?.currency || 'USD',
             });
             navigate(routes.userHotlesBooking);
         } catch (error) {
