@@ -52,7 +52,9 @@ import FlightList from "../flight/flight-list/flightList";
 import CruiseList from "../curise/cruise-list/cruiseList";
 import HotelList from "../hotel/hotel-list/hotelList";
 import HotelGrid from "../hotel/hotel-grid/hotelGrid";
+import ChaletGrid from "../chalet/chalet-grid/chaletGrid";
 import ChaletDetails from "../chalet/chalet-details/chaletDetails";
+import ResortGrid from "../resort/resort-grid/resortGrid";
 import ResortDetails from "../resort/resort-details/resortDetails";
 import FlightGrid from "../flight/flight-grid/flightGrid";
 import Invoices from "../pages/invoices/invoices";
@@ -311,6 +313,16 @@ export const publicRoutes = [
   {
     path: routes.hotelGrid,
     element: <HotelGrid />,
+    route: Route,
+  },
+  {
+    path: routes.chaletGrid,
+    element: <ChaletGrid />,
+    route: Route,
+  },
+  {
+    path: routes.resortGrid,
+    element: <ResortGrid />,
     route: Route,
   },
   {
