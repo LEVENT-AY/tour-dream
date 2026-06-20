@@ -16,6 +16,7 @@
     "smoke:customer-dashboard": "node scripts/smoke-customer-dashboard.cjs",
     "smoke:demo-accounts": "node scripts/smoke-demo-accounts.mjs",
     "smoke:demo-login": "node scripts/smoke-demo-login.mjs",
+    "smoke:agent-dashboard": "node scripts/smoke-agent-dashboard.mjs",
     "smoke:booking-request-v1": "node scripts/smoke-booking-request-v1.cjs",
     "smoke:booking-mirror-consistency": "node scripts/smoke-booking-mirror-consistency.mjs",
     "smoke:booking-notifications": "node scripts/smoke-booking-notifications.mjs",

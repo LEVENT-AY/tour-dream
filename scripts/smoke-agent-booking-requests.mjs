@@ -45,7 +45,6 @@ async function main() {
   const agent = await createTemporaryApprovedAgent();
   const customer = await createTempCustomer();
   const browser = await chromium.launch({ headless: true });
-  const page = await browser.newPage();
 
   let hotelId = '';
   let bookingId = '';
@@ -75,24 +74,30 @@ async function main() {
     });
     hotelId = hotelDoc.id;
 
-    await login(page, customer.email, customer.password);
-    await page.goto(`${BASE_URL}/hotel/hotel-details?id=${hotelId}`, { waitUntil: 'domcontentloaded' });
-    await page.waitForTimeout(5000);
-    await page.getByRole('button', { name: 'Book Now' }).click();
-    await page.waitForURL((url) => url.toString().includes('/user/customer-hotel-booking'), { timeout: 30000 });
-    await page.waitForTimeout(4000);
+    const customerContext = await browser.newContext();
+    const customerPage = await customerContext.newPage();
+    await login(customerPage, customer.email, customer.password);
+    await customerPage.goto(`${BASE_URL}/hotel/hotel-details?id=${hotelId}`, { waitUntil: 'domcontentloaded' });
+    await customerPage.waitForTimeout(5000);
+    await customerPage.getByRole('button', { name: 'Book Now' }).click();
+    await customerPage.waitForURL((url) => url.toString().includes('/user/customer-hotel-booking'), { timeout: 30000 });
+    await customerPage.waitForTimeout(4000);
+    await customerContext.close();
 
     const bookingSnap = await db.collection('users').doc(customer.uid).collection('bookings').orderBy('createdAt', 'desc').limit(1).get();
     if (!bookingSnap.empty) {
       bookingId = bookingSnap.docs[0].id;
     }
 
-    await login(page, agent.email, agent.password);
-    await page.goto(`${BASE_URL}/agent/agent-booking-requests`, { waitUntil: 'domcontentloaded' });
-    await page.waitForTimeout(4000);
-    pageUrl = page.url();
-    bodyText = (await page.textContent('body')) || '';
+    const agentContext = await browser.newContext();
+    const agentPage = await agentContext.newPage();
+    await login(agentPage, agent.email, agent.password);
+    await agentPage.goto(`${BASE_URL}/agent/agent-booking-requests`, { waitUntil: 'domcontentloaded' });
+    await agentPage.waitForTimeout(4000);
+    pageUrl = agentPage.url();
+    bodyText = (await agentPage.textContent('body')) || '';
     agentSawRequest = bodyText.includes('Temp Booking Requests Hotel') && bodyText.includes(customer.email) && !bodyText.includes('No booking requests found');
+    await agentContext.close();
 
     console.log(JSON.stringify({ hotelId, bookingId, agentSawRequest, pageUrl, bodyPreview: bodyText.slice(0, 500) }));
     process.exitCode = agentSawRequest ? 0 : 1;

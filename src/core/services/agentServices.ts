@@ -404,18 +404,62 @@ export const updateBookingStatus = async (
   throw new Error("Agent booking status updates are disabled in this phase.");
 };
 
-const fetchAllReviews = async (): Promise<DocumentData[]> => {
-  const snap = await getDocs(collection(db, "reviews"));
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+const chunkArray = <T,>(items: T[], size: number): T[][] => {
+  const chunks: T[][] = [];
+  for (let index = 0; index < items.length; index += size) {
+    chunks.push(items.slice(index, index + size));
+  }
+  return chunks;
+};
+
+const fetchAgentScopedReviews = async (
+  agentId: string,
+  listings: DocumentData[]
+): Promise<DocumentData[]> => {
+  const reviews: DocumentData[] = [];
+  const seen = new Set<string>();
+
+  const pushUnique = (docs: DocumentData[]) => {
+    docs.forEach((review) => {
+      if (!seen.has(review.id)) {
+        seen.add(review.id);
+        reviews.push(review);
+      }
+    });
+  };
+
+  try {
+    const agentReviews = await getDocs(query(collection(db, "reviews"), where("agentId", "==", agentId)));
+    pushUnique(agentReviews.docs.map((d) => ({ id: d.id, ...d.data() })));
+  } catch {
+    // Some legacy reviews may not carry agentId; continue with listing-scoped lookups.
+  }
+
+  const listingIds = listings
+    .map((item) => String(item.id || ""))
+    .filter(Boolean);
+
+  for (const ids of chunkArray(listingIds, 30)) {
+    try {
+      const listingReviews = await getDocs(
+        query(collection(db, "reviews"), where("itemId", "in", ids))
+      );
+      pushUnique(listingReviews.docs.map((d) => ({ id: d.id, ...d.data() })));
+    } catch {
+      // If a listing-scoped review query is unavailable, fall back to what we already have.
+    }
+  }
+
+  return reviews;
 };
 
 export const fetchAgentDashboardStats = async (
   agentId: string
 ): Promise<DashboardStats> => {
-  const [listings, bookings, reviews] = await Promise.all([
-    fetchAgentItems(agentId),
+  const listings = await fetchAgentItems(agentId);
+  const [bookings, reviews] = await Promise.all([
     fetchAgentBookings(agentId),
-    fetchAllReviews(),
+    fetchAgentScopedReviews(agentId, listings),
   ]);
 
   const listingIds = new Set(listings.map((item) => item.id));
