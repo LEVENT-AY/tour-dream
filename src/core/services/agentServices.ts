@@ -20,7 +20,12 @@ import {
 } from "firebase/auth";
 import { auth, db } from "../../firebase";
 import { uploadAgentProfileImage } from "./agentStorage";
-import type { Booking, Review, AppNotification } from "./firebaseServices";
+import {
+  fetchAgentBookings as fetchMirroredAgentBookings,
+  type Booking,
+  type Review,
+  type AppNotification,
+} from "./firebaseServices";
 export type { Booking, Review, AppNotification };
 
 export const AGENT_LISTING_COLLECTIONS = [
@@ -365,26 +370,7 @@ export const submitListingForReview = async (
 };
 
 export const fetchAgentBookings = async (agentId: string): Promise<Booking[]> => {
-  try {
-    const q = query(
-      collection(db, "bookings"),
-      where("agentId", "==", agentId),
-      orderBy("createdAt", "desc")
-    );
-    const snap = await getDocs(q);
-    return snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Booking);
-  } catch {
-    // Fallback to client-side filter (no orderBy to avoid index requirements)
-    const snap = await getDocs(collection(db, "bookings"));
-    return snap.docs
-      .map((d) => ({ id: d.id, ...d.data() }) as Booking)
-      .filter((b) => belongsToAgent(b, agentId))
-      .sort((a, b) => {
-        const ta = new Date(b.createdAt || 0).getTime();
-        const tb = new Date(a.createdAt || 0).getTime();
-        return ta - tb;
-      });
-  }
+  return fetchMirroredAgentBookings(agentId);
 };
 
 export const fetchAgentBookingRequests = async (agentId: string): Promise<Booking[]> => {
@@ -396,9 +382,10 @@ export const updateBookingStatus = async (
   status: "pending" | "confirmed" | "completed" | "cancelled" | "rejected",
   notes?: string
 ): Promise<void> => {
-  const payload: Record<string, any> = { status, updatedAt: serverTimestamp() };
-  if (notes !== undefined) payload.agentNotes = notes;
-  await updateDoc(doc(db, "bookings", bookingId), payload);
+  void bookingId;
+  void status;
+  void notes;
+  throw new Error("Agent booking status updates are disabled in this phase.");
 };
 
 const fetchAllReviews = async (): Promise<DocumentData[]> => {

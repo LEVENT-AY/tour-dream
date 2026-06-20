@@ -51,6 +51,8 @@ async function main() {
   let openedRealHotel = false;
   let bookingCreated = false;
   let bookingOwnerMatch = false;
+  let topLevelMirrorExists = false;
+  let topLevelOwnerMatch = false;
   let userBookingsVisible = false;
   const errors = [];
 
@@ -94,6 +96,12 @@ async function main() {
       const data = doc.data();
       bookingCreated = data.listingType === 'hotel' && data.status === 'pending' && data.customerId === customer.uid && !!data.createdAt;
       bookingOwnerMatch = data.ownerId === agent.uid || data.agentId === agent.uid || data.listingOwnerId === agent.uid;
+      const topLevelSnap = await db.collection('bookings').doc(bookingId).get();
+      topLevelMirrorExists = topLevelSnap.exists;
+      if (topLevelSnap.exists) {
+        const topLevelData = topLevelSnap.data();
+        topLevelOwnerMatch = topLevelData.ownerId === agent.uid || topLevelData.agentId === agent.uid || topLevelData.listingOwnerId === agent.uid;
+      }
     }
 
     await page.goto(`${BASE_URL}/user/customer-hotel-booking`, { waitUntil: 'domcontentloaded' });
@@ -101,10 +109,10 @@ async function main() {
     const userBookingsBody = (await page.textContent('body')) || '';
     userBookingsVisible = userBookingsBody.includes('Temp Agent Hotel') || userBookingsBody.toLowerCase().includes('pending');
 
-    console.log(JSON.stringify({ hotelId, bookingId, openedRealHotel, bookingCreated, bookingOwnerMatch, userBookingsVisible, errors }));
-    process.exitCode = openedRealHotel && bookingCreated && bookingOwnerMatch && userBookingsVisible ? 0 : 1;
+    console.log(JSON.stringify({ hotelId, bookingId, openedRealHotel, bookingCreated, bookingOwnerMatch, topLevelMirrorExists, topLevelOwnerMatch, userBookingsVisible, errors }));
+    process.exitCode = openedRealHotel && bookingCreated && bookingOwnerMatch && topLevelMirrorExists && topLevelOwnerMatch && userBookingsVisible ? 0 : 1;
   } catch (err) {
-    console.log(JSON.stringify({ hotelId, bookingId, openedRealHotel, bookingCreated, bookingOwnerMatch, userBookingsVisible, errors, reason: err.message || String(err) }));
+    console.log(JSON.stringify({ hotelId, bookingId, openedRealHotel, bookingCreated, bookingOwnerMatch, topLevelMirrorExists, topLevelOwnerMatch, userBookingsVisible, errors, reason: err.message || String(err) }));
     process.exitCode = 1;
   } finally {
     try {

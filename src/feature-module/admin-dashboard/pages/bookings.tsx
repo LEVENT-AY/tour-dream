@@ -1,7 +1,11 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { fetchBookings, updateBookingStatus, type Booking } from '../../../core/services/firebaseServices';
+import { fetchAdminBookings, updateBookingStatus, type Booking } from '../../../core/services/firebaseServices';
 
-const STATUS_OPTIONS: ("pending" | "confirmed" | "cancelled")[] = ["pending", "confirmed", "cancelled"];
+const NEXT_STATUS_OPTIONS: Record<'pending' | 'confirmed' | 'cancelled', ('confirmed' | 'cancelled')[]> = {
+  pending: ['confirmed', 'cancelled'],
+  confirmed: ['cancelled'],
+  cancelled: [],
+};
 
 interface AdminBookingsProps {
   title?: string;
@@ -17,7 +21,7 @@ const AdminBookings: React.FC<AdminBookingsProps> = ({ title = "All Bookings", d
   const load = async () => {
     setLoading(true);
     try {
-      const data = await fetchBookings(statusFilter === 'all' ? undefined : statusFilter);
+      const data = await fetchAdminBookings(statusFilter === 'all' ? undefined : statusFilter);
       setBookings(data);
     } catch (err) {
       console.error(err);
@@ -132,15 +136,18 @@ const AdminBookings: React.FC<AdminBookingsProps> = ({ title = "All Bookings", d
                         </span>
                       </td>
                       <td className="text-end">
-                        {STATUS_OPTIONS.filter((s) => s !== b.status).map((s) => (
+                        {(b.status === 'pending' || b.status === 'confirmed' || b.status === 'cancelled'
+                          ? NEXT_STATUS_OPTIONS[b.status]
+                          : []
+                        ).map((s) => (
                           <button
                             key={s}
                             className={`btn btn-sm me-1 ${
-                              s === 'confirmed' ? 'btn-success' : s === 'cancelled' ? 'btn-danger' : 'btn-warning'
+                              s === 'confirmed' ? 'btn-success' : 'btn-danger'
                             }`}
                             onClick={() => changeStatus(b, s)}
                           >
-                            {s === 'pending' ? 'Set Pending' : s === 'confirmed' ? 'Confirm' : 'Cancel'}
+                            {s === 'confirmed' ? 'Confirm' : 'Cancel'}
                           </button>
                         ))}
                       </td>

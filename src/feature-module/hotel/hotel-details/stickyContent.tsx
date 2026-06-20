@@ -6,7 +6,7 @@ import { DatePicker } from 'antd'
 import dayjs from "dayjs";
 import { all_routes } from '../../router/all_routes'
 import { useAuth } from '../../../core/contexts/AuthContext'
-import { createUserBookingRequest } from '../../../core/services/firebaseServices'
+import { createBookingRequest } from '../../../core/services/firebaseServices'
 
 interface StickyContentProps {
     hotel?: {
@@ -45,7 +45,7 @@ const StickyContent = ({ hotel }: StickyContentProps) => {
 
         try {
             const ownerId = hotel?.ownerId || hotel?.agentId || hotel?.createdBy || null;
-            await createUserBookingRequest(userProfile.uid, {
+            await createBookingRequest(userProfile.uid, {
                 listingId: hotel?.id || 'hotel-plaza-athenee',
                 listingType: 'hotel',
                 title: hotel?.title || hotel?.name || 'Hotel Plaza Athenee',

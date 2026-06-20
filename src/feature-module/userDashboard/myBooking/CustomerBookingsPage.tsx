@@ -4,7 +4,7 @@ import { all_routes } from '../../router/all_routes';
 import Breadcrumb from '../../../core/common/Breadcrumb/breadcrumb';
 import Sidebar from '../../../core/common/sidebar/sidebar';
 import { useAuth } from '../../../core/contexts/AuthContext';
-import { fetchUserBookings, type Booking } from '../../../core/services/firebaseServices';
+import { fetchCustomerBookings, type Booking } from '../../../core/services/firebaseServices';
 
 interface CustomerBookingsPageProps {
   title: string;
@@ -51,7 +51,7 @@ const CustomerBookingsPage = ({ title, sectionLabel, emptyMessage, itemTypes, fo
     setLoading(true);
     setError('');
 
-    fetchUserBookings(userProfile.uid)
+    fetchCustomerBookings(userProfile.uid)
       .then((data) => {
         if (isMounted) setBookings(data);
       })

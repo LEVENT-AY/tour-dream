@@ -14,6 +14,7 @@
     "smoke:customer-login": "node scripts/smoke-customer-login.cjs",
     "smoke:customer-dashboard": "node scripts/smoke-customer-dashboard.cjs",
     "smoke:booking-request-v1": "node scripts/smoke-booking-request-v1.cjs",
+    "smoke:booking-mirror-consistency": "node scripts/smoke-booking-mirror-consistency.mjs",
     "smoke:agent-owned-hotel-booking": "node scripts/smoke-agent-owned-hotel-booking.mjs",
     "smoke:agent-booking-requests": "node scripts/smoke-agent-booking-requests.mjs",
     "smoke:admin-booking-lifecycle": "node scripts/smoke-admin-booking-lifecycle.cjs",

@@ -9,7 +9,7 @@ import Sidebar from '../../sidebar/sidebar';
 import PredefinedDateRanges from '../../../../core/common/range-picker/datePicker';
 import AgentTourBookingModal from './agentTourBookingModal';
 import { useAuth } from '../../../../core/contexts/AuthContext';
-import { fetchAgentBookings, updateBookingStatus, bookingStatusDisplay } from '../../../../core/services/agentServices';
+import { fetchAgentBookings, bookingStatusDisplay } from '../../../../core/services/agentServices';
 import type { Booking } from '../../../../core/services/firebaseServices';
 
 const AgentTourBooking = () => {
@@ -20,7 +20,6 @@ const AgentTourBooking = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
-    const [updatingId, setUpdatingId] = useState<string | null>(null);
 
     const loadBookings = async () => {
         if (!userProfile?.uid) return;
@@ -40,19 +39,6 @@ const AgentTourBooking = () => {
         loadBookings();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [userProfile?.uid]);
-
-    const handleStatusUpdate = async (booking: Booking, status: 'confirmed' | 'completed' | 'cancelled' | 'rejected', reason?: string) => {
-        if (!booking.id) return;
-        setUpdatingId(booking.id);
-        try {
-            await updateBookingStatus(booking.id, status, reason);
-            await loadBookings();
-        } catch (err) {
-            setError(err instanceof Error ? err.message : 'Failed to update booking');
-        } finally {
-            setUpdatingId(null);
-        }
-    };
 
     const data = bookings.map((booking) => {
         const status = bookingStatusDisplay(booking.status);
@@ -171,42 +157,6 @@ const AgentTourBooking = () => {
                     >
                         <i className="isax isax-eye" />
                     </Link>
-                    {render.raw.status === 'pending' && (
-                        <>
-                            <button
-                                type="button"
-                                className="btn btn-link text-success p-0 ms-2"
-                                title="Confirm"
-                                disabled={updatingId === render.raw.id}
-                                onClick={() => handleStatusUpdate(render.raw, 'confirmed')}
-                            >
-                                <i className="isax isax-tick-circle" />
-                            </button>
-                            <button
-                                type="button"
-                                className="btn btn-link text-danger p-0 ms-2"
-                                title="Reject"
-                                disabled={updatingId === render.raw.id}
-                                onClick={() => {
-                                    const reason = window.prompt('Rejection reason (optional)');
-                                    handleStatusUpdate(render.raw, 'rejected', reason || undefined);
-                                }}
-                            >
-                                <i className="isax isax-close-circle" />
-                            </button>
-                        </>
-                    )}
-                    {render.raw.status === 'confirmed' && (
-                        <button
-                            type="button"
-                            className="btn btn-link text-primary p-0 ms-2"
-                            title="Mark completed"
-                            disabled={updatingId === render.raw.id}
-                            onClick={() => handleStatusUpdate(render.raw, 'completed')}
-                        >
-                            <i className="isax isax-tick-circle" />
-                        </button>
-                    )}
                 </div>
             ),
         },

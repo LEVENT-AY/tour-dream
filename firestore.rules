@@ -208,14 +208,12 @@ service cloud.firestore {
 
     match /bookings/{bookingId} {
       allow read: if isOwner(resource.data.userId)
-        || ((isApprovedAgent() || isAgent()) && isBookingAgent())
+        || ((isApprovedAgent() || isAgent()) && isAgentBookingRequestViewer())
         || isAdmin();
       allow create: if isCustomer()
         && request.resource.data.userId == currentUserId()
         && request.resource.data.status == 'pending';
-      allow update: if isAdmin()
-        || ((isApprovedAgent() || isAgent()) && isBookingAgent() && isAgentBookingUpdateSafe())
-        || (isOwner(resource.data.userId) && request.resource.data.status == 'cancelled');
+      allow update: if isAdmin();
     }
 
     match /{path=**}/bookings/{bookingId} {

@@ -41,10 +41,15 @@ async function main() {
   const browser = await chromium.launch({ headless: true });
   let user;
   let bookingRef;
+  let topLevelBookingRef;
+  let bookingId = '';
   let adminSawBooking = false;
   let confirmed = false;
   let cancelled = false;
   let customerSawStatus = false;
+  let topLevelCreated = false;
+  let mirroredConfirmed = false;
+  let mirroredCancelled = false;
   let adminUrl = '';
   let adminBody = '';
   const errors = [];
@@ -70,13 +75,21 @@ async function main() {
       joinedAt: new Date().toISOString(),
     });
 
-    bookingRef = await db.collection('users').doc(user.uid).collection('bookings').add({
+    bookingRef = db.collection('users').doc(user.uid).collection('bookings').doc();
+    bookingId = bookingRef.id;
+    topLevelBookingRef = db.collection('bookings').doc(bookingId);
+    const bookingPayload = {
+      bookingId,
       userId: user.uid,
       customerId: user.uid,
       customerName: 'Smoke Booking Customer',
       customerEmail: CUSTOMER_EMAIL,
       customerPhone: '+0000000000',
+      agentId: null,
+      ownerId: null,
+      listingOwnerId: null,
       title: 'Hotel Plaza Athenee',
+      name: 'Hotel Plaza Athenee',
       listingId: 'hotel-plaza-athenee',
       listingType: 'hotel',
       itemId: 'hotel-plaza-athenee',
@@ -85,7 +98,10 @@ async function main() {
       status: 'pending',
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-    });
+    };
+    await bookingRef.set(bookingPayload);
+    await topLevelBookingRef.set(bookingPayload);
+    topLevelCreated = (await topLevelBookingRef.get()).exists;
 
     const customerContext = await browser.newContext();
     const page = await customerContext.newPage();
@@ -118,7 +134,9 @@ async function main() {
     await row.getByRole('button', { name: 'Confirm' }).click();
     await adminPage.waitForTimeout(2500);
     const afterConfirm = await bookingRef.get();
+    const topAfterConfirm = await topLevelBookingRef.get();
     confirmed = afterConfirm.exists && afterConfirm.data().status === 'confirmed';
+    mirroredConfirmed = topAfterConfirm.exists && topAfterConfirm.data().status === 'confirmed' && confirmed;
 
     const customerContext2 = await browser.newContext();
     const customerPage2 = await customerContext2.newPage();
@@ -140,18 +158,21 @@ async function main() {
     await row2.getByRole('button', { name: 'Cancel' }).click();
     await adminPage2.waitForTimeout(2500);
     const afterCancel = await bookingRef.get();
+    const topAfterCancel = await topLevelBookingRef.get();
     cancelled = afterCancel.exists && afterCancel.data().status === 'cancelled';
+    mirroredCancelled = topAfterCancel.exists && topAfterCancel.data().status === 'cancelled' && cancelled;
 
-    console.log(JSON.stringify({ adminSawBooking, confirmed, customerSawStatus, cancelled, adminUrl, adminBodyPreview: adminBody.slice(0, 200).replace(/\s+/g, ' '), errors }));
-    process.exitCode = adminSawBooking && confirmed && customerSawStatus && cancelled ? 0 : 1;
+    console.log(JSON.stringify({ adminSawBooking, topLevelCreated, confirmed, mirroredConfirmed, customerSawStatus, cancelled, mirroredCancelled, adminUrl, adminBodyPreview: adminBody.slice(0, 200).replace(/\s+/g, ' '), errors }));
+    process.exitCode = adminSawBooking && topLevelCreated && confirmed && mirroredConfirmed && customerSawStatus && cancelled && mirroredCancelled ? 0 : 1;
   } catch (err) {
-    console.log(JSON.stringify({ adminSawBooking, confirmed, customerSawStatus, cancelled, adminUrl, adminBodyPreview: adminBody.slice(0, 200).replace(/\s+/g, ' '), errors, reason: err.message || String(err) }));
+    console.log(JSON.stringify({ adminSawBooking, topLevelCreated, confirmed, mirroredConfirmed, customerSawStatus, cancelled, mirroredCancelled, adminUrl, adminBodyPreview: adminBody.slice(0, 200).replace(/\s+/g, ' '), errors, reason: err.message || String(err) }));
     process.exitCode = 1;
   } finally {
     try {
       const sub = db.collection('users').doc(user.uid).collection('bookings');
       const snap = await sub.get();
       for (const doc of snap.docs) await doc.ref.delete();
+      if (bookingId) await db.collection('bookings').doc(bookingId).delete();
       await db.collection('users').doc(user.uid).delete();
     } catch {}
 

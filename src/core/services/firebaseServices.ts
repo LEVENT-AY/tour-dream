@@ -9,7 +9,6 @@ import {
 } from "firebase/auth";
 import { 
   collection, 
-  collectionGroup,
   doc, 
   setDoc, 
   getDoc, 
@@ -20,6 +19,7 @@ import {
   orderBy,
   updateDoc,
   deleteDoc,
+  writeBatch,
   serverTimestamp,
   type DocumentData
 } from "firebase/firestore";
@@ -411,6 +411,7 @@ export const updateHomepageSettings = async (settings: Partial<HomepageSettings>
 
 export interface Booking {
   id?: string;
+  bookingId?: string;
   userId: string;
   userEmail?: string;
   userName?: string;
@@ -419,13 +420,14 @@ export interface Booking {
   customerName?: string;
   customerEmail?: string;
   customerPhone?: string;
-  agentId?: string;
+  agentId?: string | null;
   ownerId?: string | null;
   listingOwnerId?: string | null;
   createdBy?: string | null;
   itemId: string;
   itemTitle: string;
   itemImage?: string;
+  name?: string;
   itemType: "tour" | "hotel" | "car" | "flight" | "bus" | "visa" | "cruise" | "activities" | "resort" | "chalet";
   title?: string;
   listingId?: string;
@@ -463,6 +465,84 @@ export interface UserBookingRequest {
   price?: number;
   currency?: string;
 }
+
+const sortBookingsByCreatedAtDesc = (bookings: Booking[]): Booking[] =>
+  [...bookings].sort((a, b) => {
+    const ta = new Date(b.createdAt || 0).getTime();
+    const tb = new Date(a.createdAt || 0).getTime();
+    return ta - tb;
+  });
+
+const bookingAssignedAgentId = (booking: Partial<Booking>): string | null =>
+  booking.agentId || booking.ownerId || booking.listingOwnerId || null;
+
+const bookingBelongsToAgent = (booking: Partial<Booking>, agentId: string): boolean =>
+  booking.agentId === agentId || booking.ownerId === agentId || booking.listingOwnerId === agentId;
+
+const buildBookingPayload = (userId: string, bookingId: string, bookingData: UserBookingRequest, now: string): Booking => {
+  const assignedAgentId = bookingData.agentId || bookingData.ownerId || bookingData.listingOwnerId || null;
+  const title = bookingData.title;
+  return {
+    bookingId,
+    userId,
+    userName: bookingData.customerName || "",
+    userEmail: bookingData.customerEmail || "",
+    userPhone: bookingData.customerPhone || "",
+    customerId: bookingData.customerId,
+    customerName: bookingData.customerName || "",
+    customerEmail: bookingData.customerEmail || "",
+    customerPhone: bookingData.customerPhone || "",
+    agentId: assignedAgentId,
+    ownerId: bookingData.ownerId || assignedAgentId,
+    listingOwnerId: bookingData.listingOwnerId || bookingData.ownerId || assignedAgentId,
+    createdBy: bookingData.createdBy || userId,
+    itemId: bookingData.listingId || title,
+    itemTitle: title,
+    name: title,
+    itemType: bookingData.listingType || "hotel",
+    listingId: bookingData.listingId || title,
+    listingType: bookingData.listingType || "hotel",
+    title,
+    assignmentScope: assignedAgentId ? "agent" : "admin",
+    price: bookingData.price,
+    currency: bookingData.currency,
+    checkInDate: bookingData.checkInDate,
+    checkOutDate: bookingData.checkOutDate,
+    status: "pending",
+    createdAt: now,
+    updatedAt: now,
+  };
+};
+
+const resolveBookingMirror = async (bookingId: string, userId?: string): Promise<{ booking: Booking; userId: string }> => {
+  const topLevelRef = doc(db, "bookings", bookingId);
+  const topLevelSnap = await getDoc(topLevelRef);
+  if (topLevelSnap.exists()) {
+    const booking = { id: topLevelSnap.id, ...topLevelSnap.data() } as Booking;
+    return { booking, userId: booking.userId };
+  }
+
+  if (!userId) {
+    throw new Error("Booking mirror is missing the customer reference.");
+  }
+
+  const userRef = doc(db, "users", userId, "bookings", bookingId);
+  const userSnap = await getDoc(userRef);
+  if (!userSnap.exists()) {
+    throw new Error("Booking not found.");
+  }
+
+  const booking = { id: userSnap.id, ...userSnap.data() } as Booking;
+  return { booking, userId };
+};
+
+const ALLOWED_ADMIN_BOOKING_TRANSITIONS: Record<Booking["status"], Booking["status"][]> = {
+  pending: ["confirmed", "cancelled"],
+  confirmed: ["cancelled"],
+  cancelled: [],
+  completed: [],
+  rejected: [],
+};
 
 export interface WishlistItem {
   id?: string;
@@ -518,45 +598,43 @@ export const fetchUserOrders = async (userId: string): Promise<UserOrder[]> => {
   return snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as UserOrder));
 };
 
-export const createUserBookingRequest = async (
+export const createBookingRequest = async (
   userId: string,
   bookingData: UserBookingRequest
 ): Promise<string> => {
   const now = new Date().toISOString();
-  const bookingOwnerId = bookingData.ownerId || bookingData.listingOwnerId || bookingData.agentId || null;
   const bookingRef = doc(collection(db, "users", userId, "bookings"));
   const bookingId = bookingRef.id;
-  const bookingPayload = {
-    userId,
-    userName: bookingData.customerName || "",
-    userEmail: bookingData.customerEmail || "",
-    userPhone: bookingData.customerPhone || "",
-    customerId: bookingData.customerId,
-    customerName: bookingData.customerName || "",
-    customerEmail: bookingData.customerEmail || "",
-    customerPhone: bookingData.customerPhone || "",
-    agentId: bookingOwnerId,
-    ownerId: bookingOwnerId,
-    listingOwnerId: bookingData.listingOwnerId || bookingData.ownerId || bookingData.agentId || null,
-    createdBy: bookingData.createdBy || userId,
-    itemId: bookingData.listingId || bookingData.title,
-    itemTitle: bookingData.title,
-    itemType: bookingData.listingType || "hotel",
-    listingId: bookingData.listingId || bookingData.title,
-    listingType: bookingData.listingType || "hotel",
-    title: bookingData.title,
-    assignmentScope: bookingOwnerId ? "agent" : "admin",
-    price: bookingData.price,
-    currency: bookingData.currency,
-    status: "pending",
-    createdAt: now,
-    updatedAt: now,
-  };
-  await setDoc(bookingRef, bookingPayload);
-  if (bookingOwnerId) {
-    await setDoc(doc(db, "bookings", bookingId), bookingPayload);
-  }
+  const bookingPayload = buildBookingPayload(userId, bookingId, bookingData, now);
+  const batch = writeBatch(db);
+  batch.set(bookingRef, bookingPayload);
+  batch.set(doc(db, "bookings", bookingId), bookingPayload);
+  await batch.commit();
   return bookingId;
+};
+
+export const createUserBookingRequest = createBookingRequest;
+
+export const syncBookingMirror = async (
+  bookingId: string,
+  updates: Partial<Booking>,
+  userId?: string
+): Promise<void> => {
+  const { booking, userId: resolvedUserId } = await resolveBookingMirror(bookingId, userId);
+  const payload: Partial<Booking> = {
+    ...updates,
+    bookingId,
+    userId: resolvedUserId,
+    agentId: updates.agentId ?? bookingAssignedAgentId(updates) ?? booking.agentId,
+    ownerId: updates.ownerId ?? booking.ownerId,
+    listingOwnerId: updates.listingOwnerId ?? booking.listingOwnerId,
+    updatedAt: updates.updatedAt || new Date().toISOString(),
+  };
+
+  const batch = writeBatch(db);
+  batch.set(doc(db, "bookings", bookingId), payload, { merge: true });
+  batch.set(doc(db, "users", resolvedUserId, "bookings", bookingId), payload, { merge: true });
+  await batch.commit();
 };
 
 export const createBooking = async (bookingData: Omit<Booking, "createdAt" | "status">): Promise<string> => {
@@ -568,7 +646,7 @@ export const createBooking = async (bookingData: Omit<Booking, "createdAt" | "st
   return docRef.id;
 };
 
-export const fetchUserBookings = async (userId: string): Promise<Booking[]> => {
+export const fetchCustomerBookings = async (userId: string): Promise<Booking[]> => {
   const q = query(collection(db, "users", userId, "bookings"), orderBy("createdAt", "desc"));
   const querySnapshot = await getDocs(q);
   const bookings: Booking[] = [];
@@ -578,16 +656,48 @@ export const fetchUserBookings = async (userId: string): Promise<Booking[]> => {
   return bookings;
 };
 
+export const fetchUserBookings = fetchCustomerBookings;
+
+export const fetchAgentBookings = async (agentId: string): Promise<Booking[]> => {
+  try {
+    const q = query(collection(db, "bookings"), where("agentId", "==", agentId), orderBy("createdAt", "desc"));
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as Booking));
+  } catch {
+    const snapshot = await getDocs(collection(db, "bookings"));
+    return sortBookingsByCreatedAtDesc(
+      snapshot.docs
+        .map((d) => ({ id: d.id, ...d.data() } as Booking))
+        .filter((booking) => bookingBelongsToAgent(booking, agentId))
+    );
+  }
+};
+
+export const fetchAdminBookings = async (status?: "pending" | "confirmed" | "cancelled"): Promise<Booking[]> => {
+  const snapshot = await getDocs(collection(db, "bookings"));
+  const bookings = sortBookingsByCreatedAtDesc(snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as Booking)));
+  return status ? bookings.filter((booking) => booking.status === status) : bookings;
+};
+
 export const updateBookingStatus = async (
   bookingId: string,
   status: "pending" | "confirmed" | "completed" | "cancelled" | "rejected",
   notes?: string,
   userId?: string
 ): Promise<void> => {
-  const bookingRef = userId ? doc(db, "users", userId, "bookings", bookingId) : doc(db, "bookings", bookingId);
-  const payload: Record<string, any> = { status, updatedAt: serverTimestamp() };
+  const { booking } = await resolveBookingMirror(bookingId, userId);
+  const currentStatus = booking.status || "pending";
+  if (currentStatus === status) return;
+  if (!ALLOWED_ADMIN_BOOKING_TRANSITIONS[currentStatus].includes(status)) {
+    throw new Error(`Invalid booking status transition from ${currentStatus} to ${status}.`);
+  }
+
+  const payload: Partial<Booking> & { adminNotes?: string } = {
+    status,
+    updatedAt: new Date().toISOString(),
+  };
   if (notes !== undefined) payload.adminNotes = notes;
-  await updateDoc(bookingRef, payload);
+  await syncBookingMirror(bookingId, payload, booking.userId);
 };
 
 
@@ -759,11 +869,7 @@ export const countAgentListings = async (agentId: string): Promise<Record<string
 
 // BOOKINGS
 
-export const fetchBookings = async (status?: "pending" | "confirmed" | "cancelled"): Promise<Booking[]> => {
-  const snapshot = await getDocs(query(collectionGroup(db, "bookings"), orderBy("createdAt", "desc")));
-  const bookings = snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as Booking));
-  return status ? bookings.filter((booking) => booking.status === status) : bookings;
-};
+export const fetchBookings = fetchAdminBookings;
 
 
 // REVIEWS
