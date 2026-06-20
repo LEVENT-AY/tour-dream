@@ -9,6 +9,7 @@ import {
 } from "firebase/auth";
 import { 
   collection, 
+  collectionGroup,
   doc, 
   setDoc, 
   getDoc, 
@@ -411,11 +412,18 @@ export interface Booking {
   userEmail?: string;
   userName?: string;
   userPhone?: string;
+  customerId?: string;
+  customerName?: string;
+  customerEmail?: string;
+  customerPhone?: string;
   agentId?: string;
   itemId: string;
   itemTitle: string;
   itemImage?: string;
   itemType: "tour" | "hotel" | "car" | "flight" | "bus" | "visa" | "cruise" | "activities" | "resort" | "chalet";
+  title?: string;
+  listingId?: string;
+  listingType?: "tour" | "hotel" | "car" | "flight" | "bus" | "visa" | "cruise" | "activities" | "resort" | "chalet";
   price?: number;
   totalAmount?: number;
   currency?: string;
@@ -550,9 +558,10 @@ export const fetchUserBookings = async (userId: string): Promise<Booking[]> => {
 export const updateBookingStatus = async (
   bookingId: string,
   status: "pending" | "confirmed" | "completed" | "cancelled" | "rejected",
-  notes?: string
+  notes?: string,
+  userId?: string
 ): Promise<void> => {
-  const bookingRef = doc(db, "bookings", bookingId);
+  const bookingRef = userId ? doc(db, "users", userId, "bookings", bookingId) : doc(db, "bookings", bookingId);
   const payload: Record<string, any> = { status, updatedAt: serverTimestamp() };
   if (notes !== undefined) payload.adminNotes = notes;
   await updateDoc(bookingRef, payload);
@@ -728,12 +737,9 @@ export const countAgentListings = async (agentId: string): Promise<Record<string
 // BOOKINGS
 
 export const fetchBookings = async (status?: "pending" | "confirmed" | "cancelled"): Promise<Booking[]> => {
-  let q = query(collection(db, "bookings"));
-  if (status) {
-    q = query(collection(db, "bookings"), where("status", "==", status));
-  }
-  const snapshot = await getDocs(q);
-  return snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as Booking));
+  const snapshot = await getDocs(query(collectionGroup(db, "bookings"), orderBy("createdAt", "desc")));
+  const bookings = snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as Booking));
+  return status ? bookings.filter((booking) => booking.status === status) : bookings;
 };
 
 

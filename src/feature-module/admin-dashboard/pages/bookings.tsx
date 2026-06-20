@@ -13,7 +13,6 @@ const AdminBookings: React.FC<AdminBookingsProps> = ({ title = "All Bookings", d
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<"all" | "pending" | "confirmed" | "cancelled">(defaultStatus);
-  const [notes, setNotes] = useState<Record<string, string>>({});
 
   const load = async () => {
     setLoading(true);
@@ -40,7 +39,12 @@ const AdminBookings: React.FC<AdminBookingsProps> = ({ title = "All Bookings", d
 
   const changeStatus = async (booking: Booking, status: "pending" | "confirmed" | "cancelled") => {
     try {
-      await updateBookingStatus(booking.id!, status, notes[booking.id!] || booking.status === status ? undefined : notes[booking.id!]);
+      await updateBookingStatus(
+        booking.id!,
+        status,
+        undefined,
+        booking.userId
+      );
       await load();
     } catch (err) {
       console.error(err);
@@ -85,25 +89,23 @@ const AdminBookings: React.FC<AdminBookingsProps> = ({ title = "All Bookings", d
               <thead className="table-light">
                 <tr>
                   <th>Customer</th>
-                  <th>Service</th>
-                  <th>Date</th>
-                  <th>Amount</th>
+                  <th>Booking Request</th>
+                  <th>Created</th>
                   <th>Status</th>
-                  <th>Admin Notes</th>
                   <th className="text-end">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {loading ? (
                   <tr>
-                    <td colSpan={7} className="text-center py-4">
+                    <td colSpan={5} className="text-center py-4">
                       <span className="spinner-border spinner-border-sm text-primary me-2" />
                       Loading...
                     </td>
                   </tr>
                 ) : filtered.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="text-center py-4 text-muted">
+                    <td colSpan={5} className="text-center py-4 text-muted">
                       No bookings found.
                     </td>
                   </tr>
@@ -111,15 +113,15 @@ const AdminBookings: React.FC<AdminBookingsProps> = ({ title = "All Bookings", d
                   filtered.map((b) => (
                     <tr key={b.id}>
                       <td>
-                        <div className="fw-medium">{b.userName || '—'}</div>
-                        <div className="small text-muted">{b.userEmail}</div>
+                        <div className="fw-medium">{b.customerName || b.userName || '—'}</div>
+                        <div className="small text-muted">{b.customerEmail || b.userEmail || '—'}</div>
+                        <div className="small text-muted">{b.customerPhone || b.userPhone || '—'}</div>
                       </td>
                       <td>
-                        <div className="fw-medium">{b.itemTitle || '—'}</div>
-                        <div className="small text-muted text-capitalize">{b.itemType}</div>
+                        <div className="fw-medium">{b.title || b.itemTitle || '—'}</div>
+                        <div className="small text-muted text-capitalize">{b.listingType || b.itemType || '—'}</div>
                       </td>
-                      <td>{b.bookingDate ? new Date(b.bookingDate).toLocaleDateString() : '—'}</td>
-                      <td>${b.price ?? 0}</td>
+                      <td>{b.createdAt ? new Date(b.createdAt).toLocaleString() : '—'}</td>
                       <td>
                         <span
                           className={`badge ${
@@ -128,15 +130,6 @@ const AdminBookings: React.FC<AdminBookingsProps> = ({ title = "All Bookings", d
                         >
                           {b.status}
                         </span>
-                      </td>
-                      <td style={{ minWidth: '180px' }}>
-                        <input
-                          type="text"
-                          className="form-control form-control-sm"
-                          placeholder="Add note..."
-                          value={notes[b.id!] || ''}
-                          onChange={(e) => setNotes((prev) => ({ ...prev, [b.id!]: e.target.value }))}
-                        />
                       </td>
                       <td className="text-end">
                         {STATUS_OPTIONS.filter((s) => s !== b.status).map((s) => (
