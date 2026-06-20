@@ -212,6 +212,11 @@ service cloud.firestore {
         || (isOwner(resource.data.userId) && request.resource.data.status == 'cancelled');
     }
 
+    match /{path=**}/bookings/{bookingId} {
+      allow read: if isOwner(resource.data.userId) || isAdmin();
+      allow update: if isAdmin();
+    }
+
     // ---------- Favorites (customer-owned) ----------
     match /favorites/{favoriteId} {
       allow read: if isOwner(resource.data.userId) || isAdmin();
