@@ -1,14 +1,15 @@
 import { useEffect, useState } from 'react'
 import ImageWithBasePath from '../imageWithBasePath'
 import { all_routes } from '../../../feature-module/router/all_routes'
-import { Link, useLocation } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 
 const Sidebar = () => {
 
     const routes = all_routes
     const location = useLocation();
-    const { userProfile } = useAuth();
+    const navigate = useNavigate();
+    const { userProfile, logout } = useAuth();
     const [subdroptoggle, setsubdroptoggle] = useState<boolean[]>([false, false]);
     const displayName = userProfile?.displayName || userProfile?.email || 'Customer';
     const memberSince = userProfile?.joinedAt
@@ -20,6 +21,11 @@ const Sidebar = () => {
         setsubdroptoggle((prev) =>
             prev.map((_, i) => (i === index ? !prev[i] : false))
         );
+    };
+    const handleLogout = async (event: React.MouseEvent<HTMLAnchorElement>) => {
+        event.preventDefault();
+        await logout();
+        navigate('/');
     };
     useEffect(() => {
         if (location.pathname.includes("booking")) {
@@ -291,7 +297,7 @@ const Sidebar = () => {
                                 </Link>
                             </li>
                             <li>
-                                <Link to={routes.allService1} className="d-flex align-items-center pb-0">
+                                <Link to="#" onClick={handleLogout} className="d-flex align-items-center pb-0">
                                     <i className="isax isax-logout-15" /> Logout
                                 </Link>
                             </li>

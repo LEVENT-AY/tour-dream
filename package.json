@@ -18,6 +18,7 @@
     "smoke:demo-login": "node scripts/smoke-demo-login.mjs",
     "smoke:demo-ready": "npm run smoke:demo-login && npm run smoke:agent-dashboard && npm run smoke:booking-surface-qa",
     "smoke:auth-shell-qa": "node scripts/smoke-auth-shell-qa.mjs",
+    "smoke:logout-shell-qa": "node scripts/smoke-logout-shell-qa.mjs",
     "smoke:agent-dashboard": "node scripts/smoke-agent-dashboard.mjs",
     "smoke:booking-surface-qa": "node scripts/smoke-booking-surface-qa.mjs",
     "smoke:booking-request-v1": "node scripts/smoke-booking-request-v1.cjs",

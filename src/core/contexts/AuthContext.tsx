@@ -72,6 +72,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const cleanupModalArtifacts = () => {
+    document.body.classList.remove('modal-open');
+    document.body.style.removeProperty('padding-right');
+    document.querySelectorAll('.modal-backdrop').forEach((backdrop) => backdrop.remove());
+  };
+
   useEffect(() => {
     let isMounted = true;
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -114,8 +120,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const logout = async () => {
-    await signOut(auth);
-    // State will be cleared by onAuthStateChanged callback
+    setCurrentUser(null);
+    setUserProfile(null);
+    setLoading(false);
+    cleanupModalArtifacts();
+    try {
+      await signOut(auth);
+    } finally {
+      setCurrentUser(null);
+      setUserProfile(null);
+      setLoading(false);
+      cleanupModalArtifacts();
+    }
   };
 
   const value = useMemo<AuthContextType>(() => {

@@ -1,20 +1,20 @@
 import React, { useState } from 'react';
-import { Link, Outlet, useNavigate } from 'react-router-dom';
+import { Link, Outlet } from 'react-router-dom';
 import ImageWithBasePath from '../../../core/common/imageWithBasePath';
 import { useAuth } from '../../../core/contexts/AuthContext';
-import { signOutUser } from '../../../core/services/firebaseServices';
 import AdminSidebar from '../sidebar/AdminSidebar';
 import { all_routes } from '../../router/all_routes';
 
 const AdminLayout: React.FC = () => {
-  const { userProfile } = useAuth();
-  const navigate = useNavigate();
+  const { userProfile, logout } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
 
   const handleLogout = async () => {
-    await signOutUser();
-    navigate(all_routes.login);
+    await logout();
+    setProfileDropdownOpen(false);
+    setSidebarOpen(false);
+    window.location.assign('/');
   };
 
   return (

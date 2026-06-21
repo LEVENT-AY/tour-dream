@@ -1,5 +1,5 @@
 import { Outlet, useLocation } from "react-router";
-import { useEffect, useState } from "react";
+import { useLayoutEffect, useState } from "react";
 import Header from "../core/common/header/header";
 import Cursor from "../core/common/cursor/cursor";
 import BackToTop from "../core/common/backtotop/backToTop";
@@ -7,7 +7,7 @@ import Footer from "../core/common/footer/footer";
 import FooterSeven from "./home-seven/footerSeven";
 
 const Feature = () => {
-  const [showLoader, setShowLoader] = useState(false);
+  const [showLoader, setShowLoader] = useState(() => window.location.pathname.includes("index"));
 
   const location = useLocation();
   const isDashboardRoute =
@@ -24,7 +24,7 @@ const Feature = () => {
       </div>
     );
   };
-useEffect(() => {
+useLayoutEffect(() => {
   window.scrollTo({
     top: 0,
     left: 0,
@@ -39,6 +39,8 @@ useEffect(() => {
 
     return () => clearTimeout(timeoutId);
   }
+
+  setShowLoader(false);
 }, [location.pathname]);
   return (
     <>
@@ -47,30 +49,7 @@ useEffect(() => {
           {isDashboardRoute ? (
             <Outlet />
           ) : showLoader ? (
-            <>
-              <Preloader />
-              <div>
-                {location.pathname === "/index-10" || location.pathname === "/index-12" ? (
-                  <></>
-                ) : (
-                  <Header />
-                )}
-                <Outlet />
-                {location.pathname === "/index-4" ||
-                location.pathname === "/index-5" ||
-                location.pathname === "/index-6" ||
-                location.pathname === "/index-7" ||
-                location.pathname === "/index-8" || 
-                location.pathname === "/index-10" ? (
-                  <></>
-                ) : (
-                  <Footer />
-                )}
-
-                <Cursor />
-                <BackToTop />
-              </div>
-            </>
+            <Preloader />
           ) : (
             <>
               <div>

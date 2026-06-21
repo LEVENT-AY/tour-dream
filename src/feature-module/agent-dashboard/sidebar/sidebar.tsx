@@ -20,13 +20,18 @@ const Sidebar = () => {
 
     const routes = all_routes
     const location = useLocation();
-    const { userProfile } = useAuth();
+    const { userProfile, logout } = useAuth();
         const [subdroptoggle, setsubdroptoggle] = useState<boolean[]>([false, false]);
 
     const handleToggle = (index: number) => {
         setsubdroptoggle((prev) =>
             prev.map((_, i) => (i === index ? !prev[i] : false))
         );
+    };
+    const handleLogout = async (event: React.MouseEvent<HTMLButtonElement>) => {
+        event.preventDefault();
+        await logout();
+        window.location.assign('/');
     };
     useEffect(() => {
         if (location.pathname.includes('booking') || location.pathname.includes('agent-cancellation-request')) {
@@ -248,9 +253,13 @@ const Sidebar = () => {
                             </Link>
                         </li>
                         <li className="logout-link">
-                            <Link to={routes.allService1} className="d-flex align-items-center pb-0">
+                            <button
+                                type="button"
+                                onClick={handleLogout}
+                                className="btn btn-link d-flex align-items-center pb-0 px-0 text-decoration-none"
+                            >
                                 <i className="isax isax-logout-15" /> Logout
-                            </Link>
+                            </button>
                         </li>
                     </ul>
                 </div>
