@@ -74,6 +74,16 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ isOpen, onClose }) => {
             <i className="isax isax-close-circle fs-18" />
           </button>
         </div>
+        <div className="p-3 border-bottom">
+          <Link
+            to="/"
+            onClick={onClose}
+            className="btn btn-outline-primary w-100 d-flex align-items-center justify-content-center gap-2"
+          >
+            <i className="isax isax-arrow-left-2 fs-14" />
+            Back to Website
+          </Link>
+        </div>
         <ul className="admin-menu list-unstyled mb-0 py-2">
           {menuItems.map((item) => {
             const active = isParentActive(item);

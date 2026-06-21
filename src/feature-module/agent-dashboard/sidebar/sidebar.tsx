@@ -76,6 +76,15 @@ const Sidebar = () => {
                             <span className="position-absolute p-1 bg-danger rounded-circle" />
                         </Link>
                     </div>
+                    <div className="mt-3 w-100 px-2">
+                        <Link
+                            to="/"
+                            className="btn btn-outline-primary w-100 d-flex align-items-center justify-content-center gap-2"
+                        >
+                            <i className="isax isax-arrow-left-2 fs-14" />
+                            Back to Website
+                        </Link>
+                    </div>
                 </div>
                 <div className="card-body user-sidebar-body">
                     <ul>
