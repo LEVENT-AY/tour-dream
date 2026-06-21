@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { all_routes } from '../../router/all_routes';
-import { useAuth } from '../../../core/contexts/AuthContext';
 
 interface AdminSidebarProps {
   isOpen: boolean;
@@ -46,7 +45,6 @@ const menuItems: MenuItem[] = [
 
 const AdminSidebar: React.FC<AdminSidebarProps> = ({ isOpen, onClose }) => {
   const location = useLocation();
-  const { logout } = useAuth();
   const [openMenus, setOpenMenus] = useState<Set<string>>(new Set());
 
   const toggleMenu = (label: string) => {
@@ -61,12 +59,6 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ isOpen, onClose }) => {
   const isActive = (route: string) => location.pathname === route;
   const isParentActive = (item: MenuItem) =>
     isActive(item.route) || (item.submenu?.some((sub) => isActive(sub.route)) ?? false);
-  const handleLogout = async (event: React.MouseEvent<HTMLAnchorElement>) => {
-    event.preventDefault();
-    await logout();
-    onClose();
-    window.location.assign('/');
-  };
 
   return (
     <aside
@@ -85,7 +77,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ isOpen, onClose }) => {
         <div className="p-3 border-bottom">
           <Link
             to="/"
-            onClick={handleLogout}
+            onClick={onClose}
             className="btn btn-outline-primary w-100 d-flex align-items-center justify-content-center gap-2"
           >
             <i className="isax isax-arrow-left-2 fs-14" />

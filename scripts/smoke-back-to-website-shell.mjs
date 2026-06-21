@@ -32,7 +32,6 @@ async function verifyDemoAccount({ email, expectedRole, requiresApprovedAgent = 
   }
 
   const profile = profileSnap.data();
-
   if (profile.role !== expectedRole || user.customClaims?.role !== expectedRole) {
     throw new Error(`Role mismatch for ${expectedRole} demo account.`);
   }
@@ -42,7 +41,7 @@ async function verifyDemoAccount({ email, expectedRole, requiresApprovedAgent = 
   }
 }
 
-async function login(page, email, password) {
+async function login(page, email, password, dashboardPath) {
   await page.goto(`${BASE_URL}/login`, { waitUntil: 'domcontentloaded' });
   await page.locator('#loader-wrapper').waitFor({ state: 'hidden', timeout: 15000 }).catch(() => {});
   await page.getByPlaceholder('Enter Email').fill(email);
@@ -50,16 +49,31 @@ async function login(page, email, password) {
   await page.getByRole('button', { name: /login|signing in/i }).click();
   const deadline = Date.now() + 30000;
   while (Date.now() < deadline) {
-    if (page.url().includes('/dashboard')) {
-      break;
+    if (page.url().includes(dashboardPath)) {
+      return;
     }
     await page.waitForTimeout(250);
   }
+  throw new Error(`Timed out waiting for ${dashboardPath}`);
 }
 
-async function verifyLoggedOutHomepage(page) {
-  await page.goto(`${BASE_URL}/index`, { waitUntil: 'domcontentloaded' });
-  const footerCountDuringLoad = await page.locator('footer').count();
+async function clickBackToWebsite(page, selector) {
+  const backLink = page.locator(selector).first();
+  await backLink.waitFor({ state: 'visible', timeout: 15000 });
+  await backLink.scrollIntoViewIfNeeded().catch(() => {});
+  await backLink.click({ force: true });
+  const deadline = Date.now() + 30000;
+  while (Date.now() < deadline) {
+    const pathname = new URL(page.url()).pathname;
+    if (pathname === '/' || pathname === '/index') {
+      return pathname;
+    }
+    await page.waitForTimeout(250);
+  }
+  throw new Error('Timed out waiting for homepage after Back to Website.');
+}
+
+async function readHomeState(page) {
   await page.locator('#loader-wrapper').waitFor({ state: 'hidden', timeout: 15000 }).catch(() => {});
   await page.waitForTimeout(1000);
   const header = page.locator('header').first();
@@ -67,41 +81,64 @@ async function verifyLoggedOutHomepage(page) {
   const profileVisible = await page.locator('.profile-dropdown').count();
   const backdropCount = await page.locator('.modal-backdrop').count();
   const bodyModalOpen = await page.evaluate(() => document.body.classList.contains('modal-open'));
+  const profileDropdownVisible = profileVisible > 0 && await page.locator('.profile-dropdown').first().isVisible().catch(() => false);
   return {
     loginVisible,
     profileVisible,
+    profileDropdownVisible,
     backdropCount,
     bodyModalOpen,
-    footerCountDuringLoad,
+    path: new URL(page.url()).pathname,
   };
 }
 
-async function logoutFromDashboard(page, logoutSelector) {
-  const logoutLink = page.locator(logoutSelector).first();
-  await logoutLink.waitFor({ state: 'visible', timeout: 15000 });
-  await logoutLink.scrollIntoViewIfNeeded().catch(() => {});
-  await logoutLink.evaluate((element) => {
-    element.click();
-  }).catch(() => {});
-  await logoutLink.click({ force: true }).catch(() => {});
+async function logoutFromHomepage(page) {
+  const dropdownToggle = page.locator('.profile-dropdown [data-bs-toggle="dropdown"]').first();
+  await dropdownToggle.click();
+  await page.locator('.profile-dropdown').getByRole('link', { name: 'Logout' }).click();
   const deadline = Date.now() + 30000;
   while (Date.now() < deadline) {
-    const currentUrl = page.url();
-    if (currentUrl.endsWith('/') || currentUrl.includes('/index')) {
-      break;
+    if ((await page.locator('header').first().locator('.header-btn [data-bs-target="#login-modal"]:visible').count()) > 0) {
+      return;
     }
     await page.waitForTimeout(250);
   }
-  await page.waitForTimeout(1000);
+  throw new Error('Timed out waiting for logged-out header after logout.');
+}
+
+async function runRole(page, role) {
+  const result = {
+    backToWebsiteOk: false,
+    sessionPreserved: false,
+    homepageSignedIn: false,
+    homepagePath: '',
+    logoutStillWorks: false,
+  };
+
+  await login(page, role.email, role.password, role.dashboardPath);
+  await page.goto(`${BASE_URL}${role.dashboardPath}`, { waitUntil: 'domcontentloaded' });
+  await page.locator('#loader-wrapper').waitFor({ state: 'hidden', timeout: 15000 }).catch(() => {});
+  const homepagePath = await clickBackToWebsite(page, role.backSelector);
+  const homeState = await readHomeState(page);
+
+  result.backToWebsiteOk = homepagePath === '/' || homepagePath === '/index';
+  result.sessionPreserved = homeState.profileVisible > 0 && homeState.loginVisible === 0;
+  result.homepageSignedIn = homeState.profileDropdownVisible && homeState.loginVisible === 0;
+  result.homepagePath = homeState.path;
+
+  await logoutFromHomepage(page);
+  result.logoutStillWorks = (await readHomeState(page)).loginVisible > 0;
+
+  return result;
 }
 
 async function main() {
-  const customerEmail = requireEnv('DEMO_CUSTOMER_EMAIL');
-  const customerPassword = requireEnv('DEMO_CUSTOMER_PASSWORD');
-  const agentEmail = requireEnv('DEMO_AGENT_EMAIL');
-  const agentPassword = requireEnv('DEMO_AGENT_PASSWORD');
   const adminEmail = requireEnv('DEMO_ADMIN_EMAIL');
   const adminPassword = requireEnv('DEMO_ADMIN_PASSWORD');
+  const agentEmail = requireEnv('DEMO_AGENT_EMAIL');
+  const agentPassword = requireEnv('DEMO_AGENT_PASSWORD');
+  const customerEmail = requireEnv('DEMO_CUSTOMER_EMAIL');
+  const customerPassword = requireEnv('DEMO_CUSTOMER_PASSWORD');
 
   await ensureDemoAccounts();
   await Promise.all([
@@ -119,66 +156,54 @@ async function main() {
   });
   page.on('pageerror', (err) => errors.push(err.message));
 
-  let customerLogoutOk = false;
-  let agentLogoutOk = false;
-  let adminLogoutOk = false;
-  let homepageFlashGuard = false;
-
   try {
-    await login(page, customerEmail, customerPassword);
-    await page.goto(`${BASE_URL}/user/dashboard`, { waitUntil: 'domcontentloaded' });
-    await page.locator('#loader-wrapper').waitFor({ state: 'hidden', timeout: 15000 }).catch(() => {});
-    await logoutFromDashboard(page, '.user-sidebar a:has(.isax-logout-15)');
-    const customerHome = await verifyLoggedOutHomepage(page);
-    customerLogoutOk =
-      customerHome.loginVisible > 0 &&
-      customerHome.profileVisible === 0 &&
-      customerHome.backdropCount === 0 &&
-      customerHome.bodyModalOpen === false;
-    homepageFlashGuard = customerHome.footerCountDuringLoad === 0;
+    const customer = await runRole(page, {
+      email: customerEmail,
+      password: customerPassword,
+      dashboardPath: '/user/dashboard',
+      backSelector: '.user-sidebar a:has(.isax-arrow-left-2)',
+    });
 
-    await login(page, agentEmail, agentPassword);
-    await page.goto(`${BASE_URL}/agent/agent-dashboard`, { waitUntil: 'domcontentloaded' });
-    await page.locator('#loader-wrapper').waitFor({ state: 'hidden', timeout: 15000 }).catch(() => {});
-    await logoutFromDashboard(page, '.agent-sidebar .logout-link button');
-    const agentHome = await verifyLoggedOutHomepage(page);
-    agentLogoutOk =
-      agentHome.loginVisible > 0 &&
-      agentHome.profileVisible === 0 &&
-      agentHome.backdropCount === 0 &&
-      agentHome.bodyModalOpen === false;
-    homepageFlashGuard = homepageFlashGuard && agentHome.footerCountDuringLoad === 0;
+    const agent = await runRole(page, {
+      email: agentEmail,
+      password: agentPassword,
+      dashboardPath: '/agent/agent-dashboard',
+      backSelector: '.agent-sidebar .btn-outline-primary',
+    });
 
-    await login(page, adminEmail, adminPassword);
-    await page.goto(`${BASE_URL}/admin/dashboard`, { waitUntil: 'domcontentloaded' });
-    await page.locator('#loader-wrapper').waitFor({ state: 'hidden', timeout: 15000 }).catch(() => {});
-    await page.locator('.admin-header .btn.btn-link').click();
-    await logoutFromDashboard(page, '.admin-header .dropdown-item.d-flex');
-    const adminHome = await verifyLoggedOutHomepage(page);
-    adminLogoutOk =
-      adminHome.loginVisible > 0 &&
-      adminHome.profileVisible === 0 &&
-      adminHome.backdropCount === 0 &&
-      adminHome.bodyModalOpen === false;
-    homepageFlashGuard = homepageFlashGuard && adminHome.footerCountDuringLoad === 0;
+    const admin = await runRole(page, {
+      email: adminEmail,
+      password: adminPassword,
+      dashboardPath: '/admin/dashboard',
+      backSelector: '.admin-sidebar .btn-outline-primary',
+    });
 
-    const success = customerLogoutOk && agentLogoutOk && adminLogoutOk && homepageFlashGuard;
+    const success =
+      customer.backToWebsiteOk &&
+      customer.sessionPreserved &&
+      customer.homepageSignedIn &&
+      customer.logoutStillWorks &&
+      agent.backToWebsiteOk &&
+      agent.sessionPreserved &&
+      agent.homepageSignedIn &&
+      agent.logoutStillWorks &&
+      admin.backToWebsiteOk &&
+      admin.sessionPreserved &&
+      admin.homepageSignedIn &&
+      admin.logoutStillWorks &&
+      errors.length === 0;
+
     console.log(JSON.stringify({
       success,
-      customerLogoutOk,
-      agentLogoutOk,
-      adminLogoutOk,
-      homepageFlashGuard,
+      customer,
+      agent,
+      admin,
       errors,
     }));
     process.exitCode = success ? 0 : 1;
   } catch (error) {
     console.log(JSON.stringify({
       success: false,
-      customerLogoutOk,
-      agentLogoutOk,
-      adminLogoutOk,
-      homepageFlashGuard,
       errors,
       reason: error.message || String(error),
     }));
