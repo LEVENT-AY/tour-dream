@@ -35,7 +35,7 @@ useEffect(() => {
     setShowLoader(true);
     const timeoutId = setTimeout(() => {
       setShowLoader(false);
-    }, 2000);
+    }, 500);
 
     return () => clearTimeout(timeoutId);
   }

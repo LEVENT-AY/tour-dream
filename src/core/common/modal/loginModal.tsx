@@ -54,6 +54,12 @@ const LoginModal = () => {
         }
       };
 
+      const cleanupModalArtifacts = () => {
+        document.body.classList.remove('modal-open');
+        document.body.style.removeProperty('padding-right');
+        document.querySelectorAll('.modal-backdrop').forEach((backdrop) => backdrop.remove());
+      };
+
       const handleLogin = async (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
         setError('');
@@ -70,6 +76,7 @@ const LoginModal = () => {
           const profile = await signInUser(email.trim(), password);
           setSuccess(true);
           closeModal();
+          window.setTimeout(cleanupModalArtifacts, 0);
 
           if (profile.role === 'admin') {
             navigate(routes.adminDashboard);

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import ImageWithBasePath from "../imageWithBasePath";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { setDataTheme } from "../../redux/themeSettingSlice";
 import { all_routes } from "../../../feature-module/router/all_routes";
@@ -8,6 +8,7 @@ import LoginModal from "../modal/loginModal";
 import RegisterModal from "../modal/registerModal";
 import ForgotPasswordModal from "../modal/forgotPassword";
 import ChangePasswordModal from "../modal/changePassword";
+import { useAuth } from "../../contexts/AuthContext";
 
 const Header = () => {
   const [scrolled, setScrolled] = useState(false);
@@ -18,6 +19,8 @@ const Header = () => {
   const [openDropdownIndex, setOpenDropdownIndex] = useState(null);
   const dispatch = useDispatch();
   const location = useLocation();
+  const navigate = useNavigate();
+  const { isAuthenticated, loading, userProfile, logout } = useAuth();
   const dataTheme = useSelector((state: any) => state.themeSetting.dataTheme);
   const handleDataThemeChange = (theme: string) => {
     dispatch(setDataTheme(theme));
@@ -30,6 +33,11 @@ const Header = () => {
   const toggleSubMenu = (index: any) => {
     setOpenDropdownIndex(openDropdownIndex === index ? null : index);
     setIsDropdownOpen(false);
+  };
+  const handleLogout = async (event?: React.MouseEvent<HTMLAnchorElement>) => {
+    event?.preventDefault();
+    await logout();
+    navigate(routes.allService1);
   };
   useEffect(() => {
     if (isOffcanva === true) {
@@ -2802,40 +2810,111 @@ const Header = () => {
                   </ul>
                 </nav>
                 {location.pathname === "/index" ? (
-                  <div className="header-btn d-flex align-items-center">
-                    <DarkButton />
-                    <div className="fav-dropdown me-3">
-                      <Link
-                        to={all_routes.wishlist}
-                        className="position-relative text-white wishlist-icon"
-                      >
-                        <i className="isax isax-heart" />
-                        <span className="count-icon bg-secondary text-white">
-                          0
-                        </span>
-                      </Link>
+                  loading ? (
+                    <div className="header-btn d-flex align-items-center" aria-busy="true">
+                      <DarkButton />
                     </div>
-                    <div className="d-flex align-items-center">
-                      <Link
-                        to="#"
-                        className="text-white btn btn-primary w-100"
-                        data-bs-toggle="modal"
-                        data-bs-target="#login-modal"
-                      >
-                        <i className="isax isax-lock5 me-1" />
-                        Login
-                      </Link>
-                      <Link to="#" className="text-white btn btn-dark w-100">
-                        <i className="isax isax-user-minus me-1" />
-                        Register
-                      </Link>
-                    </div>
-                    <div className="header__hamburger d-xl-none my-auto">
-                      <div className="sidebar-menu">
-                        <i className="isax isax-menu5" />
+                  ) : isAuthenticated ? (
+                    <div className="header-btn d-flex align-items-center">
+                      <DarkButton />
+                      <div className="dropdown profile-dropdown">
+                        <Link
+                          to="#"
+                          className="d-flex align-items-center"
+                          data-bs-toggle="dropdown"
+                        >
+                          <span className="avatar avatar-md">
+                            <ImageWithBasePath
+                              src={userProfile?.photoURL || "assets/img/users/user-05.jpg"}
+                              alt="Img"
+                              className="img-fluid rounded-circle border border-white border-4"
+                            />
+                          </span>
+                        </Link>
+                        <ul className="dropdown-menu dropdown-menu-end p-3">
+                          <li>
+                            <Link
+                              className="dropdown-item d-inline-flex align-items-center rounded fw-medium p-2"
+                              to={routes.userDashboard}
+                            >
+                              Dashboard
+                            </Link>
+                          </li>
+                          <li>
+                            <Link
+                              className="dropdown-item d-inline-flex align-items-center rounded fw-medium p-2"
+                              to={routes.customerHotelBooking}
+                            >
+                              My Booking
+                            </Link>
+                          </li>
+                          <li>
+                            <Link
+                              className="dropdown-item d-inline-flex align-items-center rounded fw-medium p-2"
+                              to={routes.userMyProfile}
+                            >
+                              My Profile
+                            </Link>
+                          </li>
+                          <li>
+                            <hr className="dropdown-divider my-2" />
+                          </li>
+                          <li>
+                            <Link
+                              className="dropdown-item d-inline-flex align-items-center rounded fw-medium p-2"
+                              to={routes.userProfileSettings}
+                            >
+                              Settings
+                            </Link>
+                          </li>
+                          <li>
+                            <Link
+                              className="dropdown-item d-inline-flex align-items-center rounded fw-medium p-2"
+                              to="#"
+                              onClick={handleLogout}
+                            >
+                              Logout
+                            </Link>
+                          </li>
+                        </ul>
                       </div>
                     </div>
-                  </div>
+                  ) : (
+                    <div className="header-btn d-flex align-items-center">
+                      <DarkButton />
+                      <div className="fav-dropdown me-3">
+                        <Link
+                          to={all_routes.wishlist}
+                          className="position-relative text-white wishlist-icon"
+                        >
+                          <i className="isax isax-heart" />
+                          <span className="count-icon bg-secondary text-white">
+                            0
+                          </span>
+                        </Link>
+                      </div>
+                      <div className="d-flex align-items-center">
+                        <Link
+                          to="#"
+                          className="text-white btn btn-primary w-100"
+                          data-bs-toggle="modal"
+                          data-bs-target="#login-modal"
+                        >
+                          <i className="isax isax-lock5 me-1" />
+                          Login
+                        </Link>
+                        <Link to="#" className="text-white btn btn-dark w-100">
+                          <i className="isax isax-user-minus me-1" />
+                          Register
+                        </Link>
+                      </div>
+                      <div className="header__hamburger d-xl-none my-auto">
+                        <div className="sidebar-menu">
+                          <i className="isax isax-menu5" />
+                        </div>
+                      </div>
+                    </div>
+                  )
                 ) : location.pathname === "/index-2" ? (
                   <div className="header-btn d-flex align-items-center">
                     <DarkButton />
@@ -3471,7 +3550,8 @@ const Header = () => {
                         <li>
                           <Link
                             className="dropdown-item d-inline-flex align-items-center rounded fw-medium p-2"
-                            to={routes.login}
+                            to="#"
+                            onClick={handleLogout}
                           >
                             Logout
                           </Link>
