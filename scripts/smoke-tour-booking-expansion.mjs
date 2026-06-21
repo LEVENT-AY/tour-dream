@@ -101,9 +101,14 @@ async function main() {
     }
 
     await page.goto(`${BASE_URL}/user/customer-tour-booking`, { waitUntil: 'domcontentloaded' });
-    await page.waitForTimeout(3000);
+    await page.waitForFunction(
+      (bookingTitle) => document.body.innerText.includes(bookingTitle) || /pending/i.test(document.body.innerText),
+      title,
+      { timeout: 15000 }
+    ).catch(() => {});
+    await page.waitForTimeout(1000);
     const customerBody = (await page.textContent('body')) || '';
-    customerBookingVisible = customerBody.includes(title) || customerBody.toLowerCase().includes('pending');
+    customerBookingVisible = customerBody.includes(title) || /pending/i.test(customerBody);
 
     console.log(JSON.stringify({
       tourId,

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { all_routes } from '../../../router/all_routes';
 import Breadcrumb from '../../../../core/common/Breadcrumb/breadcrumb';
 import BookingStatusBadge from '../../../../core/common/badge/BookingStatusBadge';
+import { formatListingType } from '../../../../core/common/bookingDisplay';
 import Sidebar from '../../sidebar/sidebar';
 import { useAuth } from '../../../../core/contexts/AuthContext';
 import { fetchAgentBookingRequests } from '../../../../core/services/agentServices';
@@ -95,7 +96,7 @@ const AgentBookingRequests = () => {
                           {requests.map((request) => (
                             <tr key={request.id}>
                               <td>{request.title || request.itemTitle || 'Booking'}</td>
-                              <td>{request.listingType || request.itemType || '—'}</td>
+                              <td>{formatListingType(request.listingType || request.itemType)}</td>
                               <td>{request.customerName || request.userName || 'Customer'}</td>
                               <td>{request.customerEmail || request.userEmail || '—'}</td>
                               <td>{request.customerPhone || request.userPhone || '—'}</td>

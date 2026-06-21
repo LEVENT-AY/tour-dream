@@ -173,6 +173,7 @@
 - Real Agent Chalets verification passed end to end.
 - Activity public dynamic details now load Firestore docs by real id, booking requests use the mirrored booking helper with preserved owner metadata, and activity booking expansion smoke passed end to end.
 - Car public grid now links by real Firestore id, car dynamic details load Firestore docs safely with fallback content, car booking requests use the mirrored booking helper with preserved owner metadata, and car booking expansion smoke passed end to end.
+- Booking surface QA is now polished with readable booking/listing labels and smoke coverage for login, dashboard, lodging, activity, car, and booking-status flows.
 
 ## Workflow Rules
 - Always use localhost:5174 with `npm run dev:5174`.

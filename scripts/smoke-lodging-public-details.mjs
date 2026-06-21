@@ -45,12 +45,21 @@ async function main() {
   const agent = await createTemporaryApprovedAgent();
   const customer = await createTempCustomer();
   const browser = await chromium.launch({ headless: true });
-  const page = await browser.newPage();
   const errors = [];
-  page.on('console', (msg) => {
+
+  const customerContext = await browser.newContext();
+  const customerPage = await customerContext.newPage();
+  customerPage.on('console', (msg) => {
     if (msg.type() === 'error') errors.push(msg.text());
   });
-  page.on('pageerror', (err) => errors.push(err.message));
+  customerPage.on('pageerror', (err) => errors.push(err.message));
+
+  const agentContext = await browser.newContext();
+  const agentPage = await agentContext.newPage();
+  agentPage.on('console', (msg) => {
+    if (msg.type() === 'error') errors.push(msg.text());
+  });
+  agentPage.on('pageerror', (err) => errors.push(err.message));
 
   let chaletId = '';
   let bookingId = '';
@@ -93,17 +102,17 @@ async function main() {
     });
     chaletId = chaletDoc.id;
 
-    await login(page, customer.email, customer.password);
-    await page.goto(`${BASE_URL}/chalet/chalet-details?id=${chaletId}`, { waitUntil: 'domcontentloaded' });
-    await page.waitForTimeout(5000);
-    const detailsBody = (await page.textContent('body')) || '';
-    pageUrl = page.url();
+    await login(customerPage, customer.email, customer.password);
+    await customerPage.goto(`${BASE_URL}/chalet/chalet-details?id=${chaletId}`, { waitUntil: 'domcontentloaded' });
+    await customerPage.waitForTimeout(5000);
+    const detailsBody = (await customerPage.textContent('body')) || '';
+    pageUrl = customerPage.url();
     bodyPreview = detailsBody.slice(0, 500);
     openedRealDetails = detailsBody.includes(title) || detailsBody.includes('Test Chalet Valley');
 
-    await page.getByRole('button', { name: 'Book Now' }).click();
-    await page.waitForURL((url) => url.toString().includes('/user/customer-hotel-booking'), { timeout: 30000 });
-    await page.waitForTimeout(4000);
+    await customerPage.getByRole('button', { name: 'Book Now' }).click();
+    await customerPage.waitForURL((url) => url.toString().includes('/user/customer-hotel-booking'), { timeout: 30000 });
+    await customerPage.waitForTimeout(4000);
 
     const bookingSnap = await db.collection('users').doc(customer.uid).collection('bookings').orderBy('createdAt', 'desc').limit(1).get();
     if (!bookingSnap.empty) {
@@ -119,11 +128,11 @@ async function main() {
       }
     }
 
-    await login(page, agent.email, agent.password);
-    await page.goto(`${BASE_URL}/agent/agent-booking-requests`, { waitUntil: 'domcontentloaded' });
-    await page.waitForTimeout(4000);
-    const agentBody = (await page.textContent('body')) || '';
-    agentPageUrl = page.url();
+    await login(agentPage, agent.email, agent.password);
+    await agentPage.goto(`${BASE_URL}/agent/agent-booking-requests`, { waitUntil: 'domcontentloaded' });
+    await agentPage.waitForTimeout(4000);
+    const agentBody = (await agentPage.textContent('body')) || '';
+    agentPageUrl = agentPage.url();
     agentBodyPreview = agentBody.slice(0, 500);
     agentSawBooking = agentBody.includes(title) && agentBody.includes(customer.email);
 

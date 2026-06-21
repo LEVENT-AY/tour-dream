@@ -4,6 +4,7 @@ import { all_routes } from '../../router/all_routes';
 import Breadcrumb from '../../../core/common/Breadcrumb/breadcrumb';
 import Sidebar from '../../../core/common/sidebar/sidebar';
 import BookingStatusBadge from '../../../core/common/badge/BookingStatusBadge';
+import { formatListingType } from '../../../core/common/bookingDisplay';
 import { useAuth } from '../../../core/contexts/AuthContext';
 import { fetchCustomerBookings, type Booking } from '../../../core/services/firebaseServices';
 
@@ -123,7 +124,7 @@ const CustomerBookingsPage = ({ title, sectionLabel, emptyMessage, itemTypes, fo
                         <div className="col-12" key={booking.id || `${booking.itemId}-${booking.createdAt}`}>
                           <div className="border rounded p-3 d-flex align-items-center justify-content-between flex-wrap gap-3">
                             <div>
-                              <p className="mb-1 text-gray-6 text-uppercase small">{booking.itemType}</p>
+                              <p className="mb-1 text-gray-6 text-uppercase small">{formatListingType(booking.listingType || booking.itemType)}</p>
                               <h6 className="mb-1">{booking.itemTitle}</h6>
                               <p className="mb-0 text-gray-6">Booked on {formatDate(booking.bookingDate || booking.startDate || booking.createdAt)}</p>
                             </div>

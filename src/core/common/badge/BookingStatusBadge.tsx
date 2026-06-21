@@ -1,18 +1,12 @@
 import type { Booking } from '../../services/firebaseServices';
+import { bookingStatusClass, formatBookingStatus } from '../bookingDisplay';
 
 interface BookingStatusBadgeProps {
   status?: Booking['status'];
 }
 
-const STATUS_CLASS: Record<string, string> = {
-  pending: 'bg-warning text-dark',
-  confirmed: 'bg-success',
-  cancelled: 'bg-danger',
-};
-
 const BookingStatusBadge = ({ status = 'pending' }: BookingStatusBadgeProps) => {
-  const normalized = String(status).toLowerCase();
-  return <span className={`badge rounded-pill ${STATUS_CLASS[normalized] || 'bg-secondary'}`}>{normalized}</span>;
+  return <span className={`badge rounded-pill ${bookingStatusClass(status)}`}>{formatBookingStatus(status)}</span>;
 };
 
 export default BookingStatusBadge;

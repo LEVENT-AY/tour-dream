@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { fetchAdminBookings, updateBookingStatus, type Booking } from '../../../core/services/firebaseServices';
 import BookingStatusBadge from '../../../core/common/badge/BookingStatusBadge';
+import { formatListingType } from '../../../core/common/bookingDisplay';
 
 const NEXT_STATUS_OPTIONS: Record<'pending' | 'confirmed' | 'cancelled', ('confirmed' | 'cancelled')[]> = {
   pending: ['confirmed', 'cancelled'],
@@ -37,7 +38,7 @@ const AdminBookings: React.FC<AdminBookingsProps> = ({ title = "All Bookings", d
 
   const filtered = useMemo(() => {
     return bookings.filter((b) => {
-      const text = `${b.userName || ''} ${b.userEmail || ''} ${b.itemTitle || ''} ${b.itemType || ''}`.toLowerCase();
+      const text = `${b.userName || ''} ${b.userEmail || ''} ${b.itemTitle || ''} ${formatListingType(b.listingType || b.itemType)}`.toLowerCase();
       return text.includes(search.toLowerCase());
     });
   }, [bookings, search]);
@@ -124,7 +125,7 @@ const AdminBookings: React.FC<AdminBookingsProps> = ({ title = "All Bookings", d
                       </td>
                       <td>
                         <div className="fw-medium">{b.title || b.itemTitle || '—'}</div>
-                        <div className="small text-muted text-capitalize">{b.listingType || b.itemType || '—'}</div>
+                        <div className="small text-muted">{formatListingType(b.listingType || b.itemType)}</div>
                       </td>
                       <td>{b.createdAt ? new Date(b.createdAt).toLocaleString() : '—'}</td>
                       <td>

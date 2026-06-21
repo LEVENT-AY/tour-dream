@@ -45,13 +45,21 @@ async function main() {
   const agent = await createTemporaryApprovedAgent();
   const customer = await createTempCustomer();
   const browser = await chromium.launch({ headless: true });
-  const page = await browser.newPage();
   const errors = [];
 
-  page.on('console', (msg) => {
+  const customerContext = await browser.newContext();
+  const customerPage = await customerContext.newPage();
+  customerPage.on('console', (msg) => {
     if (msg.type() === 'error') errors.push(msg.text());
   });
-  page.on('pageerror', (err) => errors.push(err.message));
+  customerPage.on('pageerror', (err) => errors.push(err.message));
+
+  const agentContext = await browser.newContext();
+  const agentPage = await agentContext.newPage();
+  agentPage.on('console', (msg) => {
+    if (msg.type() === 'error') errors.push(msg.text());
+  });
+  agentPage.on('pageerror', (err) => errors.push(err.message));
 
   let carId = '';
   let bookingId = '';
@@ -94,20 +102,20 @@ async function main() {
     });
     carId = carDoc.id;
 
-    await page.goto(`${BASE_URL}/car/car-grid`, { waitUntil: 'domcontentloaded' });
-    await page.waitForTimeout(5000);
-    const gridBody = (await page.textContent('body')) || '';
+    await customerPage.goto(`${BASE_URL}/car/car-grid`, { waitUntil: 'domcontentloaded' });
+    await customerPage.waitForTimeout(5000);
+    const gridBody = (await customerPage.textContent('body')) || '';
     gridLoadedRealListing = gridBody.includes(title);
 
-    await login(page, customer.email, customer.password);
-    await page.goto(`${BASE_URL}/car/car-details?id=${carId}`, { waitUntil: 'domcontentloaded' });
-    await page.waitForTimeout(5000);
-    const detailsBody = (await page.textContent('body')) || '';
+    await login(customerPage, customer.email, customer.password);
+    await customerPage.goto(`${BASE_URL}/car/car-details?id=${carId}`, { waitUntil: 'domcontentloaded' });
+    await customerPage.waitForTimeout(5000);
+    const detailsBody = (await customerPage.textContent('body')) || '';
     openedRealDetails = detailsBody.includes(title) || detailsBody.includes('Test Car Pickup Hub');
 
-    await page.getByRole('button', { name: 'Book Now' }).click();
-    await page.waitForURL((url) => url.toString().includes('/user/customer-car-booking'), { timeout: 30000 });
-    await page.waitForTimeout(4000);
+    await customerPage.getByRole('button', { name: 'Book Now' }).click();
+    await customerPage.waitForURL((url) => url.toString().includes('/user/customer-car-booking'), { timeout: 30000 });
+    await customerPage.waitForTimeout(4000);
 
     const bookingSnap = await db.collection('users').doc(customer.uid).collection('bookings').orderBy('createdAt', 'desc').limit(1).get();
     if (!bookingSnap.empty) {
@@ -123,10 +131,10 @@ async function main() {
       }
     }
 
-    await login(page, agent.email, agent.password);
-    await page.goto(`${BASE_URL}/agent/agent-booking-requests`, { waitUntil: 'domcontentloaded' });
-    await page.waitForTimeout(4000);
-    const agentBody = (await page.textContent('body')) || '';
+    await login(agentPage, agent.email, agent.password);
+    await agentPage.goto(`${BASE_URL}/agent/agent-booking-requests`, { waitUntil: 'domcontentloaded' });
+    await agentPage.waitForTimeout(4000);
+    const agentBody = (await agentPage.textContent('body')) || '';
     agentSawBooking = agentBody.includes(title) && agentBody.includes(customer.email);
 
     const [customerNotifications, agentNotifications] = await Promise.all([
