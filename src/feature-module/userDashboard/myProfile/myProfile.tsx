@@ -31,6 +31,7 @@ const MyProfile = () => {
 
   const displayName = userProfile?.displayName || userProfile?.email || 'Customer';
   const avatarSrc = userProfile?.photoURL || 'assets/img/users/user-01.jpg';
+  const roleLabel = userProfile?.role ? userProfile.role : 'Role missing';
 
   return (
     <div>
@@ -63,7 +64,7 @@ const MyProfile = () => {
                         <div>
                           <h5 className="mb-1">{displayName}</h5>
                           <p className="mb-1 text-gray-6">{userProfile.email || 'No email on file'}</p>
-                          <span className="badge badge-soft-info rounded-pill">Customer</span>
+                          <span className="badge badge-soft-info rounded-pill text-capitalize">{roleLabel}</span>
                         </div>
                       </div>
                       <div className="row border-bottom pb-2 mb-3">

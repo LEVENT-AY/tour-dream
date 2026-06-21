@@ -6,8 +6,10 @@ import BackToTop from "../core/common/backtotop/backToTop";
 import Footer from "../core/common/footer/footer";
 import FooterSeven from "./home-seven/footerSeven";
 
+const isHomepageRoute = (pathname: string) => pathname === '/' || pathname.startsWith('/index');
+
 const Feature = () => {
-  const [showLoader, setShowLoader] = useState(() => window.location.pathname.includes("index"));
+  const [showLoader, setShowLoader] = useState(() => isHomepageRoute(window.location.pathname));
 
   const location = useLocation();
   const isDashboardRoute =
@@ -31,7 +33,7 @@ useLayoutEffect(() => {
     behavior: "instant", // or "smooth"
   });
 
-  if (location.pathname.includes("index")) {
+  if (isHomepageRoute(location.pathname)) {
     setShowLoader(true);
     const timeoutId = setTimeout(() => {
       setShowLoader(false);

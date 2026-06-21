@@ -21,6 +21,7 @@ const Header = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { isAuthenticated, loading, userProfile, logout } = useAuth();
+  const isPublicHomeRoute = location.pathname === "/" || location.pathname === "/index";
   const dataTheme = useSelector((state: any) => state.themeSetting.dataTheme);
   const handleDataThemeChange = (theme: string) => {
     dispatch(setDataTheme(theme));
@@ -2809,7 +2810,7 @@ const Header = () => {
                     ))}
                   </ul>
                 </nav>
-                {location.pathname === "/index" ? (
+                {isPublicHomeRoute ? (
                   loading ? (
                     <div className="header-btn d-flex align-items-center" aria-busy="true">
                       <DarkButton />

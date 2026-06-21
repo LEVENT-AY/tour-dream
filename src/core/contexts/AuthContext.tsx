@@ -1,5 +1,5 @@
 /* eslint-disable react-refresh/only-export-components */
-import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { onAuthStateChanged, signOut, type User } from 'firebase/auth';
 import { doc, getDocFromServer } from 'firebase/firestore';
 import { auth, db } from '../../firebase';
@@ -17,6 +17,7 @@ interface AuthContextType {
   isCustomer: boolean;
   isSuspendedOrRejected: boolean;
   logout: () => Promise<void>;
+  refreshUserProfile: () => Promise<void>;
 }
 
 export const AuthContext = createContext<AuthContextType>({
@@ -31,6 +32,7 @@ export const AuthContext = createContext<AuthContextType>({
   isCustomer: false,
   isSuspendedOrRejected: false,
   logout: async () => {},
+  refreshUserProfile: async () => {},
 });
 
 const VALID_ROLES: UserRole[] = ["customer", "agent", "admin"];
@@ -50,7 +52,7 @@ const normalizeProfile = (user: User, data: Record<string, unknown> | undefined)
     email: user.email || (data?.email as string) || "",
     displayName: user.displayName || (data?.displayName as string) || "",
     phone: (data?.phone as string) || "",
-    photoURL: (data?.photoURL as string) || "",
+    photoURL: (data?.photoURL as string) || user.photoURL || "",
     role,
     agentStatus,
     approved,
@@ -65,6 +67,14 @@ const normalizeProfile = (user: User, data: Record<string, unknown> | undefined)
     createdAt: (data?.createdAt as string) || new Date().toISOString(),
     updatedAt: (data?.updatedAt as string) || new Date().toISOString(),
   };
+};
+
+const loadProfileForUser = async (user: User): Promise<UserProfile> => {
+  const userDoc = await getDocFromServer(doc(db, 'users', user.uid));
+  if (!userDoc.exists()) {
+    throw new Error('User profile not found.');
+  }
+  return normalizeProfile(user, userDoc.data());
 };
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -86,12 +96,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setCurrentUser(user);
       if (user) {
         try {
-          const userDoc = await getDocFromServer(doc(db, 'users', user.uid));
-          if (!userDoc.exists()) {
-            throw new Error('User profile not found.');
-          }
           if (isMounted) {
-            setUserProfile(normalizeProfile(user, userDoc.data()));
+            setUserProfile(await loadProfileForUser(user));
             setLoading(false);
           }
         } catch (error) {
@@ -134,6 +140,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const refreshUserProfile = useCallback(async () => {
+    const activeUser = auth.currentUser;
+    if (!activeUser) {
+      setUserProfile(null);
+      setCurrentUser(null);
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const profile = await loadProfileForUser(activeUser);
+      setCurrentUser(activeUser);
+      setUserProfile(profile);
+    } catch (error) {
+      console.error("Error refreshing user profile:", error);
+      setCurrentUser(null);
+      setUserProfile(null);
+      try {
+        await signOut(auth);
+      } catch (signOutError) {
+        console.error("Error clearing invalid auth session:", signOutError);
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   const value = useMemo<AuthContextType>(() => {
     const role = userProfile?.role || null;
     const isAdmin = role === "admin";
@@ -152,8 +185,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       isCustomer: role === "customer" || isAgent,
       isSuspendedOrRejected,
       logout,
+      refreshUserProfile,
     };
-  }, [currentUser, userProfile, loading]);
+  }, [currentUser, userProfile, loading, refreshUserProfile]);
 
   return (
     <AuthContext.Provider value={value}>

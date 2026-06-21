@@ -70,6 +70,53 @@ export const uploadListingImage = async (
   return getDownloadURL(storageRef);
 };
 
+const PROFILE_IMAGE_ALLOWED_TYPES = new Set([
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/gif",
+]);
+
+const PROFILE_IMAGE_MAX_SIZE = 5 * 1024 * 1024;
+
+const generateProfileImageFileName = (file: File): string => {
+  const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
+  const stamp = Date.now();
+  const random = Math.random().toString(36).slice(2, 8);
+  return `${stamp}_${random}.${ext}`;
+};
+
+const validateProfileImage = (file: File): string | null => {
+  if (!PROFILE_IMAGE_ALLOWED_TYPES.has(file.type)) {
+    return "Only JPG, PNG, WEBP, and GIF images are allowed.";
+  }
+  if (file.size > PROFILE_IMAGE_MAX_SIZE) {
+    return "Profile photos must be smaller than 5MB.";
+  }
+  return null;
+};
+
+export const uploadUserProfileImage = async (
+  userId: string,
+  file: File,
+  metadata?: UploadMetadata
+): Promise<{ url: string; path: string; fileName: string }> => {
+  const validationError = validateProfileImage(file);
+  if (validationError) {
+    throw new Error(validationError);
+  }
+
+  const fileName = generateProfileImageFileName(file);
+  const path = `users/${userId}/profile/${fileName}`;
+  const storageRef = ref(storage, path);
+  await uploadBytes(storageRef, file, {
+    contentType: file.type,
+    ...metadata,
+  });
+  const url = await getDownloadURL(storageRef);
+  return { url, path, fileName };
+};
+
 /**
  * Resolve a Firebase Storage reference for a known demo path.
  */

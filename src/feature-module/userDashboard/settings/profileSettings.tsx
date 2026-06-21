@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { all_routes } from '../../router/all_routes';
 import Breadcrumb from '../../../core/common/Breadcrumb/breadcrumb';
@@ -6,6 +6,7 @@ import Sidebar from '../../../core/common/sidebar/sidebar';
 import ImageWithBasePath from '../../../core/common/imageWithBasePath';
 import { useAuth } from '../../../core/contexts/AuthContext';
 import { updateUserSafe } from '../../../core/services/firebaseServices';
+import { uploadUserProfileImage } from '../../../core/services/firebaseStorage';
 
 const initialForm = {
     displayName: '',
@@ -14,11 +15,13 @@ const initialForm = {
 
 const ProfileSettings = () => {
     const routes = all_routes;
-    const { userProfile, loading } = useAuth();
+    const { userProfile, loading, refreshUserProfile } = useAuth();
     const [form, setForm] = useState(initialForm);
     const [saving, setSaving] = useState(false);
+    const [uploadingPhoto, setUploadingPhoto] = useState(false);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
+    const fileInputRef = useRef<HTMLInputElement | null>(null);
 
     useEffect(() => {
         if (!userProfile) return;
@@ -62,6 +65,31 @@ const ProfileSettings = () => {
             setError(err?.message || 'Failed to save profile.');
         } finally {
             setSaving(false);
+        }
+    };
+
+    const handlePhotoPick = () => {
+        fileInputRef.current?.click();
+    };
+
+    const handlePhotoChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        event.target.value = '';
+        if (!file || !userProfile?.uid) return;
+
+        setUploadingPhoto(true);
+        setError('');
+        setSuccess('');
+
+        try {
+            const { url } = await uploadUserProfileImage(userProfile.uid, file);
+            await updateUserSafe(userProfile.uid, { photoURL: url });
+            await refreshUserProfile();
+            setSuccess('Profile photo updated successfully.');
+        } catch (err: any) {
+            setError(err?.message || 'Failed to update profile photo.');
+        } finally {
+            setUploadingPhoto(false);
         }
     };
 
@@ -131,8 +159,26 @@ const ProfileSettings = () => {
                                                         />
                                                         <div>
                                                             <p className="fs-14 text-gray-6 fw-normal mb-0">
-                                                                Your profile photo is read from `users/{userProfile.uid}`.
+                                                                Your profile photo is read from `users/{userProfile.uid}.photoURL`.
                                                             </p>
+                                                            <div className="d-flex align-items-center gap-2 mt-2">
+                                                                <button
+                                                                    type="button"
+                                                                    className="btn btn-sm btn-outline-primary"
+                                                                    onClick={handlePhotoPick}
+                                                                    disabled={uploadingPhoto || saving}
+                                                                >
+                                                                    {uploadingPhoto ? 'Uploading...' : 'Change photo'}
+                                                                </button>
+                                                                <input
+                                                                    ref={fileInputRef}
+                                                                    type="file"
+                                                                    accept="image/*"
+                                                                    className="d-none"
+                                                                    onChange={handlePhotoChange}
+                                                                    disabled={uploadingPhoto || saving}
+                                                                />
+                                                            </div>
                                                         </div>
                                                     </div>
                                                 </div>
