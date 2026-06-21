@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import { Link, Navigate } from 'react-router-dom';
 import { all_routes } from '../../router/all_routes';
 import Breadcrumb from '../../../core/common/Breadcrumb/breadcrumb';
 import Sidebar from '../../../core/common/sidebar/sidebar';
@@ -33,6 +33,14 @@ const MyProfile = () => {
   const avatarSrc = userProfile?.photoURL || 'assets/img/users/user-01.jpg';
   const roleLabel = userProfile?.role ? userProfile.role : 'Role missing';
 
+  if (!loading && userProfile?.role === 'admin') {
+    return <Navigate to={routes.adminDashboard} replace />;
+  }
+
+  if (!loading && userProfile?.role === 'agent') {
+    return <Navigate to={routes.agentDashboard} replace />;
+  }
+
   return (
     <div>
       <Breadcrumb title="My Profile" breadcrumbs={breadcrumbs} backgroundClass="breadcrumb-bg-01" />
@@ -58,8 +66,13 @@ const MyProfile = () => {
                     <>
                       <h6 className="fs-16 mb-3">Basic Information</h6>
                       <div className="d-flex align-items-center mb-3">
-                        <span className="avatar avatar-xl flex-shrink-0 me-3">
-                          <ImageWithBasePath src={avatarSrc} alt={displayName} className="img-fluid rounded-circle" />
+                        <span className="avatar avatar-xl flex-shrink-0 me-3 overflow-hidden rounded-circle">
+                          <ImageWithBasePath
+                            src={avatarSrc}
+                            alt={displayName}
+                            className="img-fluid w-100 h-100 object-fit-cover"
+                            fallbackSrc="assets/img/users/user-01.jpg"
+                          />
                         </span>
                         <div>
                           <h5 className="mb-1">{displayName}</h5>
@@ -100,15 +113,6 @@ const MyProfile = () => {
                             <h6 className="fs-14">Role</h6>
                             <p className="text-capitalize">{userProfile.role}</p>
                           </div>
-                        </div>
-                        <div className="col-md-6">
-                          <div>
-                            <h6 className="fs-14">User ID</h6>
-                            <p>{userProfile.uid}</p>
-                          </div>
-                        </div>
-                        <div className="col-12">
-                          <div className="alert alert-light mb-0">Profile data is read from `users/{userProfile.uid}`.</div>
                         </div>
                       </div>
                     </>

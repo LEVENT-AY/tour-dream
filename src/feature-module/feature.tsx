@@ -63,6 +63,7 @@ useLayoutEffect(() => {
                 <Outlet />
                 {/* Show Footer on all routes except index-2 to index-6 */}
                 {![
+                  "/",
                   "/index",
                   "/index-2",
                   "/index-4",

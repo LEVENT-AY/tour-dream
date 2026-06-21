@@ -31,6 +31,30 @@ const Header = () => {
     setOpenDropdownIndex(null);
   };
   const routes = all_routes;
+  const accountDashboardRoute =
+    userProfile?.role === 'admin'
+      ? routes.adminDashboard
+      : userProfile?.role === 'agent'
+        ? routes.agentDashboard
+        : routes.userDashboard;
+  const accountProfileRoute =
+    userProfile?.role === 'admin'
+      ? routes.adminDashboard
+      : userProfile?.role === 'agent'
+        ? routes.agentDashboard
+        : routes.userMyProfile;
+  const accountSettingsRoute =
+    userProfile?.role === 'admin'
+      ? routes.adminDashboard
+      : userProfile?.role === 'agent'
+        ? routes.agentSettings
+        : routes.profileSettings;
+  const accountBookingsRoute =
+    userProfile?.role === 'admin'
+      ? routes.adminBookings
+      : userProfile?.role === 'agent'
+        ? routes.agentBookingRequests
+        : routes.customerHotelBooking;
   const toggleSubMenu = (index: any) => {
     setOpenDropdownIndex(openDropdownIndex === index ? null : index);
     setIsDropdownOpen(false);
@@ -1201,7 +1225,7 @@ const Header = () => {
           subMenus: [
             {
               menuValue: "User Dashboard",
-              route: routes.userDashboard,
+              route: accountDashboardRoute,
               hasSubRoute: false,
               showSubRoute: false,
               base: "dashboard",
@@ -1278,7 +1302,7 @@ const Header = () => {
             },
             {
               menuValue: "Profile Settings",
-              route: routes.profileSettings,
+              route: accountSettingsRoute,
               hasSubRoute: false,
               showSubRoute: false,
               base: "profile-settings",
@@ -1300,7 +1324,7 @@ const Header = () => {
             },
             {
               menuValue: "My Profile",
-              route: routes.userMyProfile,
+              route: accountProfileRoute,
               hasSubRoute: false,
               showSubRoute: false,
               base: "my-profile",
@@ -1311,7 +1335,7 @@ const Header = () => {
             },
             {
               menuValue: "Settings",
-              route: routes.profileSettings,
+              route: accountSettingsRoute,
               hasSubRoute: false,
               showSubRoute: false,
               base: "profile-settings",
@@ -1322,7 +1346,7 @@ const Header = () => {
             },
             {
               menuValue2: "Dashboard",
-              route: routes.agentDashboard,
+              route: accountDashboardRoute,
               hasSubRoute: false,
               showSubRoute: false,
               base: "agent-dashboard",
@@ -1399,7 +1423,7 @@ const Header = () => {
             },
             {
               menuValue2: "Settings",
-              route: routes.agentSettings,
+              route: accountSettingsRoute,
               hasSubRoute: false,
               showSubRoute: false,
               base: "agent-settings",
@@ -2836,7 +2860,7 @@ const Header = () => {
                           <li>
                             <Link
                               className="dropdown-item d-inline-flex align-items-center rounded fw-medium p-2"
-                              to={routes.userDashboard}
+                              to={accountDashboardRoute}
                             >
                               Dashboard
                             </Link>
@@ -2844,7 +2868,7 @@ const Header = () => {
                           <li>
                             <Link
                               className="dropdown-item d-inline-flex align-items-center rounded fw-medium p-2"
-                              to={routes.customerHotelBooking}
+                              to={accountBookingsRoute}
                             >
                               My Booking
                             </Link>
@@ -2852,7 +2876,7 @@ const Header = () => {
                           <li>
                             <Link
                               className="dropdown-item d-inline-flex align-items-center rounded fw-medium p-2"
-                              to={routes.userMyProfile}
+                              to={accountProfileRoute}
                             >
                               My Profile
                             </Link>
@@ -2863,7 +2887,7 @@ const Header = () => {
                           <li>
                             <Link
                               className="dropdown-item d-inline-flex align-items-center rounded fw-medium p-2"
-                              to={routes.userProfileSettings}
+                              to={accountSettingsRoute}
                             >
                               Settings
                             </Link>
@@ -3060,7 +3084,7 @@ const Header = () => {
                       </ul>
                     </div>
                     <div className="me-3">
-                      <Link to={routes.userDashboard}>
+                      <Link to={accountDashboardRoute}>
                         <i className="isax isax-user" />
                       </Link>
                     </div>
@@ -3092,7 +3116,7 @@ const Header = () => {
                   <div className="header-btn d-flex align-items-center">
                     <div className="cart-dropdown me-3">
                       <Link
-                        to={routes.userDashboard}
+                        to={accountDashboardRoute}
                         className="position-relative"
                       >
                         <i className="isax isax-user" />
@@ -3169,7 +3193,7 @@ const Header = () => {
                   <div className="header-btn d-flex align-items-center">
                     <div className="cart-dropdown me-3">
                       <Link
-                        to={routes.userDashboard}
+                        to={accountDashboardRoute}
                         className="position-relative"
                       >
                         <i className="isax isax-user" />
@@ -3516,7 +3540,7 @@ const Header = () => {
                         <li>
                           <Link
                             className="dropdown-item d-inline-flex align-items-center rounded fw-medium p-2"
-                            to={routes.userDashboard}
+                            to={accountDashboardRoute}
                           >
                             Dashboard
                           </Link>
@@ -3524,7 +3548,7 @@ const Header = () => {
                         <li>
                           <Link
                             className="dropdown-item d-inline-flex align-items-center rounded fw-medium p-2"
-                            to={routes.customerHotelBooking}
+                            to={accountBookingsRoute}
                           >
                             My Booking
                           </Link>
@@ -3532,7 +3556,7 @@ const Header = () => {
                         <li>
                           <Link
                             className="dropdown-item d-inline-flex align-items-center rounded fw-medium p-2"
-                            to={routes.userMyProfile}
+                            to={accountProfileRoute}
                           >
                             My Profile
                           </Link>
@@ -3543,7 +3567,7 @@ const Header = () => {
                         <li>
                           <Link
                             className="dropdown-item d-inline-flex align-items-center rounded fw-medium p-2"
-                            to={routes.userProfileSettings}
+                            to={accountSettingsRoute}
                           >
                             Settings
                           </Link>

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, Navigate } from 'react-router-dom';
 import { all_routes } from '../../router/all_routes';
 import Breadcrumb from '../../../core/common/Breadcrumb/breadcrumb';
 import Sidebar from '../../../core/common/sidebar/sidebar';
@@ -107,6 +107,14 @@ const ProfileSettings = () => {
         return <div className="alert alert-danger m-4">Unable to load customer profile.</div>;
     }
 
+    if (userProfile.role === 'admin') {
+        return <Navigate to={routes.adminDashboard} replace />;
+    }
+
+    if (userProfile.role === 'agent') {
+        return <Navigate to={routes.agentSettings} replace />;
+    }
+
     return (
         <div>
             <Breadcrumb title="Profile Settings" breadcrumbs={breadcrumbs} backgroundClass="breadcrumb-bg-04" />
@@ -151,15 +159,17 @@ const ProfileSettings = () => {
                                             <div className="row gy-3">
                                                 <div className="col-lg-12">
                                                     <div className="d-flex align-items-center gap-3 flex-wrap">
-                                                        <ImageWithBasePath
-                                                            src={userProfile.photoURL || 'assets/img/users/user-01.jpg'}
-                                                            alt={userProfile.displayName || 'Customer profile'}
-                                                            className="img-fluid avatar avatar-xxl br-10 flex-shrink-0"
-                                                            fallbackSrc="assets/img/users/user-01.jpg"
-                                                        />
+                                                        <span className="avatar avatar-xxl flex-shrink-0 overflow-hidden rounded-circle">
+                                                            <ImageWithBasePath
+                                                                src={userProfile.photoURL || 'assets/img/users/user-01.jpg'}
+                                                                alt={userProfile.displayName || 'Customer profile'}
+                                                                className="img-fluid w-100 h-100 object-fit-cover"
+                                                                fallbackSrc="assets/img/users/user-01.jpg"
+                                                            />
+                                                        </span>
                                                         <div>
                                                             <p className="fs-14 text-gray-6 fw-normal mb-0">
-                                                                Your profile photo is read from `users/{userProfile.uid}.photoURL`.
+                                                                Your profile photo updates instantly across your account.
                                                             </p>
                                                             <div className="d-flex align-items-center gap-2 mt-2">
                                                                 <button
