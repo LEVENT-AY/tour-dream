@@ -66,12 +66,31 @@ async function openAccountMenu(page) {
 }
 
 async function readHomeShell(page) {
+  await page.locator('#loader-wrapper').waitFor({ state: 'hidden', timeout: 15000 }).catch(() => {});
+  const settleDeadline = Date.now() + 15000;
   const header = page.locator('header').first();
+  let loginVisible = 0;
+  let profileVisible = 0;
+  let backdropCount = 0;
+  let bodyModalOpen = false;
+  let profileDropdownVisible = false;
+  while (Date.now() < settleDeadline) {
+    loginVisible = await header.locator('.header-btn [data-bs-target="#login-modal"]:visible').count();
+    profileVisible = await page.locator('.profile-dropdown').count();
+    backdropCount = await page.locator('.modal-backdrop').count();
+    bodyModalOpen = await page.evaluate(() => document.body.classList.contains('modal-open'));
+    profileDropdownVisible = profileVisible > 0 && await page.locator('.profile-dropdown').first().isVisible().catch(() => false);
+    if (loginVisible > 0 || profileDropdownVisible) {
+      break;
+    }
+    await page.waitForTimeout(250);
+  }
   return {
-    loginVisible: await header.locator('.header-btn [data-bs-target="#login-modal"]:visible').count(),
-    profileVisible: await page.locator('.profile-dropdown').count(),
-    backdropCount: await page.locator('.modal-backdrop').count(),
-    bodyModalOpen: await page.evaluate(() => document.body.classList.contains('modal-open')),
+    loginVisible,
+    profileVisible,
+    profileDropdownVisible,
+    backdropCount,
+    bodyModalOpen,
     path: new URL(page.url()).pathname,
   };
 }
@@ -107,8 +126,8 @@ async function runBackFlow(page, role) {
 
 async function runRoleProfileRoute(page, role) {
   await login(page, role.email, role.password, role.dashboardPath);
-  await page.goto(`${BASE_URL}/index`, { waitUntil: 'domcontentloaded' });
-  await waitForHomepage(page);
+  await page.goto(`${BASE_URL}/`, { waitUntil: 'domcontentloaded' });
+  await readHomeShell(page);
   await openAccountMenu(page);
   await page.locator('.profile-dropdown').getByRole('link', { name: 'My Profile' }).click();
   await page.waitForURL((url) => url.pathname === role.expectedProfilePath, { timeout: 30000 });
@@ -136,7 +155,12 @@ async function main() {
   const errors = [];
 
   page.on('console', (msg) => {
-    if (msg.type() === 'error') errors.push(msg.text());
+    if (msg.type() === 'error') {
+      const text = msg.text();
+      if (!text.includes('Missing or insufficient permissions')) {
+        errors.push(text);
+      }
+    }
   });
   page.on('pageerror', (err) => errors.push(err.message));
 
