@@ -58,15 +58,25 @@ async function login(page, email, password) {
 }
 
 async function verifyLoggedOutHomepage(page) {
-  await page.goto(`${BASE_URL}/index`, { waitUntil: 'domcontentloaded' });
+  await page.goto(`${BASE_URL}/`, { waitUntil: 'domcontentloaded' });
   const footerCountDuringLoad = await page.locator('footer').count();
   await page.locator('#loader-wrapper').waitFor({ state: 'hidden', timeout: 15000 }).catch(() => {});
-  await page.waitForTimeout(1000);
   const header = page.locator('header').first();
-  const loginVisible = await header.locator('.header-btn [data-bs-target="#login-modal"]:visible').count();
-  const profileVisible = await page.locator('.profile-dropdown').count();
-  const backdropCount = await page.locator('.modal-backdrop').count();
-  const bodyModalOpen = await page.evaluate(() => document.body.classList.contains('modal-open'));
+  const settleDeadline = Date.now() + 15000;
+  let loginVisible = 0;
+  let profileVisible = 0;
+  let backdropCount = 0;
+  let bodyModalOpen = false;
+  while (Date.now() < settleDeadline) {
+    loginVisible = await header.locator('.header-btn [data-bs-target="#login-modal"]:visible').count();
+    profileVisible = await page.locator('.profile-dropdown').count();
+    backdropCount = await page.locator('.modal-backdrop').count();
+    bodyModalOpen = await page.evaluate(() => document.body.classList.contains('modal-open'));
+    if (loginVisible > 0 || profileVisible > 0) {
+      break;
+    }
+    await page.waitForTimeout(250);
+  }
   return {
     loginVisible,
     profileVisible,
@@ -80,9 +90,6 @@ async function logoutFromDashboard(page, logoutSelector) {
   const logoutLink = page.locator(logoutSelector).first();
   await logoutLink.waitFor({ state: 'visible', timeout: 15000 });
   await logoutLink.scrollIntoViewIfNeeded().catch(() => {});
-  await logoutLink.evaluate((element) => {
-    element.click();
-  }).catch(() => {});
   await logoutLink.click({ force: true }).catch(() => {});
   const deadline = Date.now() + 30000;
   while (Date.now() < deadline) {

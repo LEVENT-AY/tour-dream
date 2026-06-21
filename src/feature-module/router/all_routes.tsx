@@ -2,7 +2,7 @@
 export const all_routes = {
     //Home
 
-    allService1: "/index", // all service 1
+    allService1: "/", // canonical home
     allService2: "/index-2", // all service 1
     home1: "/index-3", // all service 3
     home2: "/index-4", // hotels

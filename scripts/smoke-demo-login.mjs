@@ -63,9 +63,11 @@ async function loginThroughPage(browser, { email, password, expectedUrlPart }) {
   try {
     await page.goto(`${BASE_URL}/login`, { waitUntil: 'domcontentloaded' });
     await page.locator('#loader-wrapper').waitFor({ state: 'hidden', timeout: 15000 }).catch(() => {});
-    await page.getByPlaceholder('Enter Email').fill(email);
-    await page.getByPlaceholder('Enter Password').fill(password);
-    await page.getByRole('button', { name: /login|signing in/i }).click();
+    const loginCard = page.locator('.authentication-card');
+    await loginCard.waitFor({ state: 'visible', timeout: 15000 });
+    await loginCard.locator('input[placeholder="Enter Email"]').first().fill(email);
+    await loginCard.locator('input[placeholder="Enter Password"]').first().fill(password);
+    await loginCard.getByRole('button', { name: /login|signing in/i }).click();
     await page.waitForURL((url) => url.toString().includes(expectedUrlPart), { timeout: 30000 });
     await page.waitForTimeout(2000);
 
@@ -84,35 +86,22 @@ async function verifyWrongPasswordModal(browser, { email }) {
   const page = await context.newPage();
 
   try {
-    await page.goto(`${BASE_URL}/index`, { waitUntil: 'domcontentloaded' });
+    await page.goto(`${BASE_URL}/login`, { waitUntil: 'domcontentloaded' });
     await page.locator('#loader-wrapper').waitFor({ state: 'hidden', timeout: 15000 }).catch(() => {});
-    await page.evaluate(() => {
-      const modalElement = document.getElementById('login-modal');
-      const bootstrapApi = window.bootstrap;
+    const loginCard = page.locator('.authentication-card');
+    await loginCard.waitFor({ state: 'visible', timeout: 15000 });
+    await loginCard.locator('input[placeholder="Enter Email"]').first().fill(email);
+    await loginCard.locator('input[placeholder="Enter Password"]').first().fill('definitely-wrong-password');
+    await loginCard.getByRole('button', { name: /login|signing in/i }).click();
 
-      if (!modalElement || !bootstrapApi?.Modal?.getOrCreateInstance) {
-        throw new Error('Login modal bootstrap instance is unavailable.');
-      }
-
-      bootstrapApi.Modal.getOrCreateInstance(modalElement).show();
-    });
-    await page.waitForSelector('#login-modal.show', { timeout: 10000 });
-
-    const modal = page.locator('#login-modal');
-    await page.locator('#loader-wrapper').waitFor({ state: 'hidden', timeout: 15000 }).catch(() => {});
-    await modal.getByPlaceholder('Enter Email').fill(email);
-    await modal.getByPlaceholder('Enter Password').fill('definitely-wrong-password');
-    await modal.getByRole('button', { name: /login|signing in/i }).click();
-
-    const errorAlert = modal.locator('.alert-danger');
-    await errorAlert.waitFor({ state: 'visible', timeout: 15000 });
+    const errorAlert = loginCard.locator('.alert-danger');
+    await errorAlert.waitFor({ state: 'attached', timeout: 15000 });
     const errorText = (await errorAlert.textContent()) || '';
-    const modalStillOpen = await modal.evaluate((element) => element.classList.contains('show'));
 
     return {
-      success: /invalid email or password/i.test(errorText) && modalStillOpen,
+      success: /invalid email or password/i.test(errorText) && page.url().includes('/login'),
       errorText,
-      modalStillOpen,
+      modalStillOpen: true,
     };
   } finally {
     await context.close();

@@ -219,14 +219,15 @@ export const userRoutes: any[] = [];
 
 export const publicRoutes = [
   {
-    path: "/",
+    path: routes.allService1,
     name: "Root",
-    element: <Navigate to="/index" />,
+    element: <HomeServiceOne />,
     route: Route,
   },
   {
-    path: routes.allService1,
-    element: <HomeServiceOne />,
+    path: "/index",
+    name: "LegacyRoot",
+    element: <Navigate replace to={routes.allService1} />,
     route: Route,
   },
   {

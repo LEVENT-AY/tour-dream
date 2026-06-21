@@ -75,13 +75,24 @@ async function clickBackToWebsite(page, selector) {
 
 async function readHomeState(page) {
   await page.locator('#loader-wrapper').waitFor({ state: 'hidden', timeout: 15000 }).catch(() => {});
-  await page.waitForTimeout(1000);
+  const settleDeadline = Date.now() + 15000;
+  let loginVisible = 0;
+  let profileVisible = 0;
+  let backdropCount = 0;
+  let bodyModalOpen = false;
+  let profileDropdownVisible = false;
   const header = page.locator('header').first();
-  const loginVisible = await header.locator('.header-btn [data-bs-target="#login-modal"]:visible').count();
-  const profileVisible = await page.locator('.profile-dropdown').count();
-  const backdropCount = await page.locator('.modal-backdrop').count();
-  const bodyModalOpen = await page.evaluate(() => document.body.classList.contains('modal-open'));
-  const profileDropdownVisible = profileVisible > 0 && await page.locator('.profile-dropdown').first().isVisible().catch(() => false);
+  while (Date.now() < settleDeadline) {
+    loginVisible = await header.locator('.header-btn [data-bs-target="#login-modal"]:visible').count();
+    profileVisible = await page.locator('.profile-dropdown').count();
+    backdropCount = await page.locator('.modal-backdrop').count();
+    bodyModalOpen = await page.evaluate(() => document.body.classList.contains('modal-open'));
+    profileDropdownVisible = profileVisible > 0 && await page.locator('.profile-dropdown').first().isVisible().catch(() => false);
+    if (loginVisible > 0 || profileDropdownVisible) {
+      break;
+    }
+    await page.waitForTimeout(250);
+  }
   return {
     loginVisible,
     profileVisible,

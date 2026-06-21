@@ -35,6 +35,31 @@ async function verifyDemoCustomer(email) {
   }
 }
 
+async function readHomeState(page) {
+  await page.locator('#loader-wrapper').waitFor({ state: 'hidden', timeout: 15000 }).catch(() => {});
+  const settleDeadline = Date.now() + 15000;
+  let loginVisible = 0;
+  let profileVisible = 0;
+  let profileDropdownVisible = false;
+  const header = page.locator('header').first();
+  while (Date.now() < settleDeadline) {
+    loginVisible = await header.locator('.header-btn [data-bs-target="#login-modal"]:visible').count();
+    profileVisible = await page.locator('.profile-dropdown').count();
+    profileDropdownVisible = profileVisible > 0 && await page.locator('.profile-dropdown').first().isVisible().catch(() => false);
+    if (loginVisible > 0 || profileDropdownVisible) {
+      break;
+    }
+    await page.waitForTimeout(250);
+  }
+  return {
+    loginVisible,
+    profileVisible,
+    profileDropdownVisible,
+    backdropCount: await page.locator('.modal-backdrop').count(),
+    bodyModalOpen: await page.evaluate(() => document.body.classList.contains('modal-open')),
+  };
+}
+
 async function main() {
   const customerEmail = requireEnv('DEMO_CUSTOMER_EMAIL');
   const customerPassword = requireEnv('DEMO_CUSTOMER_PASSWORD');
@@ -62,15 +87,13 @@ async function main() {
   let profileDropdownCount = 0;
 
   try {
-    await page.goto(`${BASE_URL}/index`, { waitUntil: 'domcontentloaded' });
+    await page.goto(`${BASE_URL}/login`, { waitUntil: 'domcontentloaded' });
     await page.locator('#loader-wrapper').waitFor({ state: 'hidden', timeout: 15000 }).catch(() => {});
-    const header = page.locator('header').first();
-
-    await page.getByRole('link', { name: 'Login' }).first().click();
-    await page.waitForSelector('#login-modal.show', { timeout: 15000 });
-    await page.locator('#login-modal').getByPlaceholder('Enter Email').fill(customerEmail);
-    await page.locator('#login-modal').getByPlaceholder('Enter Password').fill(customerPassword);
-    await page.locator('#login-modal').getByRole('button', { name: /login|signing in/i }).click();
+    const loginCard = page.locator('.authentication-card');
+    await loginCard.waitFor({ state: 'visible', timeout: 15000 });
+    await loginCard.locator('input[placeholder="Enter Email"]').first().fill(customerEmail);
+    await loginCard.locator('input[placeholder="Enter Password"]').first().fill(customerPassword);
+    await loginCard.getByRole('button', { name: /login|signing in/i }).click();
     await page.waitForURL((url) => url.toString().includes('/user/dashboard'), { timeout: 30000 });
     await page.waitForTimeout(1000);
 
@@ -79,27 +102,24 @@ async function main() {
     modalBackdropCleared = await page.evaluate(() => document.querySelectorAll('.modal-backdrop').length === 0);
     bodyModalOpenCleared = await page.evaluate(() => !document.body.classList.contains('modal-open'));
 
-    await page.goto(`${BASE_URL}/index`, { waitUntil: 'domcontentloaded' });
-    await page.locator('#loader-wrapper').waitFor({ state: 'hidden', timeout: 15000 }).catch(() => {});
-    await page.waitForTimeout(1000);
-
+    await page.goto(`${BASE_URL}/`, { waitUntil: 'domcontentloaded' });
+    const settledHomeState = await readHomeState(page);
+    const header = page.locator('header').first();
     loginTriggerCount = await header.locator('.header-btn [data-bs-target="#login-modal"]:visible').count();
     profileDropdownCount = await page.locator('.profile-dropdown').count();
     const profileDropdownVisible = profileDropdownCount > 0 && await page.locator('.profile-dropdown').first().isVisible().catch(() => false);
-    homepageHeaderSynced = loginTriggerCount === 0 && profileDropdownVisible;
+    homepageHeaderSynced = loginTriggerCount === 0 && profileDropdownVisible && settledHomeState.profileDropdownVisible;
 
     await page.locator('.profile-dropdown [data-bs-toggle="dropdown"]').click();
     await page.locator('.profile-dropdown').getByRole('link', { name: 'Dashboard' }).click();
     await page.waitForURL((url) => url.toString().includes('/user/dashboard'), { timeout: 30000 });
     dashboardClickable = page.url().includes('/user/dashboard');
 
-    await page.goto(`${BASE_URL}/index`, { waitUntil: 'domcontentloaded' });
-    await page.locator('#loader-wrapper').waitFor({ state: 'hidden', timeout: 15000 }).catch(() => {});
-    await page.waitForTimeout(1000);
+    await page.goto(`${BASE_URL}/`, { waitUntil: 'domcontentloaded' });
+    await readHomeState(page);
     await page.locator('.profile-dropdown [data-bs-toggle="dropdown"]').click();
     await page.locator('.profile-dropdown').getByRole('link', { name: 'Logout' }).click();
-    await page.waitForURL((url) => url.toString().includes('/index'), { timeout: 30000 });
-    await page.waitForTimeout(1000);
+    await page.waitForURL((url) => url.pathname === '/', { timeout: 30000 });
 
     logoutReturnedToLoggedOutUi =
       (await header.locator('.header-btn [data-bs-target="#login-modal"]:visible').count()) > 0 &&

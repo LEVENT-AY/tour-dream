@@ -22,6 +22,7 @@
     "smoke:back-to-website-shell": "node scripts/smoke-back-to-website-shell.mjs",
     "smoke:profile-shell-qa": "node scripts/smoke-profile-shell-qa.mjs",
     "smoke:role-profile-shell-qa": "node scripts/smoke-role-profile-shell-qa.mjs",
+    "smoke:navigation-shell-qa": "node scripts/smoke-navigation-shell-qa.mjs",
     "smoke:agent-dashboard": "node scripts/smoke-agent-dashboard.mjs",
     "smoke:booking-surface-qa": "node scripts/smoke-booking-surface-qa.mjs",
     "smoke:booking-request-v1": "node scripts/smoke-booking-request-v1.cjs",
