@@ -61,11 +61,15 @@ async function login(page, email, password, dashboardPath) {
 }
 
 async function openAccountMenu(page) {
-  await page.locator('.profile-dropdown [data-bs-toggle="dropdown"]').first().click({ force: true });
-  await page.locator('.profile-dropdown .dropdown-menu').first().waitFor({ state: 'visible', timeout: 10000 });
+  const profileDropdown = page.locator('header .profile-dropdown').first();
+  await profileDropdown.waitFor({ state: 'visible', timeout: 30000 });
+  const toggle = profileDropdown.locator('[data-bs-toggle="dropdown"]').first();
+  await toggle.waitFor({ state: 'attached', timeout: 30000 });
+  await toggle.click({ force: true });
+  await profileDropdown.locator('.dropdown-menu').first().waitFor({ state: 'visible', timeout: 10000 });
 }
 
-async function readHomeShell(page) {
+async function readHomeShell(page, { waitForProfile = false } = {}) {
   await page.locator('#loader-wrapper').waitFor({ state: 'hidden', timeout: 15000 }).catch(() => {});
   const settleDeadline = Date.now() + 15000;
   const header = page.locator('header').first();
@@ -80,7 +84,7 @@ async function readHomeShell(page) {
     backdropCount = await page.locator('.modal-backdrop').count();
     bodyModalOpen = await page.evaluate(() => document.body.classList.contains('modal-open'));
     profileDropdownVisible = profileVisible > 0 && await page.locator('.profile-dropdown').first().isVisible().catch(() => false);
-    if (loginVisible > 0 || profileDropdownVisible) {
+    if (profileDropdownVisible || (!waitForProfile && loginVisible > 0)) {
       break;
     }
     await page.waitForTimeout(250);
@@ -124,14 +128,35 @@ async function runBackFlow(page, role) {
   };
 }
 
-async function runRoleProfileRoute(page, role) {
-  await login(page, role.email, role.password, role.dashboardPath);
-  await page.goto(`${BASE_URL}/`, { waitUntil: 'domcontentloaded' });
-  await readHomeShell(page);
-  await openAccountMenu(page);
-  await page.locator('.profile-dropdown').getByRole('link', { name: 'My Profile' }).click();
-  await page.waitForURL((url) => url.pathname === role.expectedProfilePath, { timeout: 30000 });
-  return new URL(page.url()).pathname === role.expectedProfilePath;
+async function runRoleProfileRoute(browser, errors, role) {
+  const roleContext = await browser.newContext();
+  const rolePage = await roleContext.newPage();
+  rolePage.on('console', (msg) => {
+    if (msg.type() === 'error') {
+      const text = msg.text();
+      if (!text.includes('Missing or insufficient permissions')) {
+        errors.push(text);
+      }
+    }
+  });
+  rolePage.on('pageerror', (err) => errors.push(err.message));
+
+  try {
+    await login(rolePage, role.email, role.password, role.dashboardPath);
+    await rolePage.goto(`${BASE_URL}/`, { waitUntil: 'domcontentloaded' });
+    const shell = await readHomeShell(rolePage, { waitForProfile: true });
+    if (shell.profileVisible === 0) {
+      throw new Error(
+        `${role.name} profile dropdown did not render on the public header. loginVisible=${shell.loginVisible}, profileVisible=${shell.profileVisible}, path=${shell.path}`
+      );
+    }
+    await openAccountMenu(rolePage);
+    await rolePage.locator('.profile-dropdown').getByRole('link', { name: 'My Profile' }).click();
+    await rolePage.waitForURL((url) => url.pathname === role.expectedProfilePath, { timeout: 30000 });
+    return new URL(rolePage.url()).pathname === role.expectedProfilePath;
+  } finally {
+    await roleContext.close();
+  }
 }
 
 async function main() {
@@ -213,19 +238,22 @@ async function main() {
     adminOk = adminFlow.sessionPreserved;
     logoutStillWorks = customerFlow.logoutStillWorks && agentFlow.logoutStillWorks && adminFlow.logoutStillWorks;
 
-    const customerProfile = await runRoleProfileRoute(page, {
+    const customerProfile = await runRoleProfileRoute(browser, errors, {
+      name: 'customer',
       email: customerEmail,
       password: customerPassword,
       dashboardPath: '/user/dashboard',
       expectedProfilePath: '/user/my-profile',
     });
-    const agentProfile = await runRoleProfileRoute(page, {
+    const agentProfile = await runRoleProfileRoute(browser, errors, {
+      name: 'agent',
       email: agentEmail,
       password: agentPassword,
       dashboardPath: '/agent/agent-dashboard',
       expectedProfilePath: '/agent/agent-dashboard',
     });
-    const adminProfile = await runRoleProfileRoute(page, {
+    const adminProfile = await runRoleProfileRoute(browser, errors, {
+      name: 'admin',
       email: adminEmail,
       password: adminPassword,
       dashboardPath: '/admin/dashboard',

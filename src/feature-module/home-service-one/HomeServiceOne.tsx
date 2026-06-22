@@ -17,6 +17,12 @@ import LatestSection from "./latestSection";
 import FooterSection from "./footerSection";
 import BookingDropdown from "../../core/common/booking-dropdown/bookingDropdown";
 import BannerCounter from "../../core/common/banner-counter/counter";
+import {
+  fetchHomepageSettings,
+  normalizeWebsiteSettingsPath,
+  type HomepageSettings,
+} from "../../core/services/firebaseServices";
+import { img_path } from "../../environment";
 type Mode = "flight" | "hotel" | "cruise" | "tour" | "bus" | "activity" | "visa" | "guide";
 
 type BookingState = {
@@ -69,9 +75,50 @@ type BookingState = {
 const HomeServiceOne = () => {
   const buttonRef = useRef<HTMLDivElement>(null);
   const [showModal, setShowModal] = useState(false);
+  const [homepageSettings, setHomepageSettings] = useState<HomepageSettings | null>(null);
   const videoUrl = "https://youtu.be/NSAOrGb9orM";
   const handleOpenModal = () => setShowModal(true);
   const handleCloseModal = () => setShowModal(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    const loadHomepageSettings = async () => {
+      for (let attempt = 0; attempt < 3 && !cancelled; attempt += 1) {
+        try {
+          const settings = await fetchHomepageSettings();
+          if (!cancelled) {
+            setHomepageSettings(settings);
+            if (settings) return;
+          }
+        } catch (error) {
+          if (!cancelled) {
+            console.error(error);
+          }
+        }
+        if (!cancelled && attempt < 2) {
+          await new Promise((resolve) => setTimeout(resolve, 500));
+        }
+      }
+    };
+    void loadHomepageSettings();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const resolveAssetSrc = (src?: string) => {
+    if (!src) return "";
+    if (/^https?:\/\//i.test(src) || src.startsWith("//")) return src;
+    return `${img_path}${src.replace(/^\/+/, "")}`;
+  };
+
+  const heroBackgroundStyle = homepageSettings?.heroImage
+    ? {
+        backgroundImage: `url(${resolveAssetSrc(homepageSettings.heroImage)})`,
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+      }
+    : undefined;
 
 
 const [formData, setFormData] = useState<BookingState>({
@@ -240,9 +287,12 @@ const guidePassenger =
   return (
     <>
       {/* Hero Section */}
-      <section className="hero-sec-eight">
+      <section className="hero-sec-eight" style={heroBackgroundStyle}>
         <div className="container">
-          <h1 className="animate-text">Adventure</h1>
+          <h1 className="animate-text">{homepageSettings?.heroTitle || "Adventure"}</h1>
+          <p className="text-white-50 text-center mx-auto mb-3" style={{ maxWidth: 900 }}>
+            {homepageSettings?.heroSubtitle || ""}
+          </p>
           <div
             className="animate-button"
             ref={buttonRef}
@@ -263,6 +313,16 @@ const guidePassenger =
               videoUrl={videoUrl}
             />
           </div>
+          {(homepageSettings?.ctaLabel && homepageSettings?.ctaLink) && (
+            <div className="d-flex justify-content-center mt-3">
+              <Link
+                to={normalizeWebsiteSettingsPath(homepageSettings.ctaLink) || all_routes.tourGrid}
+                className="btn btn-primary"
+              >
+                {homepageSettings.ctaLabel}
+              </Link>
+            </div>
+          )}
           <div className="hero-content">
             <div className="row align-items-center">
               <div className="col-md-12 mx-auto">

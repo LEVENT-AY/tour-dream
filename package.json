@@ -24,6 +24,7 @@
     "smoke:role-profile-shell-qa": "node scripts/smoke-role-profile-shell-qa.mjs",
     "smoke:navigation-shell-qa": "node scripts/smoke-navigation-shell-qa.mjs",
     "smoke:website-settings-admin": "node scripts/smoke-website-settings-admin.mjs",
+    "smoke:website-public-binding": "node scripts/smoke-website-public-binding.mjs",
     "smoke:agent-dashboard": "node scripts/smoke-agent-dashboard.mjs",
     "smoke:booking-surface-qa": "node scripts/smoke-booking-surface-qa.mjs",
     "smoke:booking-request-v1": "node scripts/smoke-booking-request-v1.cjs",

@@ -1,44 +1,100 @@
-
-import { Link } from 'react-router-dom'
-import ImageWithBasePath from '../imageWithBasePath'
-import { all_routes } from '../../../feature-module/router/all_routes'
+import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
+import ImageWithBasePath from '../imageWithBasePath';
+import { all_routes } from '../../../feature-module/router/all_routes';
+import {
+  fetchHomepageSettings,
+  normalizeWebsiteSettingsPath,
+  type HomepageSettings,
+} from '../../services/firebaseServices';
 
 const Footer = () => {
+  const routes = all_routes;
+  const [homepageSettings, setHomepageSettings] = useState<HomepageSettings | null>(null);
 
-  const routes = all_routes
+  useEffect(() => {
+    let cancelled = false;
+    const loadHomepageSettings = async () => {
+      for (let attempt = 0; attempt < 3 && !cancelled; attempt += 1) {
+        try {
+          const settings = await fetchHomepageSettings();
+          if (!cancelled) {
+            setHomepageSettings(settings);
+            if (settings) return;
+          }
+        } catch (error) {
+          if (!cancelled) {
+            console.error(error);
+          }
+        }
+        if (!cancelled && attempt < 2) {
+          await new Promise((resolve) => setTimeout(resolve, 500));
+        }
+      }
+    };
+    void loadHomepageSettings();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const resolveLogo = (fallback: string) => homepageSettings?.logo || fallback;
+  const footerLinks = (homepageSettings?.footerLinks || []).filter((link) => link && link.label && link.path);
+  const socialLinks = homepageSettings?.socialLinks || {};
+  const hasSocialLinks = Object.values(socialLinks).some(Boolean);
+  const footerText = homepageSettings?.footerText || 'Copyright 2026. All Rights Reserved,';
+  const contactPhone = homepageSettings?.contactPhone || '+1 56589 54598';
+  const contactEmail = homepageSettings?.contactEmail || 'info@example.com';
+  const contactAddress = homepageSettings?.contactAddress || '';
+
+  const renderSocialIcon = (platform: string) => {
+    if (platform === 'twitter') return 'fa-x-twitter';
+    if (platform === 'x') return 'fa-x-twitter';
+    return `fa-${platform}`;
+  };
 
   return (
     <>
-      {/* Footer */}
       <footer>
         <div className="container">
           <div className="footer-top">
             <div className="row row-cols-lg-5 row-cols-md-3 row-cols-sm-2 row-cols-1">
               <div className="col">
                 <div className="footer-widget">
-                  <h5>Pages</h5>
+                  <h5>{footerLinks.length > 0 ? 'Footer Links' : 'Pages'}</h5>
                   <ul className="footer-menu">
-                    <li>
-                      <Link to={routes.teams}>Our Team</Link>
-                    </li>
-                    <li>
-                      <Link to={routes.pricingPlan}>Pricing Plans</Link>
-                    </li>
-                    <li>
-                      <Link to={routes.Gallery}>Gallery</Link>
-                    </li>
-                    <li>
-                      <Link to={routes.profileSettings}>Settings</Link>
-                    </li>
-                    <li>
-                      <Link to={routes.myProfile}>Profile</Link>
-                    </li>
-                    <li>
-                      <Link to={routes.agentListing}>Listings</Link>
-                    </li>
+                    {footerLinks.length > 0 ? (
+                      footerLinks.map((link) => (
+                        <li key={`${link.label}-${link.path}`}>
+                          <Link to={normalizeWebsiteSettingsPath(link.path) || routes.allService1}>{link.label}</Link>
+                        </li>
+                      ))
+                    ) : (
+                      <>
+                        <li>
+                          <Link to={routes.teams}>Our Team</Link>
+                        </li>
+                        <li>
+                          <Link to={routes.pricingPlan}>Pricing Plans</Link>
+                        </li>
+                        <li>
+                          <Link to={routes.Gallery}>Gallery</Link>
+                        </li>
+                        <li>
+                          <Link to={routes.profileSettings}>Settings</Link>
+                        </li>
+                        <li>
+                          <Link to={routes.myProfile}>Profile</Link>
+                        </li>
+                        <li>
+                          <Link to={routes.agentListing}>Listings</Link>
+                        </li>
+                      </>
+                    )}
                   </ul>
                 </div>
               </div>
+
               <div className="col">
                 <div className="footer-widget">
                   <h5>Company</h5>
@@ -64,6 +120,7 @@ const Footer = () => {
                   </ul>
                 </div>
               </div>
+
               <div className="col">
                 <div className="footer-widget">
                   <h5>Destinations</h5>
@@ -89,6 +146,7 @@ const Footer = () => {
                   </ul>
                 </div>
               </div>
+
               <div className="col">
                 <div className="footer-widget">
                   <h5>Support</h5>
@@ -114,6 +172,7 @@ const Footer = () => {
                   </ul>
                 </div>
               </div>
+
               <div className="col">
                 <div className="footer-widget">
                   <h5>Services</h5>
@@ -140,21 +199,23 @@ const Footer = () => {
                 </div>
               </div>
             </div>
+
             <div className="footer-wrap bg-white">
               <div className="row align-items-center">
                 <div className="col-lg-6 col-xl-3 col-xxl-3">
                   <div className="mb-3 text-center text-xl-start">
                     <Link to={routes.allService1} className="d-block footer-logo-light">
-                      <ImageWithBasePath src="assets/img/logo-dark.svg" alt="logo" />
+                      <ImageWithBasePath src={resolveLogo('assets/img/logo-dark.svg')} alt={homepageSettings?.siteName || 'logo'} />
                     </Link>
                     <Link to={routes.allService1} className="footer-logo-dark">
-                      <ImageWithBasePath src="assets/img/logo.svg" alt="logo" />
+                      <ImageWithBasePath src={resolveLogo('assets/img/logo.svg')} alt={homepageSettings?.siteName || 'logo'} />
                     </Link>
                   </div>
                 </div>
+
                 <div className="col-lg-6 col-xl-4 col-xxl-4">
                   <div className="d-flex align-items-center justify-content-center flex-wrap">
-                    <h6 className="fs-14 fw-medium me-2 mb-2">Available on : </h6>
+                    <h6 className="fs-14 fw-medium me-2 mb-2">Available on :</h6>
                     <Link to="#" className="d-block mb-3 me-2">
                       <ImageWithBasePath src="assets/img/icons/googleplay.svg" alt="logo" />
                     </Link>
@@ -163,6 +224,7 @@ const Footer = () => {
                     </Link>
                   </div>
                 </div>
+
                 <div className="col-lg-12 col-xl-5 col-xxl-5">
                   <div className="d-sm-flex align-items-center justify-content-center justify-content-xl-end">
                     <div className="d-flex align-items-center justify-content-center justify-content-sm-start me-0 pe-0 me-sm-3 pe-sm-3 border-end mb-3">
@@ -171,7 +233,8 @@ const Footer = () => {
                       </span>
                       <div className="ms-2">
                         <p className="mb-1">Customer Support</p>
-                        <p className="fw-medium text-dark">+1 56589 54598</p>
+                        <p className="fw-medium text-dark">{contactPhone}</p>
+                        {contactAddress && <p className="mb-0 fs-13 text-muted">{contactAddress}</p>}
                       </div>
                     </div>
                     <div className="d-flex align-items-center justify-content-center justify-content-sm-start mb-3">
@@ -180,60 +243,72 @@ const Footer = () => {
                       </span>
                       <div className="ms-2">
                         <p className="mb-1">Drop Us an Email</p>
-                        <p className="fw-medium text-dark">info@example.com</p>
+                        <p className="fw-medium text-dark">{contactEmail}</p>
                       </div>
                     </div>
                   </div>
                 </div>
               </div>
             </div>
+
             <div className="footer-img">
               <ImageWithBasePath src="assets/img/bg/footer.svg" className="img-fluid" alt="img" />
             </div>
           </div>
         </div>
-        {/* Footer Bottom */}
+
         <div className="footer-bottom">
           <div className="container">
             <div className="row">
               <div className="col-md-12">
                 <div className="d-flex align-items-center justify-content-between flex-wrap">
                   <p className="fs-14">
-                    Copyright © 2026. All Rights Reserved,{" "}
-                    <Link
-                      to="#"
-                      className="text-primary fw-medium"
-                    >
-                      DreamsTour
+                    {footerText}{' '}
+                    <Link to={routes.allService1} className="text-primary fw-medium">
+                      {homepageSettings?.siteName || 'DreamsTour'}
                     </Link>
                   </p>
                   <div className="d-flex align-items-center">
                     <ul className="social-icon">
-                      <li>
-                        <Link to="#">
-                          <i className="fa-brands fa-facebook" />
-                        </Link>
-                      </li>
-                      <li>
-                        <Link to="#">
-                          <i className="fa-brands fa-x-twitter" />
-                        </Link>
-                      </li>
-                      <li>
-                        <Link to="#">
-                          <i className="fa-brands fa-instagram" />
-                        </Link>
-                      </li>
-                      <li>
-                        <Link to="#">
-                          <i className="fa-brands fa-linkedin" />
-                        </Link>
-                      </li>
-                      <li>
-                        <Link to="#">
-                          <i className="fa-brands fa-pinterest" />
-                        </Link>
-                      </li>
+                      {hasSocialLinks ? (
+                        Object.entries(socialLinks).map(([platform, url]) => (
+                          url ? (
+                            <li key={platform}>
+                              <a href={url} target="_blank" rel="noreferrer">
+                                <i className={`fa-brands ${renderSocialIcon(platform)}`} />
+                              </a>
+                            </li>
+                          ) : null
+                        ))
+                      ) : (
+                        <>
+                          <li>
+                            <Link to="#">
+                              <i className="fa-brands fa-facebook" />
+                            </Link>
+                          </li>
+                          <li>
+                            <Link to="#">
+                              <i className="fa-brands fa-x-twitter" />
+                            </Link>
+                          </li>
+                          <li>
+                            <Link to="#">
+                              <i className="fa-brands fa-instagram" />
+                            </Link>
+                          </li>
+                          <li>
+                            <Link to="#">
+                              <i className="fa-brands fa-linkedin" />
+                            </Link>
+                          </li>
+                          <li>
+                            <Link to="#">
+                              <i className="fa-brands fa-pinterest" />
+                            </Link>
+                          </li>
+                        </>
+                      )}
                     </ul>
                   </div>
                   <ul className="card-links">
@@ -273,12 +348,9 @@ const Footer = () => {
             </div>
           </div>
         </div>
-        {/* /Footer Bottom */}
       </footer>
-      {/* /Footer */}
     </>
+  );
+};
 
-  )
-}
-
-export default Footer
+export default Footer;

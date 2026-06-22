@@ -9,6 +9,12 @@ import RegisterModal from "../modal/registerModal";
 import ForgotPasswordModal from "../modal/forgotPassword";
 import ChangePasswordModal from "../modal/changePassword";
 import { useAuth } from "../../contexts/AuthContext";
+import {
+  fetchHomepageSettings,
+  normalizeWebsiteSettingsPath,
+  type HeaderNavigationItem,
+  type HomepageSettings,
+} from "../../services/firebaseServices";
 
 const Header = () => {
   const [scrolled, setScrolled] = useState(false);
@@ -21,6 +27,7 @@ const Header = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { isAuthenticated, loading, userProfile, logout } = useAuth();
+  const [homepageSettings, setHomepageSettings] = useState<HomepageSettings | null>(null);
   const isPublicHomeRoute = location.pathname === "/" || location.pathname === "/index";
   const dataTheme = useSelector((state: any) => state.themeSetting.dataTheme);
   const handleDataThemeChange = (theme: string) => {
@@ -72,6 +79,97 @@ const Header = () => {
       document.body.style.overflow = ''
     }
   }, [isOffcanva]);
+  useEffect(() => {
+    let cancelled = false;
+    const loadHomepageSettings = async () => {
+      for (let attempt = 0; attempt < 3 && !cancelled; attempt += 1) {
+        try {
+          const settings = await fetchHomepageSettings();
+          if (!cancelled) {
+            setHomepageSettings(settings);
+            if (settings) return;
+          }
+        } catch (error) {
+          if (!cancelled) {
+            console.error(error);
+          }
+        }
+        if (!cancelled && attempt < 2) {
+          await new Promise((resolve) => setTimeout(resolve, 500));
+        }
+      }
+    };
+    void loadHomepageSettings();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const customHeaderNavigation = (homepageSettings?.headerNavigation || []).filter(
+    (item): item is HeaderNavigationItem => !!item && item.visible !== false && !!item.label?.trim()
+  );
+  const headerBrandLogo = homepageSettings?.logo || "";
+  const headerSiteName = homepageSettings?.siteName || "DreamsTour";
+  const headerContactPhone = homepageSettings?.contactPhone || "+1 56565 56594";
+  const headerContactEmail = homepageSettings?.contactEmail || "info@example.com";
+
+  const renderCustomNavigation = (item: HeaderNavigationItem, index: number, mobile = false) => {
+    const url = normalizeWebsiteSettingsPath(item.url);
+    const children = (item.children || [])
+      .filter((child) => child && child.visible !== false && !!child.label?.trim())
+      .map((child) => ({
+        ...child,
+        url: normalizeWebsiteSettingsPath(child.url),
+      }))
+      .filter((child) => !!child.url);
+
+    if (item.type === "dropdown" && children.length > 0) {
+      return (
+        <li
+          key={item.id || `${item.label}-${index}`}
+          className={`has-submenu ${mobile ? "mega-innermenu" : "megamenutab"}`}
+        >
+          <Link
+            to={url || routes.allService1}
+            onClick={(e) => e.preventDefault()}
+          >
+            {item.label}
+            <i className="fa-solid fa-angle-down" />
+          </Link>
+          <ul className={mobile ? "submenu mega-submenu" : "submenu mega-submenu"}>
+            <li>
+              <div className="megamenu-wrapper">
+                <div className="row">
+                  <div className="col-lg-6">
+                    <h6>{item.label}</h6>
+                    <ul>
+                      {children.map((child) => (
+                        <li key={`${item.id || item.label}-${child.label}-${child.url}`}>
+                          <Link to={child.url || routes.allService1}>{child.label}</Link>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div className="col-lg-6">
+                    <div className="menu-img">
+                      <ImageWithBasePath src={item.imageUrl || "assets/img/menu/flight.jpg"} alt={item.label} className="img-fluid" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </li>
+          </ul>
+        </li>
+      );
+    }
+
+    return (
+      <li key={item.id || `${item.label}-${index}`} className={mobile ? "" : "me-3"}>
+        <Link to={url || routes.allService1}>{item.label}</Link>
+      </li>
+    );
+  };
+
   const sideBar = [
     {
       tittle: "Home",
@@ -1533,12 +1631,12 @@ const Header = () => {
               <div className="d-flex align-items-center justify-content-between flex-wrap">
                 <p className="d-flex align-items-center fw-medium fs-14 mb-2">
                   <i className="isax isax-call5 me-2" />
-                  Toll Free : +1 56565 56594
+                  Toll Free : {headerContactPhone}
                 </p>
                 <div className="d-flex align-items-center">
                   <p className="mb-2 me-3 d-flex align-items-center fw-medium fs-14">
                     <i className="isax isax-message-text-15 me-2" />
-                    Email : info@example.com
+                    Email : {headerContactEmail}
                   </p>
                   <div className="dropdown flag-dropdown mb-2 me-3">
                     <Link
@@ -1641,11 +1739,11 @@ const Header = () => {
                 <div className="d-flex align-items-center flex-wrap">
                   <p className="d-flex align-items-center fs-14 mb-2 me-3 ">
                     <i className="isax isax-call5 me-2" />
-                    Toll Free : +1 56565 56594
+                    Toll Free : {headerContactPhone}
                   </p>
                   <p className="mb-2 d-flex align-items-center fs-14">
                     <i className="isax isax-message-text-15 me-2" />
-                    Email : info@example.com
+                    Email : {headerContactEmail}
                   </p>
                 </div>
                 <div className="d-flex align-items-center">
@@ -1742,28 +1840,31 @@ const Header = () => {
                 <div className="d-flex align-items-center flex-wrap">
                   <p className="d-flex align-items-center fs-14 mb-2 me-3 ">
                     <i className="isax isax-call5 me-2" />
-                    Toll Free : +1 56565 56594
+                    Toll Free : {headerContactPhone}
                   </p>
                   <p className="mb-2 d-flex align-items-center fs-14">
                     <i className="isax isax-message-text-15 me-2" />
-                    Email : info@example.com
+                    Email : {headerContactEmail}
                   </p>
                 </div>
                 <div className="navbar-logo mb-2">
                   <Link className="logo-dark header-logo" to={routes.allService1}>
                     <ImageWithBasePath
-                      src="assets/img/logo-dark.svg"
+                      src={headerBrandLogo || "assets/img/logo-dark.svg"}
                       className="logo"
-                      alt="Logo"
+                      alt={headerSiteName}
                     />
                   </Link>
                   <Link className="logo-white header-logo" to={routes.allService1}>
                     <ImageWithBasePath
-                      src="assets/img/logo.svg"
+                      src={headerBrandLogo || "assets/img/logo.svg"}
                       className="logo"
-                      alt="Logo"
+                      alt={headerSiteName}
                     />
                   </Link>
+                  {homepageSettings?.siteName && (
+                    <span className="ms-2 fw-semibold d-none d-xl-inline-block">{homepageSettings.siteName}</span>
+                  )}
                 </div>
                 <div className="d-flex align-items-center">
                   <div className="dropdown mb-2 me-3">
@@ -1908,11 +2009,11 @@ const Header = () => {
                 <div className="d-flex align-items-center flex-wrap">
                   <p className="d-flex align-items-center fs-14 mb-0 me-3 ">
                     <i className="isax isax-call5 me-2" />
-                    Toll Free : +1 56565 56594
+                    Toll Free : {headerContactPhone}
                   </p>
                   <p className="mb-0 d-flex align-items-center fs-14">
                     <i className="isax isax-message-text-15 me-2" />
-                    Email : info@example.com
+                    Email : {headerContactEmail}
                   </p>
                 </div>
               </div>
@@ -1939,14 +2040,14 @@ const Header = () => {
                     <div className="d-flex justify-content-between align-items-center mb-3">
                       <Link to={routes.allService1} className="black-logo-responsive">
                         <ImageWithBasePath
-                          src="assets/img/logo-dark.svg"
-                          alt="logo-img"
+                          src={headerBrandLogo || "assets/img/logo-dark.svg"}
+                          alt={headerSiteName}
                         />
                       </Link>
                       <Link to={routes.allService1} className="white-logo-responsive">
                         <ImageWithBasePath
-                          src="assets/img/logo.svg"
-                          alt="logo-img"
+                          src={headerBrandLogo || "assets/img/logo.svg"}
+                          alt={headerSiteName}
                         />
                       </Link>
                       <div
@@ -1979,7 +2080,9 @@ const Header = () => {
                     <div className="mean-bar">
                       <nav className="mean-nav">
                         <ul className="main-nav" style={{ display: "none" }}>
-                          {sideBar.map((mainMenus, i) => (
+                          {customHeaderNavigation.length > 0
+                            ? customHeaderNavigation.map((item, index) => renderCustomNavigation(item, index, true))
+                            : sideBar.map((mainMenus, i) => (
                             <React.Fragment key={i}>
                               {mainMenus.separateRoute ? (
                                 <li
@@ -2477,21 +2580,21 @@ const Header = () => {
                       location.pathname === "/index-6" ||
                       location.pathname === "/index-7" ? (
                       <ImageWithBasePath
-                        src="assets/img/logo-dark.svg"
+                        src={headerBrandLogo || "assets/img/logo-dark.svg"}
                         className="logo"
-                        alt="Logo"
+                        alt={headerSiteName}
                       />
                     ) : location.pathname === "/index-10" ? (
                       <ImageWithBasePath
-                        src="assets/img/logo-10.svg"
+                        src={headerBrandLogo || "assets/img/logo-10.svg"}
                         className="logo"
-                        alt="Logo"
+                        alt={headerSiteName}
                       />
                     ) : (
                       <ImageWithBasePath
-                        src="assets/img/logo.svg"
+                        src={headerBrandLogo || "assets/img/logo.svg"}
                         className="logo"
-                        alt="Logo"
+                        alt={headerSiteName}
                       />
                     )}
                   </Link>
@@ -2504,23 +2607,28 @@ const Header = () => {
                         location.pathname === "/index-7" ||
                         location.pathname === "/index-9" ? (
                         <ImageWithBasePath
-                          src="assets/img/logo.svg"
+                          src={headerBrandLogo || "assets/img/logo.svg"}
                           className="logo"
-                          alt="Logo"
+                          alt={headerSiteName}
                         />
                       ) : (
                         <ImageWithBasePath
-                          src="assets/img/logo-dark.svg"
+                          src={headerBrandLogo || "assets/img/logo-dark.svg"}
                           className="logo"
-                          alt="Logo"
+                          alt={headerSiteName}
                         />
                       )}
                     </Link>
                   )}
+                  {homepageSettings?.siteName && (
+                    <span className="ms-2 fw-semibold d-none d-xl-inline-block">{homepageSettings.siteName}</span>
+                  )}
                 </div>
                 <nav id="mobile-menu">
                   <ul className={`main-nav ${isMegaMenu ? "active" : ""}`}>
-                    {sideBar.map((mainMenus: any, index) => (
+                    {customHeaderNavigation.length > 0
+                      ? customHeaderNavigation.map((item, index) => renderCustomNavigation(item, index))
+                      : sideBar.map((mainMenus: any, index) => (
                       <React.Fragment key={index}>
                         {mainMenus.separateRoute ? (
                           <li

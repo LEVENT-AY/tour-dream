@@ -7,6 +7,7 @@ import {
   fetchFlights,
   fetchCars,
   fetchActivities,
+  type HeaderNavigationItem,
   type HomepageSettings,
 } from '../../../core/services/firebaseServices';
 import ImageUpload from '../components/ImageUpload';
@@ -24,6 +25,7 @@ const defaultSettings: HomepageSettings = {
   ctaLabel: '',
   ctaLink: '',
   banners: [],
+  headerNavigation: [],
   sections: {
     featuredTours: true,
     featuredHotels: true,
@@ -51,6 +53,7 @@ const defaultSettings: HomepageSettings = {
 
 const AdminHomepageSettings: React.FC = () => {
   const [settings, setSettings] = useState<HomepageSettings>(defaultSettings);
+  const [headerNavigationText, setHeaderNavigationText] = useState('[]');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -72,6 +75,7 @@ const AdminHomepageSettings: React.FC = () => {
           fetchActivities(),
         ]);
         setSettings({ ...defaultSettings, ...(s || {}) });
+        setHeaderNavigationText(JSON.stringify((s?.headerNavigation || []) as HeaderNavigationItem[], null, 2));
         setTours(t);
         setHotels(h);
         setFlights(f);
@@ -143,7 +147,16 @@ const AdminHomepageSettings: React.FC = () => {
     setSaving(true);
     setMessage(null);
     try {
-      await updateHomepageSettings(settings);
+      const parsedHeaderNavigation = headerNavigationText.trim()
+        ? (JSON.parse(headerNavigationText) as HeaderNavigationItem[])
+        : [];
+      if (!Array.isArray(parsedHeaderNavigation)) {
+        throw new Error('Header navigation must be a JSON array.');
+      }
+      await updateHomepageSettings({
+        ...settings,
+        headerNavigation: parsedHeaderNavigation,
+      });
       setMessage('Homepage settings saved successfully.');
     } catch (err) {
       setMessage(err instanceof Error ? err.message : 'Save failed');
@@ -216,6 +229,19 @@ const AdminHomepageSettings: React.FC = () => {
               <h5 className="mb-0">Branding</h5>
             </div>
             <div className="card-body">
+              <div className="mb-3">
+                <label className="form-label">Header Navigation (JSON)</label>
+                <textarea
+                  className="form-control font-monospace"
+                  rows={8}
+                  value={headerNavigationText}
+                  onChange={(e) => setHeaderNavigationText(e.target.value)}
+                  placeholder='[{"id":"hotel","label":"Hotel","url":"/hotel/hotel-grid","visible":true,"type":"dropdown","children":[{"label":"Hotel Grid","url":"/hotel/hotel-grid","visible":true}]}]'
+                />
+                <small className="text-muted d-block mt-1">
+                  Optional. Leave empty to keep the current hardcoded public navigation as fallback.
+                </small>
+              </div>
               <div className="mb-3">
                 <label className="form-label">Site Name</label>
                 <input

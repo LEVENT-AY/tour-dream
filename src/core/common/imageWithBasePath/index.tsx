@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { img_path } from "../../../environment";
 
 interface ImageProps {
@@ -23,6 +23,11 @@ const resolveSrc = (src: string | undefined): string => {
 const ImageWithBasePath = (props: ImageProps) => {
   const [currentSrc, setCurrentSrc] = useState<string>(() => resolveSrc(props.src));
   const [hasErrored, setHasErrored] = useState(false);
+
+  useEffect(() => {
+    setCurrentSrc(resolveSrc(props.src));
+    setHasErrored(false);
+  }, [props.src, props.fallbackSrc]);
 
   const handleError = () => {
     if (hasErrored) return;

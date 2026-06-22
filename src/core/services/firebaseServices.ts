@@ -452,6 +452,7 @@ export interface HomepageSettings {
   ctaLabel: string;
   ctaLink: string;
   banners?: { image: string; link: string; title?: string }[];
+  headerNavigation?: HeaderNavigationItem[];
   sections: {
     featuredTours: boolean;
     featuredHotels: boolean;
@@ -487,6 +488,32 @@ export const updateHomepageSettings = async (settings: Partial<HomepageSettings>
     ...settings,
     updatedAt: serverTimestamp(),
   }, { merge: true });
+};
+
+export interface HeaderNavigationChild {
+  label: string;
+  url: string;
+  visible?: boolean;
+}
+
+export interface HeaderNavigationItem {
+  id?: string;
+  label: string;
+  url?: string;
+  visible?: boolean;
+  type?: "link" | "dropdown";
+  children?: HeaderNavigationChild[];
+  imageUrl?: string;
+}
+
+export const normalizeWebsiteSettingsPath = (path?: string): string => {
+  const value = (path || "").trim();
+  if (!value) return "";
+  if (value === "/index" || value.startsWith("/index/") || value.startsWith("/index?")) return "/";
+  if (value.startsWith("http://") || value.startsWith("https://") || value.startsWith("//")) {
+    return value;
+  }
+  return value.startsWith("/") ? value : `/${value}`;
 };
 
 
