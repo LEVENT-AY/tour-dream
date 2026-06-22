@@ -5,17 +5,25 @@ import Cursor from "../core/common/cursor/cursor";
 import BackToTop from "../core/common/backtotop/backToTop";
 import Footer from "../core/common/footer/footer";
 import FooterSeven from "./home-seven/footerSeven";
+import { all_routes } from "./router/all_routes";
+import {
+  fetchHomepageSettings,
+  resolveGeneralHomeTemplateRoute,
+  shouldShowSharedFooterForHomeRoute,
+  shouldShowSharedHeaderForHomeRoute,
+} from "../core/services/firebaseServices";
 
-const isHomepageRoute = (pathname: string) => pathname === '/' || pathname.startsWith('/index');
+const isHomepageRoute = (pathname: string) => pathname === "/" || pathname.startsWith("/index");
 
 const Feature = () => {
   const [showLoader, setShowLoader] = useState(() => isHomepageRoute(window.location.pathname));
+  const [selectedHomeRoute, setSelectedHomeRoute] = useState(all_routes.allService1);
 
   const location = useLocation();
   const isDashboardRoute =
-    location.pathname.startsWith('/agent') ||
-    location.pathname.startsWith('/admin') ||
-    location.pathname.startsWith('/user');
+    location.pathname.startsWith("/agent") ||
+    location.pathname.startsWith("/admin") ||
+    location.pathname.startsWith("/user");
 
   const Preloader = () => {
     return (
@@ -26,24 +34,54 @@ const Feature = () => {
       </div>
     );
   };
-useLayoutEffect(() => {
-  window.scrollTo({
-    top: 0,
-    left: 0,
-    behavior: "instant", // or "smooth"
-  });
 
-  if (isHomepageRoute(location.pathname)) {
-    setShowLoader(true);
-    const timeoutId = setTimeout(() => {
-      setShowLoader(false);
-    }, 500);
+  useLayoutEffect(() => {
+    window.scrollTo({
+      top: 0,
+      left: 0,
+      behavior: "instant",
+    });
 
-    return () => clearTimeout(timeoutId);
-  }
+    let cancelled = false;
 
-  setShowLoader(false);
-}, [location.pathname]);
+    if (isHomepageRoute(location.pathname)) {
+      setShowLoader(true);
+
+      const loadHomepageRoute = async () => {
+        for (let attempt = 0; attempt < 3 && !cancelled; attempt += 1) {
+          try {
+            const settings = await fetchHomepageSettings();
+            if (cancelled) return;
+            setSelectedHomeRoute(resolveGeneralHomeTemplateRoute(settings?.publicTemplates?.home));
+            if (settings) break;
+          } catch {
+            if (!cancelled && attempt < 2) {
+              await new Promise((resolve) => setTimeout(resolve, 500));
+            }
+          }
+        }
+
+        if (!cancelled) {
+          setShowLoader(false);
+        }
+      };
+
+      void loadHomepageRoute();
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    setSelectedHomeRoute(all_routes.allService1);
+    setShowLoader(false);
+  }, [location.pathname]);
+
+  const effectiveShellRoute = isHomepageRoute(location.pathname) ? selectedHomeRoute : location.pathname;
+  const shouldShowSharedHeader = !isDashboardRoute && shouldShowSharedHeaderForHomeRoute(effectiveShellRoute);
+  const shouldShowSharedFooter = !isDashboardRoute && shouldShowSharedFooterForHomeRoute(effectiveShellRoute);
+  const shouldShowFooterSeven = !isDashboardRoute && effectiveShellRoute === "/index-9";
+  const shouldHideBackToTop = effectiveShellRoute === "/index-2";
+
   return (
     <>
       <div>
@@ -55,41 +93,16 @@ useLayoutEffect(() => {
           ) : (
             <>
               <div>
-                {location.pathname === "/index-10" || location.pathname === "/index-12" ? (
-                  <></>
-                ) : (
-                  <Header />
-                )}
-                <Outlet />
-                {/* Show Footer on all routes except index-2 to index-6 */}
-                {![
-                  "/",
-                  "/index",
-                  "/index-2",
-                  "/index-4",
-                  "/index-5",
-                  "/index-6",
-                  "/index-7",
-                  "/index-8",
-                  "/index-9",
-                  "/index-10",
-                  "/index-11",
-                  "/index-12",
-                ].includes(location.pathname) && <Footer />}
-
-                {/* Show FooterSeven only on /index-7 */}
-                {location.pathname === "/index-9" && <FooterSeven />}
-                {
-                  location.pathname === '/index-2'?(<></>):(<BackToTop />)
-                }
+                {shouldShowSharedHeader ? <Header /> : <></>}
+                <Outlet context={{ selectedHomeRoute: effectiveShellRoute }} />
+                {shouldShowSharedFooter && <Footer />}
+                {shouldShowFooterSeven && <FooterSeven />}
+                {shouldHideBackToTop ? <></> : <BackToTop />}
                 <Cursor />
-                
               </div>
             </>
           )}
         </>
-        {/* <Loader/> */}
-
         <div className="sidebar-overlay"></div>
       </div>
     </>

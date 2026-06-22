@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import {
   DEFAULT_HOMEPAGE_SETTINGS,
-  GENERAL_HOME_TEMPLATE_OPTIONS,
+  HOME_TEMPLATE_INVENTORY,
   fetchActivities,
   fetchCars,
   fetchChalets,
@@ -16,6 +16,8 @@ import {
   normalizeWebsiteSettingsPath,
   resolveGeneralHomeTemplateRoute,
   updateHomepageSettings,
+  type HomeTemplateGroup,
+  type HomeTemplateInventoryItem,
   type HeaderNavigationChild,
   type HeaderNavigationItem,
   type HomepageSettings,
@@ -33,6 +35,12 @@ type TemplateCategoryConfig = {
   options: TemplateOption[];
   applyStatus: 'stored-only' | 'safe-route-ready';
 };
+type HomeTemplateGroupConfig = {
+  key: HomeTemplateGroup;
+  label: string;
+  helper: string;
+  items: HomeTemplateInventoryItem[];
+};
 type SectionTabKey =
   | 'overview'
   | 'branding'
@@ -43,13 +51,40 @@ type SectionTabKey =
   | 'footer'
   | 'advanced';
 
+const HOME_TEMPLATE_GROUPS: HomeTemplateGroupConfig[] = [
+  {
+    key: 'recommended',
+    label: 'Recommended general homes',
+    helper: 'These are the canonical all-services templates we can safely use for the public / route.',
+    items: HOME_TEMPLATE_INVENTORY.filter((item) => item.group === 'recommended'),
+  },
+  {
+    key: 'other',
+    label: 'Other home templates',
+    helper: 'These are template previews that keep the public route behavior safe while giving the admin full visibility.',
+    items: HOME_TEMPLATE_INVENTORY.filter((item) => item.group === 'other'),
+  },
+  {
+    key: 'shell-specific',
+    label: 'Shell-specific templates',
+    helper: 'These templates own more of their own header/footer shell and are still available for preview or safe activation.',
+    items: HOME_TEMPLATE_INVENTORY.filter((item) => item.group === 'shell-specific'),
+  },
+];
+
+const HOME_TEMPLATE_SHELL_BADGES: Record<HomeTemplateInventoryItem['shell']['header'] | HomeTemplateInventoryItem['shell']['footer'], string> = {
+  shared: 'Shared',
+  local: 'Local',
+  none: 'None',
+};
+
 const TEMPLATE_CATEGORY_CONFIGS: TemplateCategoryConfig[] = [
   {
     key: 'home',
     label: 'Active General Home Template',
     helper: 'This controls the canonical public Home page. Demo routes remain available for preview.',
     applyStatus: 'safe-route-ready',
-    options: GENERAL_HOME_TEMPLATE_OPTIONS.map((option) => ({
+    options: HOME_TEMPLATE_INVENTORY.map((option) => ({
       key: option.route,
       label: option.label,
       route: option.route,
@@ -255,6 +290,15 @@ const toDisplayTitle = (value: string) =>
     .split('-')
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join(' ');
+
+const describeHomeTemplateShell = (item: HomeTemplateInventoryItem) => {
+  const badges = [
+    `${HOME_TEMPLATE_SHELL_BADGES[item.shell.header]} header`,
+    item.shell.footer === 'none' ? 'No footer shell' : `${HOME_TEMPLATE_SHELL_BADGES[item.shell.footer]} footer`,
+  ];
+
+  return badges;
+};
 
 const getTemplateSelection = (category: TemplateCategoryConfig, settings: HomepageSettings) => {
   if (category.key === 'home') {
@@ -1091,7 +1135,7 @@ const AdminHomepageSettings: React.FC = () => {
                         <span className="badge bg-light text-muted border">Admin controlled</span>
                       </div>
                       <p className="text-muted mb-1">This controls the canonical public Home page. Demo routes remain available for preview.</p>
-                      <small className="text-muted">Only clearly safe all-services templates are selectable in this phase.</small>
+                      <small className="text-muted">All 12 home templates are listed here, grouped by how they use the shared shell.</small>
                     </div>
                     <div className="border rounded-3 bg-white px-3 py-2">
                       <div className="text-muted small">Active now</div>
@@ -1099,40 +1143,62 @@ const AdminHomepageSettings: React.FC = () => {
                       <small className="text-muted">{resolveGeneralHomeTemplateRoute(settings.publicTemplates?.home)}</small>
                     </div>
                   </div>
-                  <div className="row g-3">
-                    {GENERAL_HOME_TEMPLATE_OPTIONS.map((option) => {
-                      const isActive = resolveGeneralHomeTemplateRoute(settings.publicTemplates?.home) === option.route;
-                      return (
-                        <div className="col-12 col-xl-4" key={option.route}>
-                          <div className={`border rounded-3 p-3 h-100 bg-white ${isActive ? 'border-primary' : ''}`}>
-                            <div className="d-flex justify-content-between align-items-start gap-2 mb-2">
-                              <div>
-                                <div className="fw-semibold">{option.label}</div>
-                                <small className="text-muted">{option.component}</small>
-                              </div>
-                              {isActive && <span className="badge bg-success text-white">Active now</span>}
-                            </div>
-                            <p className="text-muted small mb-3">{option.description}</p>
-                            <div className="d-flex flex-wrap gap-2 mb-3">
-                              <span className="badge bg-light text-muted border">Preview route</span>
-                              <code>{option.route}</code>
-                            </div>
-                            <div className="d-flex flex-wrap gap-2">
-                              <button
-                                type="button"
-                                className={`btn btn-sm ${isActive ? 'btn-primary' : 'btn-outline-primary'}`}
-                                onClick={() => updateTemplateSelection('home', option.route)}
-                              >
-                                {isActive ? 'Selected' : 'Make Active'}
-                              </button>
-                              <a className="btn btn-sm btn-light border" href={option.route} target="_blank" rel="noreferrer">
-                                Preview route
-                              </a>
-                            </div>
+                  <div className="d-flex flex-column gap-4">
+                    {HOME_TEMPLATE_GROUPS.map((group) => (
+                      <div key={group.key}>
+                        <div className="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-2 mb-3">
+                          <div>
+                            <h6 className="mb-1">{group.label}</h6>
+                            <small className="text-muted">{group.helper}</small>
                           </div>
+                          <span className="badge bg-light text-muted border">{group.items.length} templates</span>
                         </div>
-                      );
-                    })}
+                        <div className="row g-3">
+                          {group.items.map((option) => {
+                            const isActive = resolveGeneralHomeTemplateRoute(settings.publicTemplates?.home) === option.route;
+                            const shellBadges = describeHomeTemplateShell(option);
+                            return (
+                              <div className="col-12 col-xl-4" key={option.route}>
+                                <div className={`border rounded-3 p-3 h-100 bg-white ${isActive ? 'border-primary' : ''}`}>
+                                  <div className="d-flex justify-content-between align-items-start gap-2 mb-2">
+                                    <div>
+                                      <div className="fw-semibold">{option.label}</div>
+                                      <small className="text-muted d-block">{option.component}</small>
+                                    </div>
+                                    {isActive && <span className="badge bg-success text-white">Active now</span>}
+                                  </div>
+                                  <p className="text-muted small mb-3">{option.description}</p>
+                                  <div className="d-flex flex-wrap gap-2 mb-3">
+                                    {shellBadges.map((badge) => (
+                                      <span key={badge} className="badge bg-light text-muted border">
+                                        {badge}
+                                      </span>
+                                    ))}
+                                    <span className="badge bg-light text-muted border">
+                                      {option.safeForCanonicalHome ? 'Safe for /' : 'Preview only'}
+                                    </span>
+                                    <span className="badge bg-light text-muted border">Preview route</span>
+                                    <code>{option.route}</code>
+                                  </div>
+                                  <div className="d-flex flex-wrap gap-2">
+                                    <button
+                                      type="button"
+                                      className={`btn btn-sm ${isActive ? 'btn-primary' : 'btn-outline-primary'}`}
+                                      onClick={() => updateTemplateSelection('home', option.route)}
+                                    >
+                                      {isActive ? 'Selected' : 'Make Active'}
+                                    </button>
+                                    <a className="btn btn-sm btn-light border" href={option.route} target="_blank" rel="noreferrer">
+                                      Preview route
+                                    </a>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
                 <div className="row g-3" data-testid="template-selection-controls">

@@ -6,9 +6,10 @@ import { ensureDemoAccounts } from './ensure-demo-accounts.mjs';
 
 const PROJECT_ID = 'tour-tunisi';
 const BASE_URL = process.env.BASE_URL || 'http://localhost:5174';
-const TEST_ROUTE = '/index-3';
-const TEST_LABEL = 'All Services 3';
-const TEST_SELECTOR = '.banner-slider.banner-sec';
+const TEST_ROUTE = '/index-10';
+const TEST_LABEL = 'Guide';
+const TEST_MARKER = 'Explore All Guides';
+const PREVIEW_ROUTE = '/index-3';
 
 function requireEnv(name) {
   const value = process.env[name];
@@ -63,10 +64,10 @@ async function restoreWebsiteSettings(settingsRef, snapshot) {
   await settingsRef.delete();
 }
 
-async function waitForHomeMarker(page, path, selector) {
+async function waitForHomeMarker(page, path, markerText) {
   await page.goto(`${BASE_URL}${path}`, { waitUntil: 'domcontentloaded' });
   await page.locator('#loader-wrapper').waitFor({ state: 'hidden', timeout: 15000 }).catch(() => {});
-  await page.locator(selector).first().waitFor({ state: 'visible', timeout: 30000 });
+  await page.getByText(markerText, { exact: false }).first().waitFor({ state: 'visible', timeout: 30000 });
   return new URL(page.url()).pathname;
 }
 
@@ -96,6 +97,9 @@ async function main() {
   let canonicalHomeRendered = false;
   let directPreviewRouteWorked = false;
   let publicHeaderCollapsed = false;
+  let allHomeCardsVisible = false;
+  let allPreviewLinksPresent = false;
+  let previewRouteAccessible = false;
 
   try {
     await loginAsAdmin(page, adminEmail, adminPassword);
@@ -105,6 +109,8 @@ async function main() {
     selectorVisible = true;
 
     const activeHomeCard = page.locator('[data-testid="active-home-template-selector"]');
+    allHomeCardsVisible = (await activeHomeCard.locator('.col-12.col-xl-4').count()) === 12;
+    allPreviewLinksPresent = (await activeHomeCard.locator('a.btn.btn-sm.btn-light.border').count()) === 12;
     const targetButton = activeHomeCard.locator('.col-12.col-xl-4').filter({ hasText: TEST_LABEL }).locator('button').first();
     await targetButton.click();
     await page.getByRole('button', { name: 'Save Settings' }).click();
@@ -120,10 +126,10 @@ async function main() {
     const selectedCard = page.locator('[data-testid="active-home-template-selector"] .col-12.col-xl-4').filter({ hasText: TEST_LABEL });
     reloadKeptValue = await selectedCard.getByText('Active now', { exact: false }).first().isVisible();
 
-    const canonicalPath = await waitForHomeMarker(page, '/', TEST_SELECTOR);
+    const canonicalPath = await waitForHomeMarker(page, '/', TEST_MARKER);
     canonicalHomeRendered = canonicalPath === '/';
 
-    const directPreviewPath = await waitForHomeMarker(page, TEST_ROUTE, TEST_SELECTOR);
+    const directPreviewPath = await waitForHomeMarker(page, TEST_ROUTE, TEST_MARKER);
     directPreviewRouteWorked = directPreviewPath === TEST_ROUTE;
 
     await page.goto(`${BASE_URL}/`, { waitUntil: 'domcontentloaded' });
@@ -131,23 +137,34 @@ async function main() {
     const publicPreviewLinks = await page.locator('header a[href="/index-2"], header a[href="/index-3"]').count();
     publicHeaderCollapsed = publicPreviewLinks === 0;
 
+    await page.goto(`${BASE_URL}${PREVIEW_ROUTE}`, { waitUntil: 'domcontentloaded' });
+    await page.locator('#loader-wrapper').waitFor({ state: 'hidden', timeout: 15000 }).catch(() => {});
+    const previewPath = new URL(page.url()).pathname;
+    previewRouteAccessible = previewPath === PREVIEW_ROUTE && (await page.locator('body').innerText()).length > 0;
+
     const success =
       selectorVisible &&
+      allHomeCardsVisible &&
+      allPreviewLinksPresent &&
       saveWorked &&
       reloadKeptValue &&
       canonicalHomeRendered &&
       directPreviewRouteWorked &&
       publicHeaderCollapsed &&
+      previewRouteAccessible &&
       errors.length === 0;
 
     console.log(JSON.stringify({
       success,
       selectorVisible,
+      allHomeCardsVisible,
+      allPreviewLinksPresent,
       saveWorked,
       reloadKeptValue,
       canonicalHomeRendered,
       directPreviewRouteWorked,
       publicHeaderCollapsed,
+      previewRouteAccessible,
       savedRoute: TEST_ROUTE,
       errors,
     }));
@@ -156,11 +173,14 @@ async function main() {
     console.log(JSON.stringify({
       success: false,
       selectorVisible,
+      allHomeCardsVisible,
+      allPreviewLinksPresent,
       saveWorked,
       reloadKeptValue,
       canonicalHomeRendered,
       directPreviewRouteWorked,
       publicHeaderCollapsed,
+      previewRouteAccessible,
       savedRoute: TEST_ROUTE,
       errors,
       reason: error.message || String(error),

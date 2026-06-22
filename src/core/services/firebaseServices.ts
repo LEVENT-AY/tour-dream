@@ -493,50 +493,180 @@ export type PublicTemplateCategory =
   | "guide"
   | "visa";
 
-export type GeneralHomeTemplateOption = {
+export type HomeTemplateCategory = "general" | "specialized" | "service-specific" | "preview";
+
+export type HomeTemplateGroup = "recommended" | "other" | "shell-specific";
+
+export type HomeTemplateShellMode = {
+  header: "shared" | "local";
+  footer: "shared" | "local" | "none";
+};
+
+export type HomeTemplateInventoryItem = {
   key: string;
   label: string;
   route: string;
   component: string;
+  category: HomeTemplateCategory;
+  group: HomeTemplateGroup;
+  shell: HomeTemplateShellMode;
   description: string;
+  safeForCanonicalHome: boolean;
 };
 
-export const GENERAL_HOME_TEMPLATE_OPTIONS: GeneralHomeTemplateOption[] = [
+export const HOME_TEMPLATE_INVENTORY: HomeTemplateInventoryItem[] = [
   {
     key: "home-service-one",
     label: "All Services 1",
     route: "/",
     component: "HomeServiceOne",
+    category: "general",
+    group: "recommended",
+    shell: { header: "shared", footer: "shared" },
     description: "Original canonical home with the full all-services travel shell.",
+    safeForCanonicalHome: true,
   },
   {
     key: "home-service-two",
     label: "All Services 2",
     route: "/index-2",
     component: "HomeServiceTwo",
+    category: "general",
+    group: "recommended",
+    shell: { header: "shared", footer: "local" },
     description: "Alternative all-services home focused on discovery and platform benefits.",
+    safeForCanonicalHome: true,
   },
   {
     key: "home-one",
     label: "All Services 3",
     route: "/index-3",
     component: "HomeOne",
+    category: "general",
+    group: "recommended",
+    shell: { header: "shared", footer: "shared" },
     description: "General marketplace-style home with broad cross-category discovery sections.",
+    safeForCanonicalHome: true,
+  },
+  {
+    key: "home-two",
+    label: "Hotels",
+    route: "/index-4",
+    component: "HomeTwo",
+    category: "service-specific",
+    group: "other",
+    shell: { header: "shared", footer: "local" },
+    description: "Hotel-focused homepage with a local footer and hotel discovery content.",
+    safeForCanonicalHome: true,
+  },
+  {
+    key: "home-three",
+    label: "Cars",
+    route: "/index-5",
+    component: "HomeThree",
+    category: "service-specific",
+    group: "other",
+    shell: { header: "shared", footer: "local" },
+    description: "Car-focused homepage with a dedicated local footer.",
+    safeForCanonicalHome: true,
+  },
+  {
+    key: "home-four",
+    label: "Flight",
+    route: "/index-6",
+    component: "HomeFour",
+    category: "service-specific",
+    group: "other",
+    shell: { header: "shared", footer: "local" },
+    description: "Flight-focused homepage with local footer layout treatment.",
+    safeForCanonicalHome: true,
+  },
+  {
+    key: "home-five",
+    label: "Cruise",
+    route: "/index-7",
+    component: "HomeFive",
+    category: "service-specific",
+    group: "other",
+    shell: { header: "shared", footer: "local" },
+    description: "Cruise-focused homepage with its own footer component.",
+    safeForCanonicalHome: true,
+  },
+  {
+    key: "home-six",
+    label: "Tours",
+    route: "/index-8",
+    component: "HomeSix",
+    category: "service-specific",
+    group: "other",
+    shell: { header: "shared", footer: "local" },
+    description: "Tour-focused homepage with a dedicated footer and service blocks.",
+    safeForCanonicalHome: true,
+  },
+  {
+    key: "home-seven",
+    label: "Bus",
+    route: "/index-9",
+    component: "HomeSeven",
+    category: "service-specific",
+    group: "other",
+    shell: { header: "shared", footer: "local" },
+    description: "Bus-focused homepage with its own local footer component.",
+    safeForCanonicalHome: true,
+  },
+  {
+    key: "home-ten",
+    label: "Guide",
+    route: "/index-10",
+    component: "HomeTen",
+    category: "specialized",
+    group: "shell-specific",
+    shell: { header: "local", footer: "local" },
+    description: "Guide-focused homepage with its own embedded header and footer.",
+    safeForCanonicalHome: true,
+  },
+  {
+    key: "home-eleven",
+    label: "Activity",
+    route: "/index-11",
+    component: "HomeEleven",
+    category: "specialized",
+    group: "other",
+    shell: { header: "shared", footer: "local" },
+    description: "Activity-focused homepage with a local footer and shared shell header.",
+    safeForCanonicalHome: true,
+  },
+  {
+    key: "home-twelve",
+    label: "Visa",
+    route: "/index-12",
+    component: "HomeTwelve",
+    category: "specialized",
+    group: "shell-specific",
+    shell: { header: "local", footer: "local" },
+    description: "Visa-focused homepage with its own local header and footer.",
+    safeForCanonicalHome: true,
   },
 ];
 
 const GENERAL_HOME_TEMPLATE_LOOKUP = new Map(
-  GENERAL_HOME_TEMPLATE_OPTIONS.flatMap((option) => [
+  HOME_TEMPLATE_INVENTORY.flatMap((option) => [
     [option.key, option],
     [option.route, option],
   ]),
 );
 
-export const findGeneralHomeTemplateOption = (value?: string | null): GeneralHomeTemplateOption =>
-  GENERAL_HOME_TEMPLATE_LOOKUP.get((value || "").trim()) || GENERAL_HOME_TEMPLATE_OPTIONS[0];
+export const findGeneralHomeTemplateOption = (value?: string | null): HomeTemplateInventoryItem =>
+  GENERAL_HOME_TEMPLATE_LOOKUP.get((value || "").trim()) || HOME_TEMPLATE_INVENTORY[0];
 
 export const resolveGeneralHomeTemplateRoute = (value?: string | null): string =>
   findGeneralHomeTemplateOption(value).route;
+
+export const shouldShowSharedHeaderForHomeRoute = (value?: string | null): boolean =>
+  findGeneralHomeTemplateOption(value).shell.header === "shared";
+
+export const shouldShowSharedFooterForHomeRoute = (value?: string | null): boolean =>
+  findGeneralHomeTemplateOption(value).shell.footer === "shared";
 
 export const DEFAULT_HOMEPAGE_SETTINGS: HomepageSettings = {
   siteName: "",
