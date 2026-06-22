@@ -453,6 +453,7 @@ export interface HomepageSettings {
   ctaLink: string;
   banners?: { image: string; link: string; title?: string }[];
   headerNavigation?: HeaderNavigationItem[];
+  publicTemplates?: Partial<Record<PublicTemplateCategory, string>>;
   sections: {
     featuredTours: boolean;
     featuredHotels: boolean;
@@ -478,14 +479,157 @@ export interface HomepageSettings {
   socialLinks?: Record<string, string>;
 }
 
+export type PublicTemplateCategory =
+  | "home"
+  | "hotel"
+  | "tour"
+  | "car"
+  | "activity"
+  | "flight"
+  | "resort"
+  | "chalet"
+  | "bus"
+  | "cruise"
+  | "guide"
+  | "visa";
+
+export const DEFAULT_HOMEPAGE_SETTINGS: HomepageSettings = {
+  siteName: "",
+  logo: "",
+  favicon: "",
+  contactEmail: "",
+  contactPhone: "",
+  contactAddress: "",
+  heroTitle: "",
+  heroSubtitle: "",
+  heroImage: "",
+  ctaLabel: "",
+  ctaLink: "",
+  banners: [],
+  headerNavigation: [],
+  publicTemplates: {
+    home: "home-service-one",
+    hotel: "hotel-grid",
+    tour: "tour-grid",
+    car: "car-grid",
+    activity: "activity-grid",
+    flight: "flight-grid",
+    resort: "resort-grid",
+    chalet: "chalet-grid",
+    bus: "bus-list",
+    cruise: "cruise-grid",
+    guide: "guide-grid",
+    visa: "visa-grid",
+  },
+  sections: {
+    featuredTours: true,
+    featuredHotels: true,
+    featuredFlights: true,
+    featuredCars: true,
+    featuredActivities: true,
+  },
+  sectionTitles: {
+    featuredTours: "Featured Tours",
+    featuredHotels: "Featured Hotels",
+    featuredFlights: "Featured Flights",
+    featuredCars: "Featured Cars",
+    featuredActivities: "Featured Activities",
+  },
+  featuredTours: [],
+  featuredHotels: [],
+  featuredFlights: [],
+  featuredCars: [],
+  featuredActivities: [],
+  navLinks: [],
+  footerLinks: [],
+  footerText: "",
+  socialLinks: {},
+};
+
+const normalizeHeaderNavigationChild = (child: Partial<HeaderNavigationChild>): HeaderNavigationChild | null => {
+  const label = (child.label || "").trim();
+  const url = normalizeWebsiteSettingsPath(child.url);
+  if (!label || !url) return null;
+  return {
+    label,
+    url,
+    visible: child.visible !== false,
+  };
+};
+
+export const normalizeHeaderNavigationItem = (item: Partial<HeaderNavigationItem>, index = 0): HeaderNavigationItem | null => {
+  const label = (item.label || "").trim();
+  if (!label) return null;
+
+  const type = item.type === "dropdown" ? "dropdown" : "link";
+  const normalizedChildren = (item.children || [])
+    .map((child) => normalizeHeaderNavigationChild(child))
+    .filter((child): child is HeaderNavigationChild => !!child);
+  const normalizedUrl = normalizeWebsiteSettingsPath(item.url);
+  const id = (item.id || label.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || `nav-${index + 1}`).trim();
+
+  if (type === "dropdown" && normalizedChildren.length === 0) {
+    return null;
+  }
+
+  if (type === "link" && !normalizedUrl) {
+    return null;
+  }
+
+  return {
+    id,
+    label,
+    url: type === "dropdown" ? normalizedUrl || undefined : normalizedUrl,
+    visible: item.visible !== false,
+    type,
+    children: type === "dropdown" ? normalizedChildren : [],
+    imageUrl: (item.imageUrl || "").trim() || undefined,
+  };
+};
+
+export const normalizeHomepageSettings = (settings?: Partial<HomepageSettings> | null): HomepageSettings => {
+  const merged: HomepageSettings = {
+    ...DEFAULT_HOMEPAGE_SETTINGS,
+    ...(settings || {}),
+    publicTemplates: {
+      ...DEFAULT_HOMEPAGE_SETTINGS.publicTemplates,
+      ...((settings?.publicTemplates || {}) as Partial<Record<PublicTemplateCategory, string>>),
+    },
+    sections: {
+      ...DEFAULT_HOMEPAGE_SETTINGS.sections,
+      ...(settings?.sections || {}),
+    },
+    sectionTitles: {
+      ...DEFAULT_HOMEPAGE_SETTINGS.sectionTitles,
+      ...(settings?.sectionTitles || {}),
+    },
+    banners: Array.isArray(settings?.banners) ? settings!.banners : [],
+    navLinks: Array.isArray(settings?.navLinks) ? settings!.navLinks : [],
+    footerLinks: Array.isArray(settings?.footerLinks) ? settings!.footerLinks : [],
+    featuredTours: Array.isArray(settings?.featuredTours) ? settings!.featuredTours : [],
+    featuredHotels: Array.isArray(settings?.featuredHotels) ? settings!.featuredHotels : [],
+    featuredFlights: Array.isArray(settings?.featuredFlights) ? settings!.featuredFlights : [],
+    featuredCars: Array.isArray(settings?.featuredCars) ? settings!.featuredCars : [],
+    featuredActivities: Array.isArray(settings?.featuredActivities) ? settings!.featuredActivities : [],
+    socialLinks: settings?.socialLinks || {},
+    headerNavigation: Array.isArray(settings?.headerNavigation)
+      ? settings!.headerNavigation
+          .map((item, index) => normalizeHeaderNavigationItem(item, index))
+          .filter((item): item is HeaderNavigationItem => !!item)
+      : [],
+  };
+
+  return merged;
+};
+
 export const fetchHomepageSettings = async (): Promise<HomepageSettings | null> => {
   const docSnap = await getDoc(doc(db, "siteSettings", "homepage"));
-  return docSnap.exists() ? (docSnap.data() as HomepageSettings) : null;
+  return docSnap.exists() ? normalizeHomepageSettings(docSnap.data() as HomepageSettings) : null;
 };
 
 export const updateHomepageSettings = async (settings: Partial<HomepageSettings>): Promise<void> => {
   await setDoc(doc(db, "siteSettings", "homepage"), {
-    ...settings,
+    ...normalizeHomepageSettings(settings),
     updatedAt: serverTimestamp(),
   }, { merge: true });
 };

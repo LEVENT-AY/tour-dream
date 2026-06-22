@@ -49,6 +49,7 @@ async function loginAsAdmin(page, email, password) {
 async function openWebsiteSettings(page) {
   await page.goto(`${BASE_URL}/admin/settings`, { waitUntil: 'domcontentloaded' });
   await page.locator('h3:has-text("Website Settings")').waitFor({ state: 'visible', timeout: 15000 });
+  await page.locator('[data-testid="website-control-center"]').waitFor({ state: 'visible', timeout: 15000 });
 }
 
 async function waitForPublicHome(page) {
@@ -116,26 +117,30 @@ async function main() {
     await loginAsAdmin(page, adminEmail, adminPassword);
     await openWebsiteSettings(page);
 
+    await page.getByRole('button', { name: 'Branding & Contact' }).click();
     const brandingCard = page.locator('div.card:has(h5:has-text("Branding"))');
     await brandingCard.locator('div.mb-3:has(label:has-text("Site Name")) input.form-control').fill(testSiteName);
-    const heroCard = page.locator('div.card:has(h5:has-text("Homepage Hero"))');
-    await heroCard.locator('div.mb-3:has(label:has-text("Hero Title")) input.form-control').fill(testHeroTitle);
-    await heroCard.locator('div.mb-3:has(label:has-text("Hero Subtitle")) textarea.form-control').fill(testHeroSubtitle);
-    await heroCard.locator('div.mb-0:has(> label:has-text("CTA Label")) input.form-control').fill(testCtaLabel);
-    await heroCard.locator('div.mb-0:has(> label:has-text("CTA Link")) input.form-control').fill(testCtaLink);
-
-    const navigationTextarea = page.locator('label:has-text("Header Navigation (JSON)")').locator('xpath=../textarea');
-    await navigationTextarea.fill(JSON.stringify(testHeaderNavigation, null, 2));
-
-    const footerCard = page.locator('div.card:has(h5:has-text("Footer"))');
-    await footerCard.locator('textarea.form-control').first().fill(testFooterText);
-
-    const contactCard = page.locator('div.card:has(h5:has-text("Contact Details"))');
+    const contactCard = page.locator('div.card:has(h5:has-text("Contact details"))');
     await contactCard.locator('input.form-control').first().fill(testContactEmail);
     await contactCard.locator('input.form-control').nth(1).fill(testContactPhone);
 
+    await page.getByRole('button', { name: 'Homepage' }).click();
+    const heroCard = page.locator('div.card:has(h5:has-text("Homepage hero"))');
+    await heroCard.locator('div.mb-3:has(label:has-text("Hero Title")) input.form-control').fill(testHeroTitle);
+    await heroCard.locator('div.mb-3:has(label:has-text("Hero Subtitle")) textarea.form-control').fill(testHeroSubtitle);
+    await heroCard.locator('div:has(> label:has-text("CTA Label")) input.form-control').fill(testCtaLabel);
+    await heroCard.locator('div:has(> label:has-text("CTA Link")) input.form-control').fill(testCtaLink);
+
+    await page.getByRole('button', { name: 'Header Navigation' }).click();
+    const navigationTextarea = page.locator('[data-testid="header-nav-json"]');
+    await navigationTextarea.fill(JSON.stringify(testHeaderNavigation, null, 2));
+
+    await page.getByRole('button', { name: 'Footer & Social' }).click();
+    const footerCard = page.locator('div.card:has(h5:has-text("Footer copy & links"))');
+    await footerCard.locator('textarea.form-control').first().fill(testFooterText);
+
     await page.getByRole('button', { name: 'Save Settings' }).click();
-    await page.getByText('Homepage settings saved successfully.').waitFor({ state: 'visible', timeout: 15000 });
+    await page.getByText('Website Control Center saved successfully.').waitFor({ state: 'visible', timeout: 15000 });
 
     await settingsRef.set({ heroImage: testHeroImage }, { merge: true });
     const mergedSnap = await settingsRef.get();
@@ -151,8 +156,11 @@ async function main() {
 
     await page.reload({ waitUntil: 'domcontentloaded' });
     await page.locator('h3:has-text("Website Settings")').waitFor({ state: 'visible', timeout: 15000 });
+    await page.getByRole('button', { name: 'Branding & Contact' }).click();
     const reloadedBranding = await brandingCard.locator('input.form-control').first().inputValue();
+    await page.getByRole('button', { name: 'Homepage' }).click();
     const reloadedHeroTitle = await heroCard.locator('input.form-control').first().inputValue();
+    await page.getByRole('button', { name: 'Footer & Social' }).click();
     const reloadedFooterText = await footerCard.locator('textarea.form-control').first().inputValue();
 
     if (reloadedBranding !== testSiteName || reloadedHeroTitle !== testHeroTitle || reloadedFooterText !== testFooterText) {

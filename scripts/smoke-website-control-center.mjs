@@ -6,7 +6,7 @@ import { ensureDemoAccounts } from './ensure-demo-accounts.mjs';
 
 const PROJECT_ID = 'tour-tunisi';
 const BASE_URL = process.env.BASE_URL || 'http://localhost:5174';
-const TEST_VALUE = `Website Settings smoke ${new Date().toISOString()}`;
+const TEST_SITE_NAME = `Website Control Center ${Date.now()}`;
 
 function requireEnv(name) {
   const value = process.env[name];
@@ -36,7 +36,7 @@ async function verifyDemoAdmin(email) {
   }
 }
 
-async function login(page, email, password) {
+async function loginAsAdmin(page, email, password) {
   await page.goto(`${BASE_URL}/login`, { waitUntil: 'domcontentloaded' });
   await page.locator('#loader-wrapper').waitFor({ state: 'hidden', timeout: 15000 }).catch(() => {});
   const loginCard = page.locator('.authentication-card');
@@ -45,6 +45,12 @@ async function login(page, email, password) {
   await loginCard.locator('input[placeholder="Enter Password"]').first().fill(password);
   await loginCard.getByRole('button', { name: /login|signing in/i }).click();
   await page.waitForURL((url) => url.pathname === '/admin/dashboard', { timeout: 30000 });
+}
+
+async function openWebsiteSettings(page) {
+  await page.goto(`${BASE_URL}/admin/settings`, { waitUntil: 'domcontentloaded' });
+  await page.locator('h3:has-text("Website Settings")').waitFor({ state: 'visible', timeout: 15000 });
+  await page.locator('[data-testid="website-control-center"]').waitFor({ state: 'visible', timeout: 15000 });
 }
 
 async function waitForHomeShell(page) {
@@ -66,6 +72,14 @@ async function waitForHomeShell(page) {
   return { loginVisible, profileVisible, profileDropdownVisible, path: new URL(page.url()).pathname };
 }
 
+async function restoreWebsiteSettings(settingsRef, snapshot) {
+  if (snapshot.exists) {
+    await settingsRef.set(snapshot.data());
+    return;
+  }
+  await settingsRef.delete();
+}
+
 async function main() {
   const adminEmail = requireEnv('DEMO_ADMIN_EMAIL');
   const adminPassword = requireEnv('DEMO_ADMIN_PASSWORD');
@@ -76,8 +90,6 @@ async function main() {
   const { db } = initAdminSdk();
   const settingsRef = db.collection('siteSettings').doc('homepage');
   const beforeSnap = await settingsRef.get();
-  const beforeData = beforeSnap.exists ? beforeSnap.data() : {};
-  const originalFooterText = typeof beforeData?.footerText === 'string' ? beforeData.footerText : '';
 
   const browser = await chromium.launch({ headless: true });
   const context = await browser.newContext();
@@ -88,76 +100,93 @@ async function main() {
   });
   page.on('pageerror', (err) => errors.push(err.message));
 
-  let pageRendered = false;
+  let controlCenterVisible = false;
+  let templateControlsVisible = false;
+  let headerEditorVisible = false;
   let saveWorked = false;
   let reloadKeptValue = false;
   let homepageLoaded = false;
   let canonicalHome = false;
-  let authHydrated = false;
+  let navigationShellOk = false;
 
   try {
-    await login(page, adminEmail, adminPassword);
-    await page.goto(`${BASE_URL}/admin/settings`, { waitUntil: 'domcontentloaded' });
-    await page.locator('h3:has-text("Website Settings")').waitFor({ state: 'visible', timeout: 15000 });
-    await page.locator('[data-testid="website-control-center"]').waitFor({ state: 'visible', timeout: 15000 });
-    pageRendered = true;
+    await loginAsAdmin(page, adminEmail, adminPassword);
+    await openWebsiteSettings(page);
+    controlCenterVisible = await page.locator('[data-testid="website-control-center"]').isVisible();
 
-    await page.getByRole('button', { name: 'Footer & Social' }).click();
-    const footerInput = () => page.locator('div.card:has(h5:has-text("Footer copy & links")) textarea').first();
-    await footerInput().fill(TEST_VALUE);
+    await page.getByRole('button', { name: 'Templates & Layouts' }).click();
+    await page.locator('[data-testid="template-selection-controls"]').waitFor({ state: 'visible', timeout: 15000 });
+    templateControlsVisible = true;
+
+    await page.getByRole('button', { name: 'Header Navigation' }).click();
+    await page.locator('[data-testid="header-nav-editor"]').waitFor({ state: 'visible', timeout: 15000 });
+    headerEditorVisible = true;
+
+    await page.getByRole('button', { name: 'Branding & Contact' }).click();
+    const siteNameInput = page.locator('div.card:has(h5:has-text("Branding")) input.form-control').first();
+    await siteNameInput.fill(TEST_SITE_NAME);
     await page.getByRole('button', { name: 'Save Settings' }).click();
     await page.getByText('Website Control Center saved successfully.').waitFor({ state: 'visible', timeout: 15000 });
 
     const savedSnap = await settingsRef.get();
-    saveWorked = (savedSnap.data()?.footerText || '') === TEST_VALUE;
+    saveWorked = (savedSnap.data()?.siteName || '') === TEST_SITE_NAME;
 
     await page.reload({ waitUntil: 'domcontentloaded' });
     await page.locator('h3:has-text("Website Settings")').waitFor({ state: 'visible', timeout: 15000 });
-    await page.getByRole('button', { name: 'Footer & Social' }).click();
-    await footerInput().waitFor({ state: 'visible', timeout: 15000 });
-    await page.waitForTimeout(1000);
-    const reloadedValue = await footerInput().inputValue();
-    reloadKeptValue = reloadedValue === TEST_VALUE;
+    await page.getByRole('button', { name: 'Branding & Contact' }).click();
+    reloadKeptValue = (await siteNameInput.inputValue()) === TEST_SITE_NAME;
 
-    await settingsRef.set({ footerText: originalFooterText }, { merge: true });
     await page.goto(`${BASE_URL}/`, { waitUntil: 'domcontentloaded' });
-    await page.locator('#loader-wrapper').waitFor({ state: 'hidden', timeout: 15000 }).catch(() => {});
     const homeState = await waitForHomeShell(page);
     homepageLoaded = homeState.path === '/';
     canonicalHome = homeState.path === '/';
-    authHydrated = homeState.profileDropdownVisible && homeState.loginVisible === 0;
+    navigationShellOk = homeState.profileDropdownVisible && homeState.loginVisible === 0;
 
-    const success = pageRendered && saveWorked && reloadKeptValue && homepageLoaded && canonicalHome && authHydrated && errors.length === 0;
+    const success =
+      controlCenterVisible &&
+      templateControlsVisible &&
+      headerEditorVisible &&
+      saveWorked &&
+      reloadKeptValue &&
+      homepageLoaded &&
+      canonicalHome &&
+      navigationShellOk &&
+      errors.length === 0;
+
     console.log(JSON.stringify({
       success,
-      pageRendered,
+      controlCenterVisible,
+      templateControlsVisible,
+      headerEditorVisible,
       saveWorked,
       reloadKeptValue,
       homepageLoaded,
       canonicalHome,
-      authHydrated,
+      navigationShellOk,
       firestorePath: 'siteSettings/homepage',
       errors,
     }));
     process.exitCode = success ? 0 : 1;
   } catch (error) {
-    try {
-      await settingsRef.set({ footerText: originalFooterText }, { merge: true });
-    } catch {}
     console.log(JSON.stringify({
       success: false,
-      pageRendered,
+      controlCenterVisible,
+      templateControlsVisible,
+      headerEditorVisible,
       saveWorked,
       reloadKeptValue,
       homepageLoaded,
       canonicalHome,
-      authHydrated,
+      navigationShellOk,
       firestorePath: 'siteSettings/homepage',
       errors,
       reason: error.message || String(error),
     }));
     process.exitCode = 1;
   } finally {
+    try {
+      await restoreWebsiteSettings(settingsRef, beforeSnap);
+    } catch {}
     await context.close();
     await browser.close();
   }
