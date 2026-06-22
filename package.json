@@ -29,6 +29,7 @@
     "smoke:active-home-template": "node scripts/smoke-active-home-template.mjs",
     "smoke:home-header-variant": "node scripts/smoke-home-header-variant.mjs",
     "smoke:public-header-flat-menu": "node scripts/smoke-public-header-flat-menu.mjs",
+    "smoke:role-permissions-upload": "node scripts/smoke-role-permissions-upload.mjs",
     "demo:assign-agent": "node scripts/assign-listings-to-demo-agent.mjs",
     "smoke:demo-agent-ownership": "node scripts/smoke-demo-agent-ownership.mjs",
     "smoke:agent-dashboard": "node scripts/smoke-agent-dashboard.mjs",

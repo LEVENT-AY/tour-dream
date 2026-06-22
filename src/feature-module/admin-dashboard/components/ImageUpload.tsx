@@ -6,14 +6,23 @@ interface ImageUploadProps {
   value: string;
   onChange: (url: string) => void;
   label?: string;
+  storageFolder?: string;
+  inputTestId?: string;
 }
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+const DEFAULT_STORAGE_FOLDER = 'demo/site-settings';
 
 const storage = getStorage(app);
 
-const ImageUpload: React.FC<ImageUploadProps> = ({ value, onChange, label = 'Image' }) => {
+const ImageUpload: React.FC<ImageUploadProps> = ({
+  value,
+  onChange,
+  label = 'Image',
+  storageFolder = DEFAULT_STORAGE_FOLDER,
+  inputTestId,
+}) => {
   const [progress, setProgress] = useState(0);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -39,7 +48,7 @@ const ImageUpload: React.FC<ImageUploadProps> = ({ value, onChange, label = 'Ima
     setUploading(true);
     setProgress(0);
 
-    const storageRef = ref(storage, `uploads/${Date.now()}_${file.name}`);
+    const storageRef = ref(storage, `${storageFolder}/${Date.now()}_${file.name}`);
     const uploadTask = uploadBytesResumable(storageRef, file);
 
     uploadTask.on(
@@ -79,6 +88,7 @@ const ImageUpload: React.FC<ImageUploadProps> = ({ value, onChange, label = 'Ima
             type="file"
             className="form-control form-control-sm"
             accept="image/*"
+            data-testid={inputTestId}
             onChange={handleFileChange}
             disabled={uploading}
           />

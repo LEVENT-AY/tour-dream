@@ -38,6 +38,12 @@ service firebase.storage {
       return request.resource.size < 5 * 1024 * 1024 && isImage();
     }
 
+    // Legacy upload bucket kept readable so existing public URLs continue to work.
+    match /uploads/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAdmin() && isValidFile();
+    }
+
     // Profile images: users can only write to their own folder
     match /users/{userId}/profile/{fileName} {
       allow read: if isSignedIn();
@@ -50,12 +56,16 @@ service firebase.storage {
       allow write: if isAdmin() && isValidFile();
     }
 
-    // Listing images: agents/admins can write; public can read published listing images
+    // Admin-uploaded listing and site images.
+    match /listing-images/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAdmin() && isValidFile();
+    }
+
+    // Backward-compatible listing image path used by older records.
     match /listings/{listingId}/{fileName} {
       allow read: if true;
-      allow write: if isSignedIn() && isValidFile();
-      // Note: agent ownership should be enforced by application logic / Firestore before upload.
-      // For stronger security, verify listing ownership via Firestore request in a Cloud Function.
+      allow write: if isAdmin() && isValidFile();
     }
 
     // Agent business documents/images
@@ -73,7 +83,7 @@ service firebase.storage {
     // Agent listing images: agents can only write under their own agentId
     match /agents/{agentId}/listings/{allPaths=**} {
       allow read: if isOwner(agentId) || isAdmin();
-      allow write: if (isOwner(agentId) || isApprovedAgent()) && isValidFile();
+      allow write: if (isOwner(agentId) || isAdmin()) && isValidFile();
     }
 
     // Default deny

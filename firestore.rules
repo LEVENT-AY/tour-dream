@@ -154,14 +154,14 @@ service cloud.firestore {
 
     match /tours/{itemId} {
       allow read: if resource.data.published == true || isApprovedAgent() || isAdmin();
-      allow create: if isApprovedAgent() && isAgentListingCreateSafe();
+      allow create: if isAdmin() || (isApprovedAgent() && isAgentListingCreateSafe());
       allow update: if isAdmin() || (isApprovedAgent() && isAgentListingOwner() && isAgentListingUpdateSafe());
       allow delete: if isAdmin() || (isApprovedAgent() && isAgentListingOwner());
     }
 
     match /hotels/{itemId} {
       allow read: if resource.data.published == true || isApprovedAgent() || isAdmin();
-      allow create: if isApprovedAgent() && isAgentListingCreateSafe();
+      allow create: if isAdmin() || (isApprovedAgent() && isAgentListingCreateSafe());
       allow update: if isAdmin() || (isApprovedAgent() && isAgentListingOwner() && isAgentListingUpdateSafe());
       allow delete: if isAdmin() || (isApprovedAgent() && isAgentListingOwner());
     }
@@ -170,7 +170,7 @@ service cloud.firestore {
       allow read: if resource.data.published == true
         || isAdmin()
         || (isApprovedAgent() && isAgentListingOwner());
-      allow create: if isApprovedAgent() && isAgentListingCreateSafe();
+      allow create: if isAdmin() || (isApprovedAgent() && isAgentListingCreateSafe());
       allow update: if isAdmin() || (isApprovedAgent() && isAgentListingOwner() && isAgentListingUpdateSafe());
       allow delete: if isAdmin() || (isApprovedAgent() && isAgentListingOwner());
     }
@@ -179,7 +179,7 @@ service cloud.firestore {
       allow read: if resource.data.published == true
         || isAdmin()
         || (isApprovedAgent() && isAgentListingOwner());
-      allow create: if isApprovedAgent() && isAgentListingCreateSafe();
+      allow create: if isAdmin() || (isApprovedAgent() && isAgentListingCreateSafe());
       allow update: if isAdmin() || (isApprovedAgent() && isAgentListingOwner() && isAgentListingUpdateSafe());
       allow delete: if isAdmin() || (isApprovedAgent() && isAgentListingOwner());
     }
@@ -188,7 +188,7 @@ service cloud.firestore {
       allow read: if resource.data.published == true
         || isAdmin()
         || (isApprovedAgent() && isAgentListingOwner());
-      allow create: if isApprovedAgent() && isAgentListingCreateSafe();
+      allow create: if isAdmin() || (isApprovedAgent() && isAgentListingCreateSafe());
       allow update: if isAdmin() || (isApprovedAgent() && isAgentListingOwner() && isAgentListingUpdateSafe());
       allow delete: if isAdmin() || (isApprovedAgent() && isAgentListingOwner());
     }
@@ -197,7 +197,7 @@ service cloud.firestore {
       allow read: if resource.data.published == true
         || isAdmin()
         || (isApprovedAgent() && isAgentListingOwner());
-      allow create: if isApprovedAgent() && isAgentListingCreateSafe();
+      allow create: if isAdmin() || (isApprovedAgent() && isAgentListingCreateSafe());
       allow update: if isAdmin() || (isApprovedAgent() && isAgentListingOwner() && isAgentListingUpdateSafe());
       allow delete: if isAdmin() || (isApprovedAgent() && isAgentListingOwner());
     }
@@ -206,7 +206,7 @@ service cloud.firestore {
       allow read: if resource.data.published == true
         || isAdmin()
         || (isApprovedAgent() && isAgentListingOwner());
-      allow create: if isApprovedAgent() && isAgentListingCreateSafe();
+      allow create: if isAdmin() || (isApprovedAgent() && isAgentListingCreateSafe());
       allow update: if isAdmin() || (isApprovedAgent() && isAgentListingOwner() && isAgentListingUpdateSafe());
       allow delete: if isAdmin() || (isApprovedAgent() && isAgentListingOwner());
     }

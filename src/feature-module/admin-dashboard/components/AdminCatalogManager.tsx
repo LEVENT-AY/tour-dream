@@ -7,6 +7,7 @@ import {
   updateChaletModeration,
   deleteCatalogItem,
 } from '../../../core/services/firebaseServices';
+import { useAuth } from '../../../core/contexts/AuthContext';
 import ImageUpload from './ImageUpload';
 
 type FieldType = 'text' | 'number' | 'textarea' | 'checkbox' | 'image' | 'gallery' | 'select' | 'tags';
@@ -36,6 +37,7 @@ const AdminCatalogManager: React.FC<AdminCatalogManagerProps> = ({
   resortModeration = false,
   chaletModeration = false,
 }) => {
+  const { currentUser } = useAuth();
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -48,6 +50,7 @@ const AdminCatalogManager: React.FC<AdminCatalogManagerProps> = ({
   const [saving, setSaving] = useState(false);
   const [pageError, setPageError] = useState<string | null>(null);
   const [pageSuccess, setPageSuccess] = useState<string | null>(null);
+  const adminUploadFolder = currentUser?.uid ? `users/${currentUser.uid}/profile` : 'users/admin/profile';
 
   const loadItems = async () => {
     setLoading(true);
@@ -228,7 +231,15 @@ const AdminCatalogManager: React.FC<AdminCatalogManagerProps> = ({
       );
     }
     if (field.type === 'image') {
-      return <ImageUpload value={value || ''} onChange={(url) => updateFormField(field.name, url)} label={field.label} />;
+      return (
+          <ImageUpload
+          value={value || ''}
+          onChange={(url) => updateFormField(field.name, url)}
+          label={field.label}
+          storageFolder={adminUploadFolder}
+          inputTestId={`admin-image-upload-${field.name}`}
+        />
+      );
     }
     if (field.type === 'gallery') {
       const gallery: string[] = Array.isArray(value) ? value : [];
@@ -238,6 +249,8 @@ const AdminCatalogManager: React.FC<AdminCatalogManagerProps> = ({
             value=""
             onChange={(url) => updateFormField(field.name, [...gallery, url])}
             label="Add Gallery Image"
+            storageFolder={adminUploadFolder}
+            inputTestId={`admin-gallery-upload-${field.name}`}
           />
           <div className="d-flex flex-wrap gap-2 mt-2">
             {gallery.map((img, i) => (
@@ -448,7 +461,7 @@ const AdminCatalogManager: React.FC<AdminCatalogManagerProps> = ({
                         )}
                       </td>
                       <td className="text-end">
-                        <button className="btn btn-sm btn-light me-2" onClick={() => openEdit(item)}>
+                        <button className="btn btn-sm btn-light me-2" data-testid={`admin-edit-${item.id}`} onClick={() => openEdit(item)}>
                           <i className="isax isax-edit-2" />
                         </button>
                         {resortModeration && (
@@ -505,7 +518,7 @@ const AdminCatalogManager: React.FC<AdminCatalogManagerProps> = ({
                             )}
                           </>
                         )}
-                        <button className="btn btn-sm btn-danger" onClick={() => setDeleteId(item.id)}>
+                        <button className="btn btn-sm btn-danger" data-testid={`admin-delete-${item.id}`} onClick={() => setDeleteId(item.id)}>
                           <i className="isax isax-trash" />
                         </button>
                       </td>

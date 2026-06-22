@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useAuth } from '../../../core/contexts/AuthContext';
 import {
   DEFAULT_HOMEPAGE_SETTINGS,
   HOME_TEMPLATE_INVENTORY,
@@ -367,6 +368,7 @@ const overviewTemplateSummary = (settings: HomepageSettings) =>
   });
 
 const AdminHomepageSettings: React.FC = () => {
+  const { currentUser } = useAuth();
   const [settings, setSettings] = useState<HomepageSettings>(DEFAULT_HOMEPAGE_SETTINGS);
   const [headerNavigationEditor, setHeaderNavigationEditor] = useState<HeaderNavigationItem[]>([]);
   const [headerNavigationText, setHeaderNavigationText] = useState('[]');
@@ -385,6 +387,7 @@ const AdminHomepageSettings: React.FC = () => {
   const [activities, setActivities] = useState<any[]>([]);
   const [resorts, setResorts] = useState<any[]>([]);
   const [chalets, setChalets] = useState<any[]>([]);
+  const adminUploadFolder = currentUser?.uid ? `users/${currentUser.uid}/profile` : 'users/admin/profile';
 
   useEffect(() => {
     const load = async () => {
@@ -867,10 +870,20 @@ const AdminHomepageSettings: React.FC = () => {
                     </div>
                     <div className="row g-3">
                       <div className="col-md-6">
-                        <ImageUpload label="Logo" value={settings.logo || ''} onChange={(url) => update('logo', url)} />
+                        <ImageUpload
+                          label="Logo"
+                          value={settings.logo || ''}
+                          onChange={(url) => update('logo', url)}
+                          storageFolder={adminUploadFolder}
+                        />
                       </div>
                       <div className="col-md-6">
-                        <ImageUpload label="Favicon" value={settings.favicon || ''} onChange={(url) => update('favicon', url)} />
+                        <ImageUpload
+                          label="Favicon"
+                          value={settings.favicon || ''}
+                          onChange={(url) => update('favicon', url)}
+                          storageFolder={adminUploadFolder}
+                        />
                       </div>
                     </div>
                     <div className="alert alert-light border mt-3 mb-0">
@@ -1383,7 +1396,12 @@ const AdminHomepageSettings: React.FC = () => {
                       </div>
                     </div>
                     <div className="col-lg-6">
-                      <ImageUpload label="Hero Background Image" value={settings.heroImage} onChange={(url) => update('heroImage', url)} />
+                      <ImageUpload
+                        label="Hero Background Image"
+                        value={settings.heroImage}
+                        onChange={(url) => update('heroImage', url)}
+                        storageFolder={adminUploadFolder}
+                      />
                     </div>
                   </div>
                 </div>
@@ -1469,7 +1487,12 @@ const AdminHomepageSettings: React.FC = () => {
                             </button>
                           </div>
                           <div className="col-12">
-                            <ImageUpload label="Banner Image" value={banner.image || ''} onChange={(url) => updateBanner(index, 'image', url)} />
+                            <ImageUpload
+                              label="Banner Image"
+                              value={banner.image || ''}
+                              onChange={(url) => updateBanner(index, 'image', url)}
+                              storageFolder={adminUploadFolder}
+                            />
                           </div>
                         </div>
                       </div>
