@@ -41,6 +41,13 @@ type HomeTemplateGroupConfig = {
   helper: string;
   items: HomeTemplateInventoryItem[];
 };
+type HomeTemplateCardMetadata = {
+  variantLabel: string;
+  scopeLabel: string;
+  menuStatusLabel: string;
+  safetyLabel: string;
+  helperText: string;
+};
 type SectionTabKey =
   | 'overview'
   | 'branding'
@@ -72,10 +79,91 @@ const HOME_TEMPLATE_GROUPS: HomeTemplateGroupConfig[] = [
   },
 ];
 
-const HOME_TEMPLATE_SHELL_BADGES: Record<HomeTemplateInventoryItem['shell']['header'] | HomeTemplateInventoryItem['shell']['footer'], string> = {
-  shared: 'Shared',
-  local: 'Local',
-  none: 'None',
+const HOME_TEMPLATE_CARD_METADATA: Record<string, HomeTemplateCardMetadata> = {
+  '/': {
+    variantLabel: 'Shared Default',
+    scopeLabel: 'Shared Header',
+    menuStatusLabel: 'Global Menu',
+    safetyLabel: 'Safe',
+    helperText: 'Canonical shared shell used for the live Home route.',
+  },
+  '/index-2': {
+    variantLabel: 'Shared Compact 2',
+    scopeLabel: 'Shared Header',
+    menuStatusLabel: 'Global Menu',
+    safetyLabel: 'Needs resolver',
+    helperText: 'Shared header variant with a different layout shell and menu fallback.',
+  },
+  '/index-3': {
+    variantLabel: 'Shared Default',
+    scopeLabel: 'Shared Header',
+    menuStatusLabel: 'Global Menu',
+    safetyLabel: 'Safe',
+    helperText: 'Uses the shared default shell and is safe for the canonical Home route.',
+  },
+  '/index-4': {
+    variantLabel: 'Shared Four Family',
+    scopeLabel: 'Shared Header',
+    menuStatusLabel: 'Global Menu',
+    safetyLabel: 'Needs resolver',
+    helperText: 'Shared header branch with route-specific presentation details.',
+  },
+  '/index-5': {
+    variantLabel: 'Shared Three',
+    scopeLabel: 'Shared Header',
+    menuStatusLabel: 'Global Menu',
+    safetyLabel: 'Needs resolver',
+    helperText: 'Shared header branch with a different template shell profile.',
+  },
+  '/index-6': {
+    variantLabel: 'Shared Four Family',
+    scopeLabel: 'Shared Header',
+    menuStatusLabel: 'Global Menu',
+    safetyLabel: 'Needs resolver',
+    helperText: 'Shared header branch that belongs to the four-family shell group.',
+  },
+  '/index-7': {
+    variantLabel: 'Shared Five',
+    scopeLabel: 'Shared Header',
+    menuStatusLabel: 'Global Menu',
+    safetyLabel: 'Needs resolver',
+    helperText: 'Shared header branch that remains driven by the shared menu source.',
+  },
+  '/index-8': {
+    variantLabel: 'Shared Four Family',
+    scopeLabel: 'Shared Header',
+    menuStatusLabel: 'Global Menu',
+    safetyLabel: 'Needs resolver',
+    helperText: 'Shared header branch with the four-family shell treatment.',
+  },
+  '/index-9': {
+    variantLabel: 'Shared Seven',
+    scopeLabel: 'Shared Header',
+    menuStatusLabel: 'Global Menu',
+    safetyLabel: 'Needs resolver',
+    helperText: 'Shared header branch that still uses the shared navigation source.',
+  },
+  '/index-10': {
+    variantLabel: 'Local Ten',
+    scopeLabel: 'Local Template Header',
+    menuStatusLabel: 'Template Default Menu',
+    safetyLabel: 'Template-only',
+    helperText: 'This template owns its own header design and should stay template-local.',
+  },
+  '/index-11': {
+    variantLabel: 'Shared Eleven',
+    scopeLabel: 'Shared Header',
+    menuStatusLabel: 'Global Menu',
+    safetyLabel: 'Needs resolver',
+    helperText: 'Shared header branch with route-specific shell classes.',
+  },
+  '/index-12': {
+    variantLabel: 'Local Twelve',
+    scopeLabel: 'Local Template Header',
+    menuStatusLabel: 'Template Default Menu',
+    safetyLabel: 'Template-only',
+    helperText: 'This template keeps its own local header and should not be switched globally.',
+  },
 };
 
 const TEMPLATE_CATEGORY_CONFIGS: TemplateCategoryConfig[] = [
@@ -291,13 +379,23 @@ const toDisplayTitle = (value: string) =>
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join(' ');
 
-const describeHomeTemplateShell = (item: HomeTemplateInventoryItem) => {
-  const badges = [
-    `${HOME_TEMPLATE_SHELL_BADGES[item.shell.header]} header`,
-    item.shell.footer === 'none' ? 'No footer shell' : `${HOME_TEMPLATE_SHELL_BADGES[item.shell.footer]} footer`,
-  ];
+const getHomeTemplateCardMetadata = (route: string): HomeTemplateCardMetadata =>
+  HOME_TEMPLATE_CARD_METADATA[route] || {
+    variantLabel: 'Shared Default',
+    scopeLabel: 'Shared Header',
+    menuStatusLabel: 'Global Menu',
+    safetyLabel: 'Safe',
+    helperText: 'Shared header variant.',
+  };
 
-  return badges;
+const copyRouteToClipboard = async (value: string) => {
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(value);
+    }
+  } catch {
+    // Copy is best-effort; the admin can still use the visible route.
+  }
 };
 
 const getTemplateSelection = (category: TemplateCategoryConfig, settings: HomepageSettings) => {
@@ -1156,7 +1254,7 @@ const AdminHomepageSettings: React.FC = () => {
                         <div className="row g-3">
                           {group.items.map((option) => {
                             const isActive = resolveGeneralHomeTemplateRoute(settings.publicTemplates?.home) === option.route;
-                            const shellBadges = describeHomeTemplateShell(option);
+                            const metadata = getHomeTemplateCardMetadata(option.route);
                             return (
                               <div className="col-12 col-xl-4" key={option.route}>
                                 <div className={`border rounded-3 p-3 h-100 bg-white ${isActive ? 'border-primary' : ''}`}>
@@ -1168,17 +1266,20 @@ const AdminHomepageSettings: React.FC = () => {
                                     {isActive && <span className="badge bg-success text-white">Active now</span>}
                                   </div>
                                   <p className="text-muted small mb-3">{option.description}</p>
-                                  <div className="d-flex flex-wrap gap-2 mb-3">
-                                    {shellBadges.map((badge) => (
-                                      <span key={badge} className="badge bg-light text-muted border">
-                                        {badge}
-                                      </span>
-                                    ))}
+                                  <div className="d-flex flex-wrap gap-2 mb-2">
+                                    <span className="badge bg-light text-muted border">{metadata.variantLabel}</span>
+                                    <span className="badge bg-light text-muted border">{metadata.scopeLabel}</span>
+                                    <span className="badge bg-light text-muted border">{metadata.menuStatusLabel}</span>
+                                    <span className="badge bg-light text-muted border">{metadata.safetyLabel}</span>
+                                  </div>
+                                  <small className="text-muted d-block mb-3">{metadata.helperText}</small>
+                                  <small className="text-muted d-block mb-3">Custom Menu Copy not configured yet.</small>
+                                  <div className="d-flex flex-wrap align-items-center gap-2 mb-3">
+                                    <span className="badge bg-light text-muted border">Route</span>
+                                    <code>{option.route}</code>
                                     <span className="badge bg-light text-muted border">
                                       {option.safeForCanonicalHome ? 'Safe for /' : 'Preview only'}
                                     </span>
-                                    <span className="badge bg-light text-muted border">Preview route</span>
-                                    <code>{option.route}</code>
                                   </div>
                                   <div className="d-flex flex-wrap gap-2">
                                     <button
@@ -1191,6 +1292,13 @@ const AdminHomepageSettings: React.FC = () => {
                                     <a className="btn btn-sm btn-light border" href={option.route} target="_blank" rel="noreferrer">
                                       Preview route
                                     </a>
+                                    <button
+                                      type="button"
+                                      className="btn btn-sm btn-outline-secondary"
+                                      onClick={() => void copyRouteToClipboard(option.route)}
+                                    >
+                                      Copy link
+                                    </button>
                                   </div>
                                 </div>
                               </div>
