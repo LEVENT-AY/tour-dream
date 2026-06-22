@@ -27,6 +27,7 @@
     "smoke:website-public-binding": "node scripts/smoke-website-public-binding.mjs",
     "smoke:website-control-center": "node scripts/smoke-website-control-center.mjs",
     "smoke:active-home-template": "node scripts/smoke-active-home-template.mjs",
+    "smoke:home-header-variant": "node scripts/smoke-home-header-variant.mjs",
     "smoke:agent-dashboard": "node scripts/smoke-agent-dashboard.mjs",
     "smoke:booking-surface-qa": "node scripts/smoke-booking-surface-qa.mjs",
     "smoke:booking-request-v1": "node scripts/smoke-booking-request-v1.cjs",

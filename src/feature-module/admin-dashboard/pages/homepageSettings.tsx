@@ -11,11 +11,15 @@ import {
   fetchResorts,
   fetchTours,
   findGeneralHomeTemplateOption,
+  getHomeHeaderVariantDefinition,
+  isHomeHeaderVariantSelectable,
   normalizeHeaderNavigationItem,
   normalizeHomepageSettings,
   normalizeWebsiteSettingsPath,
   resolveGeneralHomeTemplateRoute,
+  resolveHomeHeaderVariantChoice,
   updateHomepageSettings,
+  type HomeHeaderVariantChoice,
   type HomeTemplateGroup,
   type HomeTemplateInventoryItem,
   type HeaderNavigationChild,
@@ -79,92 +83,29 @@ const HOME_TEMPLATE_GROUPS: HomeTemplateGroupConfig[] = [
   },
 ];
 
-const HOME_TEMPLATE_CARD_METADATA: Record<string, HomeTemplateCardMetadata> = {
-  '/': {
-    variantLabel: 'Shared Default',
-    scopeLabel: 'Shared Header',
-    menuStatusLabel: 'Global Menu',
-    safetyLabel: 'Safe',
-    helperText: 'Canonical shared shell used for the live Home route.',
-  },
-  '/index-2': {
-    variantLabel: 'Shared Compact 2',
-    scopeLabel: 'Shared Header',
-    menuStatusLabel: 'Global Menu',
-    safetyLabel: 'Needs resolver',
-    helperText: 'Shared header variant with a different layout shell and menu fallback.',
-  },
-  '/index-3': {
-    variantLabel: 'Shared Default',
-    scopeLabel: 'Shared Header',
-    menuStatusLabel: 'Global Menu',
-    safetyLabel: 'Safe',
-    helperText: 'Uses the shared default shell and is safe for the canonical Home route.',
-  },
-  '/index-4': {
-    variantLabel: 'Shared Four Family',
-    scopeLabel: 'Shared Header',
-    menuStatusLabel: 'Global Menu',
-    safetyLabel: 'Needs resolver',
-    helperText: 'Shared header branch with route-specific presentation details.',
-  },
-  '/index-5': {
-    variantLabel: 'Shared Three',
-    scopeLabel: 'Shared Header',
-    menuStatusLabel: 'Global Menu',
-    safetyLabel: 'Needs resolver',
-    helperText: 'Shared header branch with a different template shell profile.',
-  },
-  '/index-6': {
-    variantLabel: 'Shared Four Family',
-    scopeLabel: 'Shared Header',
-    menuStatusLabel: 'Global Menu',
-    safetyLabel: 'Needs resolver',
-    helperText: 'Shared header branch that belongs to the four-family shell group.',
-  },
-  '/index-7': {
-    variantLabel: 'Shared Five',
-    scopeLabel: 'Shared Header',
-    menuStatusLabel: 'Global Menu',
-    safetyLabel: 'Needs resolver',
-    helperText: 'Shared header branch that remains driven by the shared menu source.',
-  },
-  '/index-8': {
-    variantLabel: 'Shared Four Family',
-    scopeLabel: 'Shared Header',
-    menuStatusLabel: 'Global Menu',
-    safetyLabel: 'Needs resolver',
-    helperText: 'Shared header branch with the four-family shell treatment.',
-  },
-  '/index-9': {
-    variantLabel: 'Shared Seven',
-    scopeLabel: 'Shared Header',
-    menuStatusLabel: 'Global Menu',
-    safetyLabel: 'Needs resolver',
-    helperText: 'Shared header branch that still uses the shared navigation source.',
-  },
-  '/index-10': {
-    variantLabel: 'Local Ten',
-    scopeLabel: 'Local Template Header',
-    menuStatusLabel: 'Template Default Menu',
-    safetyLabel: 'Template-only',
-    helperText: 'This template owns its own header design and should stay template-local.',
-  },
-  '/index-11': {
-    variantLabel: 'Shared Eleven',
-    scopeLabel: 'Shared Header',
-    menuStatusLabel: 'Global Menu',
-    safetyLabel: 'Needs resolver',
-    helperText: 'Shared header branch with route-specific shell classes.',
-  },
-  '/index-12': {
-    variantLabel: 'Local Twelve',
-    scopeLabel: 'Local Template Header',
-    menuStatusLabel: 'Template Default Menu',
-    safetyLabel: 'Template-only',
-    helperText: 'This template keeps its own local header and should not be switched globally.',
-  },
+const HEADER_VARIANT_DISPLAY_LABELS: Record<string, string> = {
+  'template-default': 'Template default',
+  'shared-default': 'Shared Default',
+  'shared-compact-2': 'Shared Compact 2',
+  'shared-four-family': 'Shared Four Family',
+  'shared-three': 'Shared Three',
+  'shared-five': 'Shared Five',
+  'shared-seven': 'Shared Seven',
+  'shared-eleven': 'Shared Eleven',
+  'local-ten': 'Local Ten',
+  'local-twelve': 'Local Twelve',
 };
+
+const HEADER_VARIANT_SELECT_OPTIONS: Array<{ key: HomeHeaderVariantChoice; label: string }> = [
+  { key: 'template-default', label: 'Template default' },
+  { key: 'shared-default', label: 'Shared Default' },
+  { key: 'shared-compact-2', label: 'Compact 2' },
+  { key: 'shared-four-family', label: 'Four Family' },
+  { key: 'shared-three', label: 'Three' },
+  { key: 'shared-five', label: 'Five' },
+  { key: 'shared-seven', label: 'Seven' },
+  { key: 'shared-eleven', label: 'Eleven' },
+];
 
 const TEMPLATE_CATEGORY_CONFIGS: TemplateCategoryConfig[] = [
   {
@@ -379,14 +320,26 @@ const toDisplayTitle = (value: string) =>
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join(' ');
 
-const getHomeTemplateCardMetadata = (route: string): HomeTemplateCardMetadata =>
-  HOME_TEMPLATE_CARD_METADATA[route] || {
-    variantLabel: 'Shared Default',
-    scopeLabel: 'Shared Header',
-    menuStatusLabel: 'Global Menu',
-    safetyLabel: 'Safe',
-    helperText: 'Shared header variant.',
+const getHomeTemplateCardMetadata = (route: string, overrides?: Partial<Record<string, string>> | null): HomeTemplateCardMetadata => {
+  const definition = getHomeHeaderVariantDefinition(route, overrides);
+  const variantLabel = HEADER_VARIANT_DISPLAY_LABELS[definition.key] || definition.label;
+  const scopeLabel = definition.scope === 'shared' ? 'Shared Header' : 'Local Template Header';
+  const menuStatusLabel = definition.menuStatus;
+  const safetyLabel = definition.safety;
+  const helperText = definition.templateOnly
+    ? 'Local template header - variant override not available in V1.'
+    : definition.scope === 'shared'
+      ? 'This changes which existing header style is used with this template. It does not edit the menu or header design.'
+      : 'Template default header behavior is preserved.';
+
+  return {
+    variantLabel,
+    scopeLabel,
+    menuStatusLabel,
+    safetyLabel,
+    helperText,
   };
+};
 
 const copyRouteToClipboard = async (value: string) => {
   try {
@@ -534,6 +487,20 @@ const AdminHomepageSettings: React.FC = () => {
       ...(settings.publicTemplates || {}),
       [category]: value,
     });
+  };
+
+  const updateHeaderVariantOverride = (route: string, value: HomeHeaderVariantChoice) => {
+    const nextOverrides = {
+      ...(settings.headerVariantOverrides || {}),
+    } as Record<string, HomeHeaderVariantChoice>;
+
+    if (value === 'template-default') {
+      delete nextOverrides[route];
+    } else {
+      nextOverrides[route] = value;
+    }
+
+    update('headerVariantOverrides', nextOverrides);
   };
 
   const updateSectionToggle = (key: keyof HomepageSettings['sections']) => {
@@ -1254,7 +1221,9 @@ const AdminHomepageSettings: React.FC = () => {
                         <div className="row g-3">
                           {group.items.map((option) => {
                             const isActive = resolveGeneralHomeTemplateRoute(settings.publicTemplates?.home) === option.route;
-                            const metadata = getHomeTemplateCardMetadata(option.route);
+                            const metadata = getHomeTemplateCardMetadata(option.route, settings.headerVariantOverrides);
+                            const variantChoice = resolveHomeHeaderVariantChoice(option.route, settings.headerVariantOverrides);
+                            const canSelectVariant = isHomeHeaderVariantSelectable(option.route);
                             return (
                               <div className="col-12 col-xl-4" key={option.route}>
                                 <div className={`border rounded-3 p-3 h-100 bg-white ${isActive ? 'border-primary' : ''}`}>
@@ -1274,6 +1243,42 @@ const AdminHomepageSettings: React.FC = () => {
                                   </div>
                                   <small className="text-muted d-block mb-3">{metadata.helperText}</small>
                                   <small className="text-muted d-block mb-3">Custom Menu Copy not configured yet.</small>
+                                  <div className="mb-3">
+                                    <label className="form-label small mb-1">Header Variant</label>
+                                    {canSelectVariant ? (
+                                      <select
+                                        className="form-select form-select-sm"
+                                        value={variantChoice}
+                                        onChange={(event) =>
+                                          updateHeaderVariantOverride(option.route, event.target.value as HomeHeaderVariantChoice)
+                                        }
+                                      >
+                                        {HEADER_VARIANT_SELECT_OPTIONS.map((variantOption) => (
+                                          <option key={variantOption.key} value={variantOption.key}>
+                                            {variantOption.label}
+                                          </option>
+                                        ))}
+                                      </select>
+                                    ) : (
+                                      <div className="border rounded-3 bg-light p-2">
+                                        <small className="text-muted d-block">Local template header - variant override not available in V1.</small>
+                                        <select className="form-select form-select-sm mt-2" value="template-default" disabled>
+                                          <option value="template-default">Template default</option>
+                                        </select>
+                                      </div>
+                                    )}
+                                  </div>
+                                  {canSelectVariant && variantChoice !== 'template-default' && (
+                                    <div className="d-flex flex-wrap gap-2 mb-3">
+                                      <button
+                                        type="button"
+                                        className="btn btn-sm btn-outline-secondary"
+                                        onClick={() => updateHeaderVariantOverride(option.route, 'template-default')}
+                                      >
+                                        Reset to template default
+                                      </button>
+                                    </div>
+                                  )}
                                   <div className="d-flex flex-wrap align-items-center gap-2 mb-3">
                                     <span className="badge bg-light text-muted border">Route</span>
                                     <code>{option.route}</code>

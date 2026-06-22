@@ -453,6 +453,7 @@ export interface HomepageSettings {
   ctaLink: string;
   banners?: { image: string; link: string; title?: string }[];
   headerNavigation?: HeaderNavigationItem[];
+  headerVariantOverrides?: Partial<Record<string, HomeHeaderVariantChoice>>;
   publicTemplates?: Partial<Record<PublicTemplateCategory, string>>;
   sections: {
     featuredTours: boolean;
@@ -501,6 +502,220 @@ export type HomeTemplateShellMode = {
   header: "shared" | "local";
   footer: "shared" | "local" | "none";
 };
+
+export type HomeHeaderVariantChoice =
+  | "template-default"
+  | "shared-default"
+  | "shared-compact-2"
+  | "shared-four-family"
+  | "shared-three"
+  | "shared-five"
+  | "shared-seven"
+  | "shared-eleven";
+
+export type HomeHeaderVariantVisualKey = HomeHeaderVariantChoice | "local-ten" | "local-twelve";
+
+export type HomeHeaderVariantScope = "shared" | "local";
+
+export type HomeHeaderVariantMenuStatus = "Global Menu" | "Template Default Menu" | "Custom Menu Copy not configured";
+
+export type HomeHeaderVariantSafety = "Safe" | "Needs resolver" | "Template-only";
+
+export type HomeHeaderVariantDefinition = {
+  key: HomeHeaderVariantVisualKey;
+  label: string;
+  route: string;
+  scope: HomeHeaderVariantScope;
+  menuStatus: HomeHeaderVariantMenuStatus;
+  safety: HomeHeaderVariantSafety;
+  templateOnly: boolean;
+};
+
+export const HOME_HEADER_VARIANT_DEFINITIONS: HomeHeaderVariantDefinition[] = [
+  {
+    key: "template-default",
+    label: "Template default",
+    route: "",
+    scope: "shared",
+    menuStatus: "Global Menu",
+    safety: "Safe",
+    templateOnly: false,
+  },
+  {
+    key: "shared-default",
+    label: "Shared Default",
+    route: "/",
+    scope: "shared",
+    menuStatus: "Global Menu",
+    safety: "Safe",
+    templateOnly: false,
+  },
+  {
+    key: "shared-compact-2",
+    label: "Compact 2",
+    route: "/index-2",
+    scope: "shared",
+    menuStatus: "Global Menu",
+    safety: "Needs resolver",
+    templateOnly: false,
+  },
+  {
+    key: "shared-four-family",
+    label: "Four Family",
+    route: "/index-4",
+    scope: "shared",
+    menuStatus: "Global Menu",
+    safety: "Needs resolver",
+    templateOnly: false,
+  },
+  {
+    key: "shared-three",
+    label: "Three",
+    route: "/index-5",
+    scope: "shared",
+    menuStatus: "Global Menu",
+    safety: "Needs resolver",
+    templateOnly: false,
+  },
+  {
+    key: "shared-five",
+    label: "Five",
+    route: "/index-7",
+    scope: "shared",
+    menuStatus: "Global Menu",
+    safety: "Needs resolver",
+    templateOnly: false,
+  },
+  {
+    key: "shared-seven",
+    label: "Seven",
+    route: "/index-9",
+    scope: "shared",
+    menuStatus: "Global Menu",
+    safety: "Needs resolver",
+    templateOnly: false,
+  },
+  {
+    key: "shared-eleven",
+    label: "Eleven",
+    route: "/index-11",
+    scope: "shared",
+    menuStatus: "Global Menu",
+    safety: "Needs resolver",
+    templateOnly: false,
+  },
+  {
+    key: "local-ten",
+    label: "Local Ten",
+    route: "/index-10",
+    scope: "local",
+    menuStatus: "Template Default Menu",
+    safety: "Template-only",
+    templateOnly: true,
+  },
+  {
+    key: "local-twelve",
+    label: "Local Twelve",
+    route: "/index-12",
+    scope: "local",
+    menuStatus: "Template Default Menu",
+    safety: "Template-only",
+    templateOnly: true,
+  },
+];
+
+const HOME_HEADER_VARIANT_VISUAL_LOOKUP = new Map(
+  HOME_HEADER_VARIANT_DEFINITIONS.map((definition) => [definition.key, definition]),
+);
+
+const HOME_HEADER_VARIANT_ALLOWED_OVERRIDE_KEYS = new Set<HomeHeaderVariantChoice>([
+  "template-default",
+  "shared-default",
+  "shared-compact-2",
+  "shared-four-family",
+  "shared-three",
+  "shared-five",
+  "shared-seven",
+  "shared-eleven",
+]);
+
+const HOME_HEADER_VARIANT_DEFAULT_VISUAL_BY_ROUTE: Record<string, HomeHeaderVariantVisualKey> = {
+  "/": "shared-default",
+  "/index": "shared-default",
+  "/index-2": "shared-compact-2",
+  "/index-3": "shared-default",
+  "/index-4": "shared-four-family",
+  "/index-5": "shared-three",
+  "/index-6": "shared-four-family",
+  "/index-7": "shared-five",
+  "/index-8": "shared-four-family",
+  "/index-9": "shared-seven",
+  "/index-10": "local-ten",
+  "/index-11": "shared-eleven",
+  "/index-12": "local-twelve",
+};
+
+export const getHomeHeaderVariantDefaultChoice = (_templateRoute?: string | null): HomeHeaderVariantChoice => "template-default";
+
+export const normalizeHomeHeaderVariantChoice = (
+  templateRoute: string,
+  value?: string | null,
+): HomeHeaderVariantChoice => {
+  const normalizedValue = (value || "").trim() as HomeHeaderVariantChoice;
+  if (!normalizedValue) return "template-default";
+  if (!isHomeHeaderVariantSelectable(templateRoute)) return "template-default";
+  if (!HOME_HEADER_VARIANT_ALLOWED_OVERRIDE_KEYS.has(normalizedValue)) return "template-default";
+
+  return normalizedValue;
+};
+
+export const resolveHomeHeaderVariantChoice = (
+  templateRoute?: string | null,
+  overrides?: Partial<Record<string, string>> | null,
+): HomeHeaderVariantChoice => {
+  const route = (templateRoute || "").trim();
+  const override = overrides?.[route];
+  return normalizeHomeHeaderVariantChoice(route, override);
+};
+
+export const resolveHomeHeaderVariantVisualKey = (
+  templateRoute?: string | null,
+  overrides?: Partial<Record<string, string>> | null,
+): HomeHeaderVariantVisualKey => {
+  const route = (templateRoute || "").trim();
+  const choice = resolveHomeHeaderVariantChoice(route, overrides);
+  if (choice !== "template-default") {
+    return choice;
+  }
+
+  return HOME_HEADER_VARIANT_DEFAULT_VISUAL_BY_ROUTE[route] || "shared-default";
+};
+
+export const resolveHomeHeaderVariantRoute = (
+  templateRoute?: string | null,
+  overrides?: Partial<Record<string, string>> | null,
+): string => {
+  const visualKey = resolveHomeHeaderVariantVisualKey(templateRoute, overrides);
+  return HOME_HEADER_VARIANT_VISUAL_LOOKUP.get(visualKey)?.route || (templateRoute || "").trim() || "/";
+};
+
+export const getHomeHeaderVariantDefinition = (
+  templateRoute?: string | null,
+  overrides?: Partial<Record<string, string>> | null,
+): HomeHeaderVariantDefinition => {
+  const visualKey = resolveHomeHeaderVariantVisualKey(templateRoute, overrides);
+  return HOME_HEADER_VARIANT_VISUAL_LOOKUP.get(visualKey) || HOME_HEADER_VARIANT_VISUAL_LOOKUP.get("shared-default")!;
+};
+
+export const getHomeHeaderVariantMenuStatus = (
+  templateRoute?: string | null,
+  overrides?: Partial<Record<string, string>> | null,
+): HomeHeaderVariantMenuStatus => {
+  return getHomeHeaderVariantDefinition(templateRoute, overrides).menuStatus;
+};
+
+export const isHomeHeaderVariantSelectable = (templateRoute?: string | null): boolean =>
+  HOME_HEADER_VARIANT_DEFAULT_VISUAL_BY_ROUTE[(templateRoute || "").trim()]?.startsWith("local") !== true;
 
 export type HomeTemplateInventoryItem = {
   key: string;
@@ -662,8 +877,10 @@ export const findGeneralHomeTemplateOption = (value?: string | null): HomeTempla
 export const resolveGeneralHomeTemplateRoute = (value?: string | null): string =>
   findGeneralHomeTemplateOption(value).route;
 
-export const shouldShowSharedHeaderForHomeRoute = (value?: string | null): boolean =>
-  findGeneralHomeTemplateOption(value).shell.header === "shared";
+export const shouldShowSharedHeaderForHomeRoute = (
+  value?: string | null,
+  overrides?: Partial<Record<string, string>> | null,
+): boolean => getHomeHeaderVariantDefinition(value, overrides).scope === "shared";
 
 export const shouldShowSharedFooterForHomeRoute = (value?: string | null): boolean =>
   findGeneralHomeTemplateOption(value).shell.footer === "shared";
@@ -682,6 +899,7 @@ export const DEFAULT_HOMEPAGE_SETTINGS: HomepageSettings = {
   ctaLink: "",
   banners: [],
   headerNavigation: [],
+  headerVariantOverrides: {},
   publicTemplates: {
     home: "/",
     hotel: "hotel-grid",
@@ -768,9 +986,18 @@ export const normalizeHomepageSettings = (settings?: Partial<HomepageSettings> |
     ...((settings?.publicTemplates || {}) as Partial<Record<PublicTemplateCategory, string>>),
   };
 
+  const normalizedHeaderVariantOverrides = Object.entries((settings?.headerVariantOverrides || {}) as Record<string, string>)
+    .reduce((acc, [templateRoute, value]) => {
+      const route = normalizeWebsiteSettingsPath(templateRoute);
+      if (!route) return acc;
+      acc[route] = normalizeHomeHeaderVariantChoice(route, value);
+      return acc;
+    }, {} as Partial<Record<string, HomeHeaderVariantChoice>>);
+
   const merged: HomepageSettings = {
     ...DEFAULT_HOMEPAGE_SETTINGS,
     ...(settings || {}),
+    headerVariantOverrides: normalizedHeaderVariantOverrides,
     publicTemplates: {
       ...normalizedPublicTemplates,
       home: resolveGeneralHomeTemplateRoute(normalizedPublicTemplates.home),

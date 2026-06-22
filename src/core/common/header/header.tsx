@@ -9,6 +9,7 @@ import RegisterModal from "../modal/registerModal";
 import ForgotPasswordModal from "../modal/forgotPassword";
 import ChangePasswordModal from "../modal/changePassword";
 import { useAuth } from "../../contexts/AuthContext";
+import { useHomeShellContext } from "../../../feature-module/home-shell-context";
 import {
   fetchHomepageSettings,
   normalizeWebsiteSettingsPath,
@@ -28,8 +29,11 @@ const Header = () => {
   const navigate = useNavigate();
   const { isAuthenticated, loading, userProfile, logout } = useAuth();
   const [homepageSettings, setHomepageSettings] = useState<HomepageSettings | null>(null);
-  const isPublicHomeRoute = location.pathname === "/" || location.pathname === "/index";
-  const isAnyHomepageRoute = location.pathname === "/" || location.pathname.startsWith("/index");
+  const { effectiveHeaderVariantRoute } = useHomeShellContext();
+  const actualPathname = location.pathname;
+  const isPublicHomeRoute = actualPathname === "/" || actualPathname === "/index";
+  const isAnyHomepageRoute = actualPathname === "/" || actualPathname.startsWith("/index");
+  const displayPathname = isAnyHomepageRoute ? effectiveHeaderVariantRoute : actualPathname;
   const dataTheme = useSelector((state: any) => state.themeSetting.dataTheme);
   const handleDataThemeChange = (theme: string) => {
     dispatch(setDataTheme(theme));
@@ -109,7 +113,7 @@ const Header = () => {
   const customHeaderNavigation = (homepageSettings?.headerNavigation || []).filter(
     (item): item is HeaderNavigationItem => !!item && item.visible !== false && !!item.label?.trim()
   );
-  const currentPath = normalizeWebsiteSettingsPath(location.pathname) || location.pathname || "/";
+  const currentPath = normalizeWebsiteSettingsPath(displayPathname) || displayPathname || "/";
   const isExactActivePath = (route?: string) => {
     const normalizedRoute = normalizeWebsiteSettingsPath(route);
     return !!normalizedRoute && normalizedRoute === currentPath;
@@ -1616,20 +1620,20 @@ const Header = () => {
   return (
     <>
       <div
-        className={`${location.pathname === "/index-10" || location.pathname === "/index-12" ? "" : "main-header"} ${location.pathname === "/index-4" || location.pathname === "/index-6" || location.pathname === "/index-8" ? "main-header-four" : ""} ${location.pathname === "/index-2" && "main-header-nine"} `}
+        className={`${displayPathname === "/index-10" || displayPathname === "/index-12" ? "" : "main-header"} ${displayPathname === "/index-4" || displayPathname === "/index-6" || displayPathname === "/index-8" ? "main-header-four" : ""} ${displayPathname === "/index-2" && "main-header-nine"} `}
       >
         {/* Header Topbar*/}
-        {location.pathname === "/index" ||
-          location.pathname === "/index-2" ||
-          location.pathname === "/index-4" ||
-          location.pathname === "/index-5" ||
-          location.pathname === "/index-6" ||
-          location.pathname === "/index-7" ||
-          location.pathname === "/index-8" ||
-          location.pathname === "/index-9" ||
-          location.pathname === "/index-10" ||
-          location.pathname === "/index-11" ||
-          location.pathname === "/index-12" ? (
+        {displayPathname === "/index" ||
+          displayPathname === "/index-2" ||
+          displayPathname === "/index-4" ||
+          displayPathname === "/index-5" ||
+          displayPathname === "/index-6" ||
+          displayPathname === "/index-7" ||
+          displayPathname === "/index-8" ||
+          displayPathname === "/index-9" ||
+          displayPathname === "/index-10" ||
+          displayPathname === "/index-11" ||
+          displayPathname === "/index-12" ? (
           <></>
         ) : (
           <div className="header-topbar text-center bg-transparent">
@@ -1738,7 +1742,7 @@ const Header = () => {
             </div>
           </div>
         )}
-        {location.pathname === "/index-6" && (
+        {displayPathname === "/index-6" && (
           <div className="header-topbar topbar-four text-center bg-transparent">
             <div className="container-fluid">
               <div className="d-flex align-items-center justify-content-between flex-wrap">
@@ -1839,7 +1843,7 @@ const Header = () => {
             </div>
           </div>
         )}
-        {location.pathname === "/index-8" && (
+        {displayPathname === "/index-8" && (
           <div className="header-topbar header-top-six text-center bg-transparent">
             <div className="container">
               <div className="d-flex align-items-center justify-content-between flex-wrap">
@@ -1920,7 +1924,7 @@ const Header = () => {
             </div>
           </div>
         )}
-        {location.pathname === "/index-2" && (
+        {displayPathname === "/index-2" && (
           <div className="header-topbar topbar-four topbar-nine text-center">
             <div className="container-fluid">
               <div className="d-flex align-items-center justify-content-between flex-wrap">
@@ -2026,15 +2030,15 @@ const Header = () => {
         {/* /Header Topbar*/}
         {/* Header */}
         <header
-          className={`${scrolled ? "fixed" : ""} ${isPublicHomeRoute && "header-eight"} ${location.pathname === "/index-2" && "header-nine header-four"}
-          ${location.pathname === "/index-4" || (location.pathname === "/index-9" && "header-four")} 
-          ${location.pathname === "/index-5" && "header-three"} ${location.pathname === "/index-6" && "header-four"} 
-          ${location.pathname === "/index-7" && "header-five"} ${location.pathname === "/index-8" && "header-six"} 
-          ${location.pathname === "/index-9" && "header-seven"} ${location.pathname === "/index-10" && "header-ten"} 
-          ${location.pathname === "/index-11" && "header-eleven"} ${location.pathname === "/index-12" && "header-eight header-twelve"}`}
+          className={`${scrolled ? "fixed" : ""} ${isPublicHomeRoute && "header-eight"} ${displayPathname === "/index-2" && "header-nine header-four"}
+          ${displayPathname === "/index-4" || (displayPathname === "/index-9" && "header-four")} 
+          ${displayPathname === "/index-5" && "header-three"} ${displayPathname === "/index-6" && "header-four"} 
+          ${displayPathname === "/index-7" && "header-five"} ${displayPathname === "/index-8" && "header-six"} 
+          ${displayPathname === "/index-9" && "header-seven"} ${displayPathname === "/index-10" && "header-ten"} 
+          ${displayPathname === "/index-11" && "header-eleven"} ${displayPathname === "/index-12" && "header-eight header-twelve"}`}
         >
           <div
-            className={` ${location.pathname === "/index" || location.pathname === "/index-10" || location.pathname === "/index-2" || location.pathname === "/index-6" || location.pathname === "/index-11" || location.pathname === "/index-12" ? "container-fluid" : "container"}`}
+            className={` ${displayPathname === "/index" || displayPathname === "/index-10" || displayPathname === "/index-2" || displayPathname === "/index-6" || displayPathname === "/index-11" || displayPathname === "/index-12" ? "container-fluid" : "container"}`}
           >
             <div className={`offcanvas-info ${isOffcanva ? "show" : ""}`}>
               <div className="offcanvas-wrap">
@@ -2167,7 +2171,7 @@ const Header = () => {
                                 </li>
                               ) : mainMenus.standalone ? (
                                 <li
-                                  className={`${location.pathname.includes('contact-us') && "active"}`}
+                                  className={`${displayPathname.includes('contact-us') && "active"}`}
                                 >
                                   <Link to={routes.contactUs}>
                                     {mainMenus.tittle}
@@ -2581,17 +2585,17 @@ const Header = () => {
               <div className="main-menu-wrapper">
                 <div className="navbar-logo">
                   <Link className="logo-white header-logo" to={routes.allService1}>
-                    {location.pathname === "/index-4" ||
-                      location.pathname === "/index-2" ||
-                      location.pathname === "/index-5" ||
-                      location.pathname === "/index-6" ||
-                      location.pathname === "/index-7" ? (
+                    {displayPathname === "/index-4" ||
+                      displayPathname === "/index-2" ||
+                      displayPathname === "/index-5" ||
+                      displayPathname === "/index-6" ||
+                      displayPathname === "/index-7" ? (
                       <ImageWithBasePath
                         src={headerBrandLogo || "assets/img/logo-dark.svg"}
                         className="logo"
                         alt={headerSiteName}
                       />
-                    ) : location.pathname === "/index-10" ? (
+                    ) : displayPathname === "/index-10" ? (
                       <ImageWithBasePath
                         src={headerBrandLogo || "assets/img/logo-10.svg"}
                         className="logo"
@@ -2605,14 +2609,14 @@ const Header = () => {
                       />
                     )}
                   </Link>
-                  {location.pathname !== routes.home6 && (
+                  {displayPathname !== routes.home6 && (
                     <Link className="logo-dark header-logo" to={routes.allService1}>
-                      {location.pathname === "/index-4" ||
-                        location.pathname === "/index-2" ||
-                        location.pathname === "/index-5" ||
-                        location.pathname === "/index-6" ||
-                        location.pathname === "/index-7" ||
-                        location.pathname === "/index-9" ? (
+                      {displayPathname === "/index-4" ||
+                        displayPathname === "/index-2" ||
+                        displayPathname === "/index-5" ||
+                        displayPathname === "/index-6" ||
+                        displayPathname === "/index-7" ||
+                        displayPathname === "/index-9" ? (
                         <ImageWithBasePath
                           src={headerBrandLogo || "assets/img/logo.svg"}
                           className="logo"
@@ -2669,7 +2673,7 @@ const Header = () => {
                                       (menu: any, idx: any) => (
                                         <div className="col-lg-2" key={idx}>
                                           <div
-                                            className={`single-demo ${location.pathname === menu.route ? "active" : ""}`}
+                                            className={`single-demo ${displayPathname === menu.route ? "active" : ""}`}
                                           >
                                             <div className="demo-img">
                                               <Link to={menu.route}>
@@ -2681,7 +2685,7 @@ const Header = () => {
                                               </Link>
                                             </div>
                                             <div className="demo-info">
-                                              <Link to={menu.route} className={`${location.pathname === menu.route ? "active" : ""}`}>
+                                              <Link to={menu.route} className={`${displayPathname === menu.route ? "active" : ""}`}>
                                                 {menu.homeName}
                                               </Link>
                                             </div>
@@ -2696,7 +2700,7 @@ const Header = () => {
                           </li>
                         ) : mainMenus.standalone ? (
                           <li
-                            className={`${location.pathname.includes('contact-us') && "active"}`}
+                            className={`${displayPathname.includes('contact-us') && "active"}`}
                           >
                             <Link to={routes.contactUs}>
                               {mainMenus.tittle}
@@ -2779,7 +2783,7 @@ const Header = () => {
                                                               subMenu: any,
                                                               idx: number,
                                                             ) => (
-                                                              <li key={idx} className={`${location.pathname === subMenu.route ? 'active' : ''}`}>
+                                                              <li key={idx} className={`${displayPathname === subMenu.route ? 'active' : ''}`}>
                                                                 <Link
                                                                   to={
                                                                     subMenu.route
@@ -2829,7 +2833,7 @@ const Header = () => {
                                                                   <li
                                                                     key={idx}
                                                                     className={
-                                                                      location.pathname ===
+                                                                      displayPathname ===
                                                                         subMenu.route
                                                                         ? "active"
                                                                         : ""
@@ -2863,7 +2867,7 @@ const Header = () => {
                                           <ul>
                                             {mainMenus.menu.map((menu: { menuValue: any, route: string; }, idx: React.Key | null | undefined) => (
                                               menu.menuValue &&
-                                              <li key={idx} className={location.pathname === menu.route ? 'active' : ''}>
+                                              <li key={idx} className={displayPathname === menu.route ? 'active' : ''}>
                                                 <Link to={menu.route}>{menu.menuValue}</Link>
                                               </li>
                                             ))}
@@ -2874,7 +2878,7 @@ const Header = () => {
                                           <ul>
                                             {mainMenus.menu.map((menu: { menuValue2: any, route: string; }, idx: React.Key | null | undefined) => (
                                               menu.menuValue2 &&
-                                              <li key={idx} className={location.pathname === menu.route ? 'active' : ''}>
+                                              <li key={idx} className={displayPathname === menu.route ? 'active' : ''}>
                                                 <Link to={menu.route}>{menu.menuValue2}</Link>
                                               </li>
                                             ))}
@@ -2914,7 +2918,7 @@ const Header = () => {
                                                 <li
                                                   key={idx}
                                                   className={
-                                                    location.pathname ===
+                                                    displayPathname ===
                                                       menu.route
                                                       ? "active"
                                                       : ""
@@ -3055,7 +3059,7 @@ const Header = () => {
                       </div>
                     </div>
                   )
-                ) : location.pathname === "/index-2" ? (
+                ) : displayPathname === "/index-2" ? (
                   <div className="header-btn d-flex align-items-center">
                     <DarkButton />
                     <div className="fav-dropdown me-3">
@@ -3089,7 +3093,7 @@ const Header = () => {
                       </div>
                     </div>
                   </div>
-                ) : location.pathname === "/index-3" ? (
+                ) : displayPathname === "/index-3" ? (
                   <div className="header-btn d-flex align-items-center">
                     <DarkButton />
                     <div>
@@ -3117,7 +3121,7 @@ const Header = () => {
                       </div>
                     </div>
                   </div>
-                ) : location.pathname === "/index-4" ? (
+                ) : displayPathname === "/index-4" ? (
                   <div className="header-btn d-flex align-items-center">
                     <div className="dropdown flag-dropdown me-3">
                       <Link
@@ -3227,7 +3231,7 @@ const Header = () => {
                       </div>
                     </div>
                   </div>
-                ) : location.pathname === "/index-5" ? (
+                ) : displayPathname === "/index-5" ? (
                   <div className="header-btn d-flex align-items-center">
                     <div className="cart-dropdown me-3">
                       <Link
@@ -3265,7 +3269,7 @@ const Header = () => {
                       </div>
                     </div>
                   </div>
-                ) : location.pathname === "/index-6" ? (
+                ) : displayPathname === "/index-6" ? (
                   <>
                     <div className="header-btn d-flex align-items-center">
                       <DarkButton />
@@ -3304,7 +3308,7 @@ const Header = () => {
                       </div>
                     </div>
                   </>
-                ) : location.pathname === "/index-7" ? (
+                ) : displayPathname === "/index-7" ? (
                   <div className="header-btn d-flex align-items-center">
                     <div className="cart-dropdown me-3">
                       <Link
@@ -3342,7 +3346,7 @@ const Header = () => {
                       </div>
                     </div>
                   </div>
-                ) : location.pathname === "/index-8" ? (
+                ) : displayPathname === "/index-8" ? (
                   <div className="header__hamburger d-xl-none my-auto">
                     <div
                       className="sidebar-menu"
@@ -3351,7 +3355,7 @@ const Header = () => {
                       <i className="isax isax-menu5" />
                     </div>
                   </div>
-                ) : location.pathname === "/index-9" ? (
+                ) : displayPathname === "/index-9" ? (
                   <div className="header-btn d-flex align-items-center">
                     <div className="dropdown me-3">
                       <Link
@@ -3447,7 +3451,7 @@ const Header = () => {
                       </div>
                     </div>
                   </div>
-                ) : location.pathname === "/index-10" ? (
+                ) : displayPathname === "/index-10" ? (
                   <div className="header-btn d-flex align-items-center">
                     <DarkButton />
                     <div className="fav-dropdown me-3">
@@ -3482,7 +3486,7 @@ const Header = () => {
                       </div>
                     </div>
                   </div>
-                ) : location.pathname === "/index-11" ? (
+                ) : displayPathname === "/index-11" ? (
                   <div className="header-btn d-flex align-items-center">
                     <div className="dropdown flag-dropdown flag-dropdown-desktop me-2 d-none d-lg-flex">
                       <Link
@@ -3596,7 +3600,7 @@ const Header = () => {
                       </div>
                     </div>
                   </div>
-                ) : location.pathname === "/index-12" ? (
+                ) : displayPathname === "/index-12" ? (
                   <div className="header-btn d-flex align-items-center">
                     <DarkButton />
                     <div className="fav-dropdown me-3">
@@ -3700,19 +3704,19 @@ const Header = () => {
                     </div>
                     <Link
                       to={
-                        location.pathname.includes("cruise")
+                        displayPathname.includes("cruise")
                           ? all_routes.addCruise
-                          : location.pathname.includes("tour")
+                          : displayPathname.includes("tour")
                             ? all_routes.addTour
-                            : location.pathname.includes("flight")
+                            : displayPathname.includes("flight")
                               ? all_routes.addFlight
-                              : location.pathname.includes("car")
+                              : displayPathname.includes("car")
                                 ? all_routes.addCar
-                                : location.pathname.includes("activity")
+                                : displayPathname.includes("activity")
                                   ? all_routes.addActivity
-                                  : location.pathname.includes("visa")
+                                  : displayPathname.includes("visa")
                                     ? all_routes.addVisa
-                                    : location.pathname.includes("guide")
+                                    : displayPathname.includes("guide")
                                       ? all_routes.addGuide
                                       : all_routes.addHotel
                       }
@@ -3745,3 +3749,4 @@ const Header = () => {
 };
 
 export default Header;
+
