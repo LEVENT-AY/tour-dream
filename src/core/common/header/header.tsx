@@ -29,6 +29,7 @@ const Header = () => {
   const { isAuthenticated, loading, userProfile, logout } = useAuth();
   const [homepageSettings, setHomepageSettings] = useState<HomepageSettings | null>(null);
   const isPublicHomeRoute = location.pathname === "/" || location.pathname === "/index";
+  const isAnyHomepageRoute = location.pathname === "/" || location.pathname.startsWith("/index");
   const dataTheme = useSelector((state: any) => state.themeSetting.dataTheme);
   const handleDataThemeChange = (theme: string) => {
     dispatch(setDataTheme(theme));
@@ -2086,7 +2087,11 @@ const Header = () => {
                             ? customHeaderNavigation.map((item, index) => renderCustomNavigation(item, index, true))
                             : sideBar.map((mainMenus, i) => (
                             <React.Fragment key={i}>
-                              {mainMenus.separateRoute ? (
+                              {mainMenus.tittle === "Home" ? (
+                                <li className={isAnyHomepageRoute ? "active" : ""}>
+                                  <Link to={routes.allService1}>Home</Link>
+                                </li>
+                              ) : mainMenus.separateRoute ? (
                                 <li
                                   className={`has-submenu megamenu ${mainMenus.tittle === "Home" && mainMenus.menu?.some((item: any) => isExactActivePath(item.route)) ? "active" : ""} ${isDropdownOpen ? "dropdown-opened" : ""
                                     }`}
@@ -2629,7 +2634,11 @@ const Header = () => {
                       ? customHeaderNavigation.map((item, index) => renderCustomNavigation(item, index))
                       : sideBar.map((mainMenus: any, index) => (
                       <React.Fragment key={index}>
-                        {mainMenus.separateRoute ? (
+                        {mainMenus.tittle === "Home" ? (
+                          <li className={isAnyHomepageRoute ? "active" : ""}>
+                            <Link to={routes.allService1}>Home</Link>
+                          </li>
+                        ) : mainMenus.separateRoute ? (
                           <li
                             className={`has-submenu megamenu ${mainMenus.tittle === "Home" && mainMenus.menu?.some((item: any) => isExactActivePath(item.route)) ? "active" : ""}`}
                             onMouseOver={() => setIsMegaMenu(true)}

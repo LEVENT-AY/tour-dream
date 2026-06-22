@@ -493,6 +493,51 @@ export type PublicTemplateCategory =
   | "guide"
   | "visa";
 
+export type GeneralHomeTemplateOption = {
+  key: string;
+  label: string;
+  route: string;
+  component: string;
+  description: string;
+};
+
+export const GENERAL_HOME_TEMPLATE_OPTIONS: GeneralHomeTemplateOption[] = [
+  {
+    key: "home-service-one",
+    label: "All Services 1",
+    route: "/",
+    component: "HomeServiceOne",
+    description: "Original canonical home with the full all-services travel shell.",
+  },
+  {
+    key: "home-service-two",
+    label: "All Services 2",
+    route: "/index-2",
+    component: "HomeServiceTwo",
+    description: "Alternative all-services home focused on discovery and platform benefits.",
+  },
+  {
+    key: "home-one",
+    label: "All Services 3",
+    route: "/index-3",
+    component: "HomeOne",
+    description: "General marketplace-style home with broad cross-category discovery sections.",
+  },
+];
+
+const GENERAL_HOME_TEMPLATE_LOOKUP = new Map(
+  GENERAL_HOME_TEMPLATE_OPTIONS.flatMap((option) => [
+    [option.key, option],
+    [option.route, option],
+  ]),
+);
+
+export const findGeneralHomeTemplateOption = (value?: string | null): GeneralHomeTemplateOption =>
+  GENERAL_HOME_TEMPLATE_LOOKUP.get((value || "").trim()) || GENERAL_HOME_TEMPLATE_OPTIONS[0];
+
+export const resolveGeneralHomeTemplateRoute = (value?: string | null): string =>
+  findGeneralHomeTemplateOption(value).route;
+
 export const DEFAULT_HOMEPAGE_SETTINGS: HomepageSettings = {
   siteName: "",
   logo: "",
@@ -508,7 +553,7 @@ export const DEFAULT_HOMEPAGE_SETTINGS: HomepageSettings = {
   banners: [],
   headerNavigation: [],
   publicTemplates: {
-    home: "home-service-one",
+    home: "/",
     hotel: "hotel-grid",
     tour: "tour-grid",
     car: "car-grid",
@@ -588,12 +633,17 @@ export const normalizeHeaderNavigationItem = (item: Partial<HeaderNavigationItem
 };
 
 export const normalizeHomepageSettings = (settings?: Partial<HomepageSettings> | null): HomepageSettings => {
+  const normalizedPublicTemplates = {
+    ...DEFAULT_HOMEPAGE_SETTINGS.publicTemplates,
+    ...((settings?.publicTemplates || {}) as Partial<Record<PublicTemplateCategory, string>>),
+  };
+
   const merged: HomepageSettings = {
     ...DEFAULT_HOMEPAGE_SETTINGS,
     ...(settings || {}),
     publicTemplates: {
-      ...DEFAULT_HOMEPAGE_SETTINGS.publicTemplates,
-      ...((settings?.publicTemplates || {}) as Partial<Record<PublicTemplateCategory, string>>),
+      ...normalizedPublicTemplates,
+      home: resolveGeneralHomeTemplateRoute(normalizedPublicTemplates.home),
     },
     sections: {
       ...DEFAULT_HOMEPAGE_SETTINGS.sections,

@@ -210,6 +210,10 @@ async function main() {
     if (activeTopNavLabels.length !== 1 || !activeTopNavLabels[0].includes('Home')) {
       throw new Error(`Homepage nav active styling is incorrect: ${JSON.stringify(activeTopNavLabels)}`);
     }
+    const publicHomePreviewLinks = await page.locator('header a[href="/index-2"], header a[href="/index-3"]').count();
+    if (publicHomePreviewLinks > 0) {
+      throw new Error('Public header still exposes demo home template routes.');
+    }
 
     await page.goto(`${BASE_URL}/index`, { waitUntil: 'domcontentloaded' });
     const legacyPath = await waitForHomepage(page);

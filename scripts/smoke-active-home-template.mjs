@@ -6,7 +6,9 @@ import { ensureDemoAccounts } from './ensure-demo-accounts.mjs';
 
 const PROJECT_ID = 'tour-tunisi';
 const BASE_URL = process.env.BASE_URL || 'http://localhost:5174';
-const TEST_SITE_NAME = `Website Control Center ${Date.now()}`;
+const TEST_ROUTE = '/index-3';
+const TEST_LABEL = 'All Services 3';
+const TEST_SELECTOR = '.banner-slider.banner-sec';
 
 function requireEnv(name) {
   const value = process.env[name];
@@ -53,31 +55,19 @@ async function openWebsiteSettings(page) {
   await page.locator('[data-testid="website-control-center"]').waitFor({ state: 'visible', timeout: 15000 });
 }
 
-async function waitForHomeShell(page) {
-  await page.locator('#loader-wrapper').waitFor({ state: 'hidden', timeout: 15000 }).catch(() => {});
-  const settleDeadline = Date.now() + 15000;
-  let loginVisible = 0;
-  let profileVisible = 0;
-  let profileDropdownVisible = false;
-  while (Date.now() < settleDeadline) {
-    const header = page.locator('header').first();
-    loginVisible = await header.locator('.header-btn [data-bs-target="#login-modal"]:visible').count();
-    profileVisible = await page.locator('.profile-dropdown').count();
-    profileDropdownVisible = profileVisible > 0 && await page.locator('.profile-dropdown').first().isVisible().catch(() => false);
-    if (loginVisible > 0 || profileDropdownVisible) {
-      break;
-    }
-    await page.waitForTimeout(250);
-  }
-  return { loginVisible, profileVisible, profileDropdownVisible, path: new URL(page.url()).pathname };
-}
-
 async function restoreWebsiteSettings(settingsRef, snapshot) {
   if (snapshot.exists) {
     await settingsRef.set(snapshot.data());
     return;
   }
   await settingsRef.delete();
+}
+
+async function waitForHomeMarker(page, path, selector) {
+  await page.goto(`${BASE_URL}${path}`, { waitUntil: 'domcontentloaded' });
+  await page.locator('#loader-wrapper').waitFor({ state: 'hidden', timeout: 15000 }).catch(() => {});
+  await page.locator(selector).first().waitFor({ state: 'visible', timeout: 30000 });
+  return new URL(page.url()).pathname;
 }
 
 async function main() {
@@ -100,90 +90,78 @@ async function main() {
   });
   page.on('pageerror', (err) => errors.push(err.message));
 
-  let controlCenterVisible = false;
-  let templateControlsVisible = false;
-  let activeHomeSelectorVisible = false;
-  let headerEditorVisible = false;
+  let selectorVisible = false;
   let saveWorked = false;
   let reloadKeptValue = false;
-  let homepageLoaded = false;
-  let canonicalHome = false;
-  let navigationShellOk = false;
+  let canonicalHomeRendered = false;
+  let directPreviewRouteWorked = false;
+  let publicHeaderCollapsed = false;
 
   try {
     await loginAsAdmin(page, adminEmail, adminPassword);
     await openWebsiteSettings(page);
-    controlCenterVisible = await page.locator('[data-testid="website-control-center"]').isVisible();
-
     await page.locator('[data-testid="control-tab-templates"]').click();
-    await page.locator('[data-testid="template-selection-controls"]').waitFor({ state: 'visible', timeout: 15000 });
-    templateControlsVisible = true;
-    activeHomeSelectorVisible = await page.locator('[data-testid="active-home-template-selector"]').isVisible();
+    await page.locator('[data-testid="active-home-template-selector"]').waitFor({ state: 'visible', timeout: 15000 });
+    selectorVisible = true;
 
-    await page.locator('[data-testid="control-tab-header"]').click();
-    await page.locator('h5:has-text("Header navigation editor")').waitFor({ state: 'visible', timeout: 15000 });
-    headerEditorVisible = true;
-
-    await page.locator('[data-testid="control-tab-branding"]').click();
-    const siteNameInput = page.locator('div.card:has(h5:has-text("Branding")) input.form-control').first();
-    await siteNameInput.fill(TEST_SITE_NAME);
+    const activeHomeCard = page.locator('[data-testid="active-home-template-selector"]');
+    const targetButton = activeHomeCard.locator('.col-12.col-xl-4').filter({ hasText: TEST_LABEL }).locator('button').first();
+    await targetButton.click();
     await page.getByRole('button', { name: 'Save Settings' }).click();
     await page.getByText('Website Control Center saved successfully.').waitFor({ state: 'visible', timeout: 15000 });
 
     const savedSnap = await settingsRef.get();
-    saveWorked = (savedSnap.data()?.siteName || '') === TEST_SITE_NAME;
+    saveWorked = (savedSnap.data()?.publicTemplates?.home || '') === TEST_ROUTE;
 
     await page.reload({ waitUntil: 'domcontentloaded' });
-    await page.locator('h3:has-text("Website Control Center")').waitFor({ state: 'visible', timeout: 15000 });
-    await page.locator('[data-testid="control-tab-branding"]').click();
-    reloadKeptValue = (await siteNameInput.inputValue()) === TEST_SITE_NAME;
+    await openWebsiteSettings(page);
+    await page.locator('[data-testid="control-tab-templates"]').click();
+    await page.locator('[data-testid="active-home-template-selector"]').waitFor({ state: 'visible', timeout: 15000 });
+    const selectedCard = page.locator('[data-testid="active-home-template-selector"] .col-12.col-xl-4').filter({ hasText: TEST_LABEL });
+    reloadKeptValue = await selectedCard.getByText('Active now', { exact: false }).first().isVisible();
+
+    const canonicalPath = await waitForHomeMarker(page, '/', TEST_SELECTOR);
+    canonicalHomeRendered = canonicalPath === '/';
+
+    const directPreviewPath = await waitForHomeMarker(page, TEST_ROUTE, TEST_SELECTOR);
+    directPreviewRouteWorked = directPreviewPath === TEST_ROUTE;
 
     await page.goto(`${BASE_URL}/`, { waitUntil: 'domcontentloaded' });
-    const homeState = await waitForHomeShell(page);
-    homepageLoaded = homeState.path === '/';
-    canonicalHome = homeState.path === '/';
-    navigationShellOk = homeState.profileDropdownVisible && homeState.loginVisible === 0;
+    await page.locator('header').first().waitFor({ state: 'visible', timeout: 15000 });
+    const publicPreviewLinks = await page.locator('header a[href="/index-2"], header a[href="/index-3"]').count();
+    publicHeaderCollapsed = publicPreviewLinks === 0;
 
     const success =
-      controlCenterVisible &&
-      templateControlsVisible &&
-      activeHomeSelectorVisible &&
-      headerEditorVisible &&
+      selectorVisible &&
       saveWorked &&
       reloadKeptValue &&
-      homepageLoaded &&
-      canonicalHome &&
-      navigationShellOk &&
+      canonicalHomeRendered &&
+      directPreviewRouteWorked &&
+      publicHeaderCollapsed &&
       errors.length === 0;
 
     console.log(JSON.stringify({
       success,
-      controlCenterVisible,
-      templateControlsVisible,
-      activeHomeSelectorVisible,
-      headerEditorVisible,
+      selectorVisible,
       saveWorked,
       reloadKeptValue,
-      homepageLoaded,
-      canonicalHome,
-      navigationShellOk,
-      firestorePath: 'siteSettings/homepage',
+      canonicalHomeRendered,
+      directPreviewRouteWorked,
+      publicHeaderCollapsed,
+      savedRoute: TEST_ROUTE,
       errors,
     }));
     process.exitCode = success ? 0 : 1;
   } catch (error) {
     console.log(JSON.stringify({
       success: false,
-      controlCenterVisible,
-      templateControlsVisible,
-      activeHomeSelectorVisible,
-      headerEditorVisible,
+      selectorVisible,
       saveWorked,
       reloadKeptValue,
-      homepageLoaded,
-      canonicalHome,
-      navigationShellOk,
-      firestorePath: 'siteSettings/homepage',
+      canonicalHomeRendered,
+      directPreviewRouteWorked,
+      publicHeaderCollapsed,
+      savedRoute: TEST_ROUTE,
       errors,
       reason: error.message || String(error),
     }));

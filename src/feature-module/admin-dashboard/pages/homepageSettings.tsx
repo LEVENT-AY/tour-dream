@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import {
   DEFAULT_HOMEPAGE_SETTINGS,
+  GENERAL_HOME_TEMPLATE_OPTIONS,
   fetchActivities,
   fetchCars,
   fetchChalets,
@@ -9,9 +10,11 @@ import {
   fetchHotels,
   fetchResorts,
   fetchTours,
+  findGeneralHomeTemplateOption,
   normalizeHeaderNavigationItem,
   normalizeHomepageSettings,
   normalizeWebsiteSettingsPath,
+  resolveGeneralHomeTemplateRoute,
   updateHomepageSettings,
   type HeaderNavigationChild,
   type HeaderNavigationItem,
@@ -43,23 +46,16 @@ type SectionTabKey =
 const TEMPLATE_CATEGORY_CONFIGS: TemplateCategoryConfig[] = [
   {
     key: 'home',
-    label: 'Active Homepage Template',
-    helper: 'Controls which public homepage template is marked active for the website shell.',
-    applyStatus: 'stored-only',
-    options: [
-      { key: 'home-service-one', label: 'Home Service One', route: '/', component: 'HomeServiceOne', note: 'Current canonical home template.' },
-      { key: 'home-service-two', label: 'Home Service Two', route: '/index-2', component: 'HomeServiceTwo' },
-      { key: 'home-one', label: 'Home One', route: '/index-3', component: 'HomeOne' },
-      { key: 'home-two', label: 'Home Two', route: '/index-4', component: 'HomeTwo' },
-      { key: 'home-three', label: 'Home Three', route: '/index-5', component: 'HomeThree' },
-      { key: 'home-four', label: 'Home Four', route: '/index-6', component: 'HomeFour' },
-      { key: 'home-five', label: 'Home Five', route: '/index-7', component: 'HomeFive' },
-      { key: 'home-six', label: 'Home Six', route: '/index-8', component: 'HomeSix' },
-      { key: 'home-seven', label: 'Home Seven', route: '/index-9', component: 'HomeSeven' },
-      { key: 'home-ten', label: 'Home Ten', route: '/index-10', component: 'HomeTen' },
-      { key: 'home-eleven', label: 'Home Eleven', route: '/index-11', component: 'HomeEleven' },
-      { key: 'home-twelve', label: 'Home Twelve', route: '/index-12', component: 'HomeTwelve' },
-    ],
+    label: 'Active General Home Template',
+    helper: 'This controls the canonical public Home page. Demo routes remain available for preview.',
+    applyStatus: 'safe-route-ready',
+    options: GENERAL_HOME_TEMPLATE_OPTIONS.map((option) => ({
+      key: option.route,
+      label: option.label,
+      route: option.route,
+      component: option.component,
+      note: option.description,
+    })),
   },
   {
     key: 'hotel',
@@ -260,6 +256,26 @@ const toDisplayTitle = (value: string) =>
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join(' ');
 
+const getTemplateSelection = (category: TemplateCategoryConfig, settings: HomepageSettings) => {
+  if (category.key === 'home') {
+    const selected = findGeneralHomeTemplateOption(settings.publicTemplates?.home);
+    return {
+      value: selected.route,
+      selected: {
+        key: selected.route,
+        label: selected.label,
+        route: selected.route,
+        component: selected.component,
+        note: selected.description,
+      },
+    };
+  }
+
+  const value = settings.publicTemplates?.[category.key] || category.options[0]?.key || '';
+  const selected = category.options.find((option) => option.key === value) || category.options[0];
+  return { value, selected };
+};
+
 const isValidInternalPath = (value: string) => {
   const normalized = normalizeWebsiteSettingsPath(value);
   return !normalized || normalized.startsWith('/') || normalized.startsWith('http://') || normalized.startsWith('https://') || normalized.startsWith('//');
@@ -287,11 +303,9 @@ const formatSavedAt = (value: string | null) => {
 
 const overviewTemplateSummary = (settings: HomepageSettings) =>
   TEMPLATE_CATEGORY_CONFIGS.filter((category) => category.options.length > 0).map((category) => {
-    const selectedKey = settings.publicTemplates?.[category.key] || category.options[0].key;
-    const selected = category.options.find((option) => option.key === selectedKey) || category.options[0];
     return {
       category,
-      selected,
+      selected: getTemplateSelection(category, settings).selected,
     };
   });
 
@@ -600,9 +614,9 @@ const AdminHomepageSettings: React.FC = () => {
     : 'alert-success';
   const totalFeaturedSelected =
     selectedCounts.tours + selectedCounts.hotels + selectedCounts.flights + selectedCounts.cars + selectedCounts.activities;
-  const templateRoutingStatus = Object.values(settings.publicTemplates || {}).filter(Boolean).length > 0
-    ? 'Template selection saved'
-    : 'Route switching pending';
+  const templateRoutingStatus = settings.publicTemplates?.home
+    ? 'Canonical Home routing active'
+    : 'Using built-in defaults';
   const footerStatus = settings.footerText || Object.values(settings.socialLinks || {}).filter(Boolean).length > 0
     ? 'Configured'
     : 'Using fallback';
@@ -688,9 +702,9 @@ const AdminHomepageSettings: React.FC = () => {
                 <div className="col-md-6 col-xl-4">
                   <div className="card border-0 shadow-sm h-100">
                     <div className="card-body">
-                      <p className="text-muted mb-2">Active Homepage Template</p>
-                      <h5 className="mb-1">{toDisplayTitle(settings.publicTemplates?.home || 'home-service-one')}</h5>
-                      <small className="text-muted">Template selection saved</small>
+                      <p className="text-muted mb-2">Active General Home Template</p>
+                      <h5 className="mb-1">{findGeneralHomeTemplateOption(settings.publicTemplates?.home).label}</h5>
+                      <small className="text-muted">Admin controlled canonical Home route</small>
                     </div>
                   </div>
                 </div>
@@ -717,7 +731,7 @@ const AdminHomepageSettings: React.FC = () => {
                     <div className="card-body">
                       <p className="text-muted mb-2">Template Routing Status</p>
                       <h5 className="mb-1">{templateRoutingStatus}</h5>
-                      <small className="text-muted">Public canonical route switching will be enabled in a later phase.</small>
+                      <small className="text-muted">The public <code>/</code> route now follows the saved general home selection.</small>
                     </div>
                   </div>
                 </div>
@@ -1067,12 +1081,63 @@ const AdminHomepageSettings: React.FC = () => {
               </div>
               <div className="card-body">
                 <div className="alert alert-light border">
-                  Selections are saved. Public canonical route switching will be enabled in a later phase.
+                  Active General Home routing is live for <code>/</code>. Other layout selections remain saved for later phases.
+                </div>
+                <div className="border rounded-3 p-3 mb-4 bg-light" data-testid="active-home-template-selector">
+                  <div className="d-flex flex-column flex-lg-row align-items-lg-start justify-content-between gap-3 mb-3">
+                    <div>
+                      <div className="d-flex flex-wrap align-items-center gap-2 mb-2">
+                        <h6 className="mb-0">Active General Home Template</h6>
+                        <span className="badge bg-light text-muted border">Admin controlled</span>
+                      </div>
+                      <p className="text-muted mb-1">This controls the canonical public Home page. Demo routes remain available for preview.</p>
+                      <small className="text-muted">Only clearly safe all-services templates are selectable in this phase.</small>
+                    </div>
+                    <div className="border rounded-3 bg-white px-3 py-2">
+                      <div className="text-muted small">Active now</div>
+                      <div className="fw-semibold">{findGeneralHomeTemplateOption(settings.publicTemplates?.home).label}</div>
+                      <small className="text-muted">{resolveGeneralHomeTemplateRoute(settings.publicTemplates?.home)}</small>
+                    </div>
+                  </div>
+                  <div className="row g-3">
+                    {GENERAL_HOME_TEMPLATE_OPTIONS.map((option) => {
+                      const isActive = resolveGeneralHomeTemplateRoute(settings.publicTemplates?.home) === option.route;
+                      return (
+                        <div className="col-12 col-xl-4" key={option.route}>
+                          <div className={`border rounded-3 p-3 h-100 bg-white ${isActive ? 'border-primary' : ''}`}>
+                            <div className="d-flex justify-content-between align-items-start gap-2 mb-2">
+                              <div>
+                                <div className="fw-semibold">{option.label}</div>
+                                <small className="text-muted">{option.component}</small>
+                              </div>
+                              {isActive && <span className="badge bg-success text-white">Active now</span>}
+                            </div>
+                            <p className="text-muted small mb-3">{option.description}</p>
+                            <div className="d-flex flex-wrap gap-2 mb-3">
+                              <span className="badge bg-light text-muted border">Preview route</span>
+                              <code>{option.route}</code>
+                            </div>
+                            <div className="d-flex flex-wrap gap-2">
+                              <button
+                                type="button"
+                                className={`btn btn-sm ${isActive ? 'btn-primary' : 'btn-outline-primary'}`}
+                                onClick={() => updateTemplateSelection('home', option.route)}
+                              >
+                                {isActive ? 'Selected' : 'Make Active'}
+                              </button>
+                              <a className="btn btn-sm btn-light border" href={option.route} target="_blank" rel="noreferrer">
+                                Preview route
+                              </a>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
                 <div className="row g-3" data-testid="template-selection-controls">
-                  {TEMPLATE_CATEGORY_CONFIGS.map((category) => {
-                    const value = settings.publicTemplates?.[category.key] || category.options[0]?.key || '';
-                    const selected = category.options.find((option) => option.key === value) || category.options[0];
+                  {TEMPLATE_CATEGORY_CONFIGS.filter((category) => category.key !== 'home').map((category) => {
+                    const { value, selected } = getTemplateSelection(category, settings);
                     return (
                       <div className="col-12" key={category.key}>
                         <div className="border rounded-3 p-3 h-100 bg-light">

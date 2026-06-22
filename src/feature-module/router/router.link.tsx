@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { Navigate, Route } from "react-router";
 import { all_routes } from "./all_routes";
 import AdminDashboard from "../admin-dashboard/dashboard/AdminDashboard";
@@ -148,6 +149,10 @@ import HomeServiceOne from "../home-service-one/HomeServiceOne";
 import HomeEleven from "../home-eleven/homeEleven";
 import HomeTen from "../home-ten/homeTen";
 import HomeTwelve from "../home-twelve/homeTwelve";
+import {
+  fetchHomepageSettings,
+  resolveGeneralHomeTemplateRoute,
+} from "../../core/services/firebaseServices";
 import ActivityBookingConfirmation from "../activity/activity-booking-confirmation/activityBookingConfirmation";
 import ActivityGrid from "../activity/activity-grid/activityGrid";
 import ActivityList from "../activity/activity-list/activityList";
@@ -217,11 +222,68 @@ export const adminRoutes = [
 export const agentRoutes: any[] = [];
 export const userRoutes: any[] = [];
 
+const ACTIVE_GENERAL_HOME_COMPONENTS = {
+  [all_routes.allService1]: HomeServiceOne,
+  [all_routes.allService2]: HomeServiceTwo,
+  [all_routes.home1]: HomeOne,
+};
+
+const ActiveGeneralHomeRoute = () => {
+  const [activeRoute, setActiveRoute] = useState<string>(all_routes.allService1);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadHomepageSettings = async () => {
+      for (let attempt = 0; attempt < 3 && !cancelled; attempt += 1) {
+        try {
+          const settings = await fetchHomepageSettings();
+          if (!cancelled) {
+            setActiveRoute(resolveGeneralHomeTemplateRoute(settings?.publicTemplates?.home));
+            if (settings) {
+              return;
+            }
+          }
+        } catch {
+          if (!cancelled && attempt < 2) {
+            await new Promise((resolve) => setTimeout(resolve, 500));
+          }
+        }
+      }
+
+      if (!cancelled) {
+        setActiveRoute(all_routes.allService1);
+      }
+    };
+
+    const loadWithDelay = async () => {
+      try {
+        await loadHomepageSettings();
+      } catch {
+        if (!cancelled) {
+          setActiveRoute(all_routes.allService1);
+        }
+      }
+    };
+
+    void loadWithDelay();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const ActiveComponent =
+    ACTIVE_GENERAL_HOME_COMPONENTS[activeRoute as keyof typeof ACTIVE_GENERAL_HOME_COMPONENTS] || HomeServiceOne;
+
+  return <ActiveComponent />;
+};
+
 export const publicRoutes = [
   {
     path: routes.allService1,
     name: "Root",
-    element: <HomeServiceOne />,
+    element: <ActiveGeneralHomeRoute />,
     route: Route,
   },
   {
