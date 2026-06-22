@@ -2020,7 +2020,7 @@ const Header = () => {
         {/* /Header Topbar*/}
         {/* Header */}
         <header
-          className={`${scrolled ? "fixed" : ""} ${location.pathname === "/index" && "header-eight"} ${location.pathname === "/index-2" && "header-nine header-four"}
+          className={`${scrolled ? "fixed" : ""} ${isPublicHomeRoute && "header-eight"} ${location.pathname === "/index-2" && "header-nine header-four"}
           ${location.pathname === "/index-4" || (location.pathname === "/index-9" && "header-four")} 
           ${location.pathname === "/index-5" && "header-three"} ${location.pathname === "/index-6" && "header-four"} 
           ${location.pathname === "/index-7" && "header-five"} ${location.pathname === "/index-8" && "header-six"} 

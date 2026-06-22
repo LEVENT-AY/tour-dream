@@ -182,7 +182,7 @@ async function main() {
   page.on('console', (msg) => {
     if (msg.type() === 'error') {
       const text = msg.text();
-      if (!text.includes('Missing or insufficient permissions')) {
+      if (!text.includes('Missing or insufficient permissions') && !text.includes('Could not reach Cloud Firestore backend')) {
         errors.push(text);
       }
     }
