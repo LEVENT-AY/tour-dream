@@ -108,6 +108,11 @@ const Header = () => {
   const customHeaderNavigation = (homepageSettings?.headerNavigation || []).filter(
     (item): item is HeaderNavigationItem => !!item && item.visible !== false && !!item.label?.trim()
   );
+  const currentPath = normalizeWebsiteSettingsPath(location.pathname) || location.pathname || "/";
+  const isExactActivePath = (route?: string) => {
+    const normalizedRoute = normalizeWebsiteSettingsPath(route);
+    return !!normalizedRoute && normalizedRoute === currentPath;
+  };
   const headerBrandLogo = "";
   const headerSiteName = "Logo";
   const headerContactPhone = "+1 56565 56594";
@@ -127,7 +132,7 @@ const Header = () => {
       return (
         <li
           key={item.id || `${item.label}-${index}`}
-          className={`has-submenu ${mobile ? "mega-innermenu" : "megamenutab"}`}
+          className={`has-submenu ${mobile ? "mega-innermenu" : "megamenutab"} ${isExactActivePath(item.url) ? "active" : ""}`}
         >
           <Link
             to={url || routes.allService1}
@@ -164,7 +169,7 @@ const Header = () => {
     }
 
     return (
-      <li key={item.id || `${item.label}-${index}`} className={mobile ? "" : "me-3"}>
+      <li key={item.id || `${item.label}-${index}`} className={`${mobile ? "" : "me-3"} ${isExactActivePath(item.url) ? "active" : ""}`}>
         <Link to={url || routes.allService1}>{item.label}</Link>
       </li>
     );
@@ -2083,7 +2088,7 @@ const Header = () => {
                             <React.Fragment key={i}>
                               {mainMenus.separateRoute ? (
                                 <li
-                                  className={`has-submenu megamenu active ${isDropdownOpen ? "dropdown-opened" : ""
+                                  className={`has-submenu megamenu ${mainMenus.tittle === "Home" && mainMenus.menu?.some((item: any) => isExactActivePath(item.route)) ? "active" : ""} ${isDropdownOpen ? "dropdown-opened" : ""
                                     }`}
                                 >
                                   <Link to="#" onClick={openSubMenu}>
@@ -2167,7 +2172,7 @@ const Header = () => {
                                 <>
                                   {mainMenus.tabMenu ? (
                                     <li
-                                      className={`has-submenu megamenutab ${mainMenus?.menu?.some((item: any) => item?.route?.includes(location.pathname)) ? "active" : ""}`}
+                                      className="has-submenu megamenutab"
                                       onClick={() => toggleSubMenu(7)}
                                     >
                                       <Link to="#">
@@ -2626,7 +2631,7 @@ const Header = () => {
                       <React.Fragment key={index}>
                         {mainMenus.separateRoute ? (
                           <li
-                            className={`has-submenu megamenu ${mainMenus?.menu?.some((item: any) => item?.route?.includes(location.pathname)) ? "active" : ""}`}
+                            className={`has-submenu megamenu ${mainMenus.tittle === "Home" && mainMenus.menu?.some((item: any) => isExactActivePath(item.route)) ? "active" : ""}`}
                             onMouseOver={() => setIsMegaMenu(true)}
                             onMouseLeave={() => setIsMegaMenu(false)}
                           >
@@ -2692,8 +2697,7 @@ const Header = () => {
                           <>
                             {mainMenus.tabMenu ? (
                               <li
-                                className={`has-submenu megamenutab ${mainMenus?.menu?.some((item: any) => item?.route?.includes(location.pathname)) ? "active" : ""} 
-                                ${location.pathname.includes('activity') || location.pathname.includes('visa') || location.pathname.includes('guide') || location.pathname.includes('pages') || location.pathname.includes('user') || location.pathname.includes('agent') ? 'active' : ''}`}
+                                className="has-submenu megamenutab"
                               >
                                 <Link to="#">
                                   {mainMenus.tittle}
@@ -2874,7 +2878,7 @@ const Header = () => {
                               </li>
                             ) : (
                               <li
-                                className={`has-submenu mega-innermenu ${mainMenus?.menu?.some((item: any) => item?.route?.includes(location.pathname)) ? "active" : ""}`}
+                                className="has-submenu mega-innermenu"
                               >
                                 <Link to="#">
                                   {mainMenus.tittle}

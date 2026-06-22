@@ -202,6 +202,14 @@ async function main() {
     await page.goto(`${BASE_URL}/`, { waitUntil: 'domcontentloaded' });
     await waitForHomepage(page);
     rootOk = new URL(page.url()).pathname === '/';
+    const activeTopNavLabels = await page.locator('header .main-nav > li.active:visible > a').evaluateAll((links) =>
+      links
+        .map((link) => (link.textContent || '').replace(/\s+/g, ' ').trim())
+        .filter(Boolean)
+    );
+    if (activeTopNavLabels.length !== 1 || !activeTopNavLabels[0].includes('Home')) {
+      throw new Error(`Homepage nav active styling is incorrect: ${JSON.stringify(activeTopNavLabels)}`);
+    }
 
     await page.goto(`${BASE_URL}/index`, { waitUntil: 'domcontentloaded' });
     const legacyPath = await waitForHomepage(page);
