@@ -98,11 +98,11 @@ async function main() {
   try {
     await login(page, adminEmail, adminPassword);
     await page.goto(`${BASE_URL}/admin/settings`, { waitUntil: 'domcontentloaded' });
-    await page.locator('h3:has-text("Website Settings")').waitFor({ state: 'visible', timeout: 15000 });
+    await page.locator('h3:has-text("Website Control Center")').waitFor({ state: 'visible', timeout: 15000 });
     await page.locator('[data-testid="website-control-center"]').waitFor({ state: 'visible', timeout: 15000 });
     pageRendered = true;
 
-    await page.getByRole('button', { name: 'Footer & Social' }).click();
+    await page.locator('[data-testid="control-tab-footer"]').click();
     const footerInput = () => page.locator('div.card:has(h5:has-text("Footer copy & links")) textarea').first();
     await footerInput().fill(TEST_VALUE);
     await page.getByRole('button', { name: 'Save Settings' }).click();
@@ -112,8 +112,8 @@ async function main() {
     saveWorked = (savedSnap.data()?.footerText || '') === TEST_VALUE;
 
     await page.reload({ waitUntil: 'domcontentloaded' });
-    await page.locator('h3:has-text("Website Settings")').waitFor({ state: 'visible', timeout: 15000 });
-    await page.getByRole('button', { name: 'Footer & Social' }).click();
+    await page.locator('h3:has-text("Website Control Center")').waitFor({ state: 'visible', timeout: 15000 });
+    await page.locator('[data-testid="control-tab-footer"]').click();
     await footerInput().waitFor({ state: 'visible', timeout: 15000 });
     await page.waitForTimeout(1000);
     const reloadedValue = await footerInput().inputValue();

@@ -49,7 +49,7 @@ async function loginAsAdmin(page, email, password) {
 
 async function openWebsiteSettings(page) {
   await page.goto(`${BASE_URL}/admin/settings`, { waitUntil: 'domcontentloaded' });
-  await page.locator('h3:has-text("Website Settings")').waitFor({ state: 'visible', timeout: 15000 });
+  await page.locator('h3:has-text("Website Control Center")').waitFor({ state: 'visible', timeout: 15000 });
   await page.locator('[data-testid="website-control-center"]').waitFor({ state: 'visible', timeout: 15000 });
 }
 
@@ -114,15 +114,15 @@ async function main() {
     await openWebsiteSettings(page);
     controlCenterVisible = await page.locator('[data-testid="website-control-center"]').isVisible();
 
-    await page.getByRole('button', { name: 'Templates & Layouts' }).click();
+    await page.locator('[data-testid="control-tab-templates"]').click();
     await page.locator('[data-testid="template-selection-controls"]').waitFor({ state: 'visible', timeout: 15000 });
     templateControlsVisible = true;
 
-    await page.getByRole('button', { name: 'Header Navigation' }).click();
-    await page.locator('[data-testid="header-nav-editor"]').waitFor({ state: 'visible', timeout: 15000 });
+    await page.locator('[data-testid="control-tab-header"]').click();
+    await page.locator('h5:has-text("Header navigation editor")').waitFor({ state: 'visible', timeout: 15000 });
     headerEditorVisible = true;
 
-    await page.getByRole('button', { name: 'Branding & Contact' }).click();
+    await page.locator('[data-testid="control-tab-branding"]').click();
     const siteNameInput = page.locator('div.card:has(h5:has-text("Branding")) input.form-control').first();
     await siteNameInput.fill(TEST_SITE_NAME);
     await page.getByRole('button', { name: 'Save Settings' }).click();
@@ -132,8 +132,8 @@ async function main() {
     saveWorked = (savedSnap.data()?.siteName || '') === TEST_SITE_NAME;
 
     await page.reload({ waitUntil: 'domcontentloaded' });
-    await page.locator('h3:has-text("Website Settings")').waitFor({ state: 'visible', timeout: 15000 });
-    await page.getByRole('button', { name: 'Branding & Contact' }).click();
+    await page.locator('h3:has-text("Website Control Center")').waitFor({ state: 'visible', timeout: 15000 });
+    await page.locator('[data-testid="control-tab-branding"]').click();
     reloadKeptValue = (await siteNameInput.inputValue()) === TEST_SITE_NAME;
 
     await page.goto(`${BASE_URL}/`, { waitUntil: 'domcontentloaded' });

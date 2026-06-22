@@ -226,14 +226,14 @@ const DEFAULT_HEADER_NAVIGATION: HeaderNavigationItem[] = [
 const SOCIAL_PLATFORMS = ['facebook', 'instagram', 'twitter', 'linkedin', 'youtube'] as const;
 
 const SECTION_TABS: Array<{ key: SectionTabKey; label: string; icon: string; description: string }> = [
-  { key: 'overview', label: 'Overview', icon: 'isax-status-up', description: 'Snapshot of current website controls.' },
-  { key: 'branding', label: 'Branding & Contact', icon: 'isax-brush-2', description: 'Brand identity, logo, and contact details.' },
-  { key: 'header', label: 'Header Navigation', icon: 'isax-hierarchy', description: 'Visual header menu editor and advanced JSON.' },
-  { key: 'templates', label: 'Templates & Layouts', icon: 'isax-element-4', description: 'Store active template and layout selections.' },
-  { key: 'homepage', label: 'Homepage', icon: 'isax-home-2', description: 'Hero, sections, and banner controls.' },
-  { key: 'featured', label: 'Featured Content', icon: 'isax-star', description: 'Curate featured tours, hotels, flights, cars, and activities.' },
-  { key: 'footer', label: 'Footer & Social', icon: 'isax-global', description: 'Footer copy, links, and social presence.' },
-  { key: 'advanced', label: 'Advanced', icon: 'isax-code', description: 'Compatibility details and raw debugging tools.' },
+  { key: 'overview', label: 'Overview', icon: 'isax-status-up', description: 'Quick status for the live website controls.' },
+  { key: 'branding', label: 'Branding', icon: 'isax-brush-2', description: 'Site name, logo, and shared contact details.' },
+  { key: 'header', label: 'Header Menu', icon: 'isax-hierarchy', description: 'Visual menu editing with a developer fallback.' },
+  { key: 'templates', label: 'Templates', icon: 'isax-element-4', description: 'Saved homepage and listing layout choices.' },
+  { key: 'homepage', label: 'Homepage', icon: 'isax-home-2', description: 'Hero content, section labels, and banners.' },
+  { key: 'featured', label: 'Featured', icon: 'isax-star', description: 'Choose which live items get highlighted.' },
+  { key: 'footer', label: 'Footer & Social', icon: 'isax-global', description: 'Footer copy, footer links, and social URLs.' },
+  { key: 'advanced', label: 'Advanced', icon: 'isax-code', description: 'Compatibility fields and developer diagnostics.' },
 ];
 
 const EMPTY_NAV_LINK: LinkItem = { label: '', path: '' };
@@ -247,6 +247,12 @@ const cloneHeaderNavigation = (items: HeaderNavigationItem[]): HeaderNavigationI
   }));
 
 const stringifyNavigation = (items: HeaderNavigationItem[]) => JSON.stringify(items, null, 2);
+
+const serializeControlCenterState = (settings: HomepageSettings, headerNavigationText: string) =>
+  JSON.stringify({
+    settings,
+    headerNavigationText: headerNavigationText.trim(),
+  });
 
 const toDisplayTitle = (value: string) =>
   value
@@ -272,6 +278,13 @@ const parseNavigationJson = (raw: string) => {
   return normalized;
 };
 
+const formatSavedAt = (value: string | null) => {
+  if (!value) return 'Not saved yet';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return 'Not saved yet';
+  return date.toLocaleString();
+};
+
 const overviewTemplateSummary = (settings: HomepageSettings) =>
   TEMPLATE_CATEGORY_CONFIGS.filter((category) => category.options.length > 0).map((category) => {
     const selectedKey = settings.publicTemplates?.[category.key] || category.options[0].key;
@@ -291,6 +304,9 @@ const AdminHomepageSettings: React.FC = () => {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [lastSavedAt, setLastSavedAt] = useState<string | null>(null);
+  const [savedSignature, setSavedSignature] = useState<string | null>(null);
+  const [showNavigationJson, setShowNavigationJson] = useState(false);
+  const [showAdvancedDiagnostics, setShowAdvancedDiagnostics] = useState(false);
   const [tours, setTours] = useState<any[]>([]);
   const [hotels, setHotels] = useState<any[]>([]);
   const [flights, setFlights] = useState<any[]>([]);
@@ -316,7 +332,9 @@ const AdminHomepageSettings: React.FC = () => {
         const navigation = cloneHeaderNavigation(normalized.headerNavigation || []);
         setSettings(normalized);
         setHeaderNavigationEditor(navigation);
-        setHeaderNavigationText(stringifyNavigation(navigation));
+        const navigationText = stringifyNavigation(navigation);
+        setHeaderNavigationText(navigationText);
+        setSavedSignature(serializeControlCenterState(normalized, navigationText));
         setLastSavedAt((homepage as any)?.updatedAt?.toDate?.()?.toISOString?.() || null);
         setTours(tourData);
         setHotels(hotelData);
@@ -511,6 +529,9 @@ const AdminHomepageSettings: React.FC = () => {
       await updateHomepageSettings(payload);
       syncNavigationEditor(parsedHeaderNavigation);
       setSettings(payload);
+      const nextNavigationText = stringifyNavigation(parsedHeaderNavigation);
+      setHeaderNavigationText(nextNavigationText);
+      setSavedSignature(serializeControlCenterState(payload, nextNavigationText));
       setLastSavedAt(new Date().toISOString());
       setMessage('Website Control Center saved successfully.');
     } catch (error) {
@@ -529,7 +550,10 @@ const AdminHomepageSettings: React.FC = () => {
   }
 
   const templateOverview = overviewTemplateSummary(settings);
-  const headerMode = headerNavigationEditor.length > 0 ? 'Custom menu' : 'Fallback menu';
+  const currentSignature = serializeControlCenterState(settings, headerNavigationText);
+  const hasUnsavedChanges = savedSignature !== null && currentSignature !== savedSignature;
+  const headerMode = headerNavigationEditor.length > 0 ? 'Custom menu saved' : 'Using default menu';
+  const effectiveHeaderPreview = headerNavigationEditor.length > 0 ? headerNavigationEditor : DEFAULT_HEADER_NAVIGATION;
   const selectedCounts = {
     tours: settings.featuredTours.length,
     hotels: settings.featuredHotels.length,
@@ -574,28 +598,42 @@ const AdminHomepageSettings: React.FC = () => {
   const settingsAlertClass = message?.toLowerCase().includes('fail') || message?.toLowerCase().includes('must')
     ? 'alert-danger'
     : 'alert-success';
+  const totalFeaturedSelected =
+    selectedCounts.tours + selectedCounts.hotels + selectedCounts.flights + selectedCounts.cars + selectedCounts.activities;
+  const templateRoutingStatus = Object.values(settings.publicTemplates || {}).filter(Boolean).length > 0
+    ? 'Template selection saved'
+    : 'Route switching pending';
+  const footerStatus = settings.footerText || Object.values(settings.socialLinks || {}).filter(Boolean).length > 0
+    ? 'Configured'
+    : 'Using fallback';
 
   return (
     <div data-testid="website-control-center">
-      <div className="d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3 mb-4">
-        <div>
-          <div className="d-flex align-items-center gap-2 mb-2">
-            <span className="badge bg-primary-subtle text-primary border border-primary-subtle">Admin Website Control Center</span>
-            <span className="badge bg-light text-muted border">V1</span>
+      <div className="card settings border-0 shadow-sm mb-4">
+        <div className="card-header bg-white d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3">
+          <div>
+            <div className="d-flex align-items-center gap-2 mb-2">
+              <span className="badge bg-light text-muted border">Admin settings</span>
+              <span className="badge bg-light text-muted border">V1</span>
+            </div>
+            <h3 className="mb-1">Website Control Center</h3>
+            <p className="text-muted mb-0">
+              Manage public templates, navigation, branding, homepage sections, featured content, and footer settings.
+            </p>
           </div>
-          <h3 className="mb-1">Website Settings</h3>
-          <p className="text-muted mb-0">
-            Manage template selections, navigation, branding, homepage content, and footer settings from the existing
-            <code className="ms-1">siteSettings/homepage</code> document.
-          </p>
-        </div>
-        <div className="d-flex align-items-center gap-2">
-          {lastSavedAt && <small className="text-muted">Last saved {new Date(lastSavedAt).toLocaleString()}</small>}
-          <button className="btn btn-primary d-flex align-items-center" onClick={handleSave} disabled={saving}>
-            {saving && <span className="spinner-border spinner-border-sm me-2" />}
-            <i className="isax isax-save-2 me-2" />
-            Save Settings
-          </button>
+          <div className="d-flex flex-column align-items-lg-end gap-2">
+            <div className="d-flex flex-wrap align-items-center justify-content-lg-end gap-2">
+              <span className={`badge ${hasUnsavedChanges ? 'bg-warning text-dark' : 'bg-light text-muted border'}`}>
+                {hasUnsavedChanges ? 'Unsaved changes' : 'All changes saved'}
+              </span>
+              <small className="text-muted">Last saved: {formatSavedAt(lastSavedAt)}</small>
+            </div>
+            <button className="btn btn-primary d-flex align-items-center" onClick={handleSave} disabled={saving}>
+              {saving && <span className="spinner-border spinner-border-sm me-2" />}
+              <i className="isax isax-save-2 me-2" />
+              Save Settings
+            </button>
+          </div>
         </div>
       </div>
 
@@ -603,24 +641,29 @@ const AdminHomepageSettings: React.FC = () => {
 
       <div className="row g-4">
         <div className="col-xl-3">
-          <div className="card border-0 shadow-sm sticky-top" style={{ top: '96px' }}>
-            <div className="card-header bg-white border-0 pb-0">
-              <h5 className="mb-1">Control Center</h5>
-              <small className="text-muted">Move section by section instead of editing one long page.</small>
+          <div className="card settings border-0 shadow-sm sticky-top" style={{ top: '96px' }}>
+            <div className="card-header bg-white">
+              <h6 className="mb-1">Sections</h6>
+              <small className="text-muted">Use the same step-by-step rhythm as the native dashboard settings pages.</small>
             </div>
             <div className="card-body">
-              <div className="nav flex-column nav-pills gap-2" role="tablist" aria-label="Website control sections">
+              <div className="settings-link d-flex flex-column gap-2" role="tablist" aria-label="Website control sections">
                 {SECTION_TABS.map((tab) => (
                   <button
                     key={tab.key}
                     type="button"
-                    className={`btn text-start d-flex align-items-start gap-3 ${activeTab === tab.key ? 'btn-primary' : 'btn-light border'}`}
+                    data-testid={`control-tab-${tab.key}`}
+                    className={`btn text-start border rounded-3 px-3 py-2 ${
+                      activeTab === tab.key ? 'btn-primary' : 'btn-light'
+                    }`}
                     onClick={() => setActiveTab(tab.key)}
                   >
-                    <i className={`isax ${tab.icon} fs-18 mt-1`} />
-                    <span>
-                      <span className="d-block fw-semibold">{tab.label}</span>
-                      <small className={activeTab === tab.key ? 'text-white-50' : 'text-muted'}>{tab.description}</small>
+                    <span className="d-flex align-items-start gap-2">
+                      <i className={`isax ${tab.icon} fs-18 mt-1`} />
+                      <span>
+                        <span className="d-block fw-semibold">{tab.label}</span>
+                        <small className={activeTab === tab.key ? 'text-white-50' : 'text-muted'}>{tab.description}</small>
+                      </span>
                     </span>
                   </button>
                 ))}
@@ -633,41 +676,48 @@ const AdminHomepageSettings: React.FC = () => {
           {activeTab === 'overview' && (
             <div className="d-flex flex-column gap-4">
               <div className="row g-3">
-                <div className="col-md-6 col-xl-3">
+                <div className="col-md-6 col-xl-4">
                   <div className="card border-0 shadow-sm h-100">
                     <div className="card-body">
-                      <p className="text-muted mb-2">Header navigation</p>
+                      <p className="text-muted mb-2">Header Menu Status</p>
                       <h5 className="mb-1">{headerMode}</h5>
-                      <small className="text-muted">{headerNavigationEditor.filter((item) => item.visible !== false).length} visible top-level items</small>
+                      <small className="text-muted">{effectiveHeaderPreview.filter((item) => item.visible !== false).length} visible top-level items</small>
                     </div>
                   </div>
                 </div>
-                <div className="col-md-6 col-xl-3">
+                <div className="col-md-6 col-xl-4">
                   <div className="card border-0 shadow-sm h-100">
                     <div className="card-body">
-                      <p className="text-muted mb-2">Homepage template</p>
+                      <p className="text-muted mb-2">Active Homepage Template</p>
                       <h5 className="mb-1">{toDisplayTitle(settings.publicTemplates?.home || 'home-service-one')}</h5>
-                      <small className="text-muted">Stored selection for the public home shell</small>
+                      <small className="text-muted">Template selection saved</small>
                     </div>
                   </div>
                 </div>
-                <div className="col-md-6 col-xl-3">
+                <div className="col-md-6 col-xl-4">
                   <div className="card border-0 shadow-sm h-100">
                     <div className="card-body">
-                      <p className="text-muted mb-2">Featured selections</p>
-                      <h5 className="mb-1">
-                        {selectedCounts.tours + selectedCounts.hotels + selectedCounts.flights + selectedCounts.cars + selectedCounts.activities}
-                      </h5>
-                      <small className="text-muted">Items chosen across all supported featured blocks</small>
+                      <p className="text-muted mb-2">Featured Items Count</p>
+                      <h5 className="mb-1">{totalFeaturedSelected}</h5>
+                      <small className="text-muted">Items chosen across featured homepage blocks</small>
                     </div>
                   </div>
                 </div>
-                <div className="col-md-6 col-xl-3">
+                <div className="col-md-6 col-xl-6">
                   <div className="card border-0 shadow-sm h-100">
                     <div className="card-body">
-                      <p className="text-muted mb-2">Footer status</p>
-                      <h5 className="mb-1">{settings.footerText ? 'Configured' : 'Using fallback'}</h5>
+                      <p className="text-muted mb-2">Footer/Social Status</p>
+                      <h5 className="mb-1">{footerStatus}</h5>
                       <small className="text-muted">{Object.values(settings.socialLinks || {}).filter(Boolean).length} social links entered</small>
+                    </div>
+                  </div>
+                </div>
+                <div className="col-md-6 col-xl-6">
+                  <div className="card border-0 shadow-sm h-100">
+                    <div className="card-body">
+                      <p className="text-muted mb-2">Template Routing Status</p>
+                      <h5 className="mb-1">{templateRoutingStatus}</h5>
+                      <small className="text-muted">Public canonical route switching will be enabled in a later phase.</small>
                     </div>
                   </div>
                 </div>
@@ -676,23 +726,17 @@ const AdminHomepageSettings: React.FC = () => {
               <div className="card border-0 shadow-sm">
                 <div className="card-header bg-white">
                   <h5 className="mb-1">Active selections summary</h5>
-                  <small className="text-muted">This shows what is currently stored, even when canonical route switching is not yet applied.</small>
+                  <small className="text-muted">A simple snapshot of what the control center is currently storing.</small>
                 </div>
                 <div className="card-body">
                   <div className="row g-3">
                     {templateOverview.map(({ category, selected }) => (
                       <div className="col-md-6" key={category.key}>
                         <div className="border rounded-3 p-3 h-100 bg-light">
-                          <div className="d-flex align-items-center justify-content-between mb-2">
-                            <div className="fw-semibold">{category.label}</div>
-                            <span className={`badge ${category.applyStatus === 'stored-only' ? 'bg-warning-subtle text-warning' : 'bg-success-subtle text-success'}`}>
-                              {category.applyStatus === 'stored-only' ? 'Storage only' : 'Safe route ready'}
-                            </span>
-                          </div>
+                          <div className="fw-semibold mb-2">{category.label}</div>
                           <div className="mb-1">{selected.label}</div>
-                          <small className="text-muted d-block">Key: {selected.key}</small>
-                          <small className="text-muted d-block">Route: {selected.route}</small>
-                          <small className="text-muted d-block">Component: {selected.component}</small>
+                          <small className="text-muted d-block">{category.applyStatus === 'stored-only' ? 'Route switching pending' : 'Template selection saved'}</small>
+                          <small className="text-muted d-block mt-1">Route: {selected.route}</small>
                         </div>
                       </div>
                     ))}
@@ -703,15 +747,14 @@ const AdminHomepageSettings: React.FC = () => {
               <div className="card border-0 shadow-sm">
                 <div className="card-header bg-white">
                   <h5 className="mb-1">Operational notes</h5>
-                  <small className="text-muted">Public site safety is preserved when settings are empty or partially configured.</small>
+                  <small className="text-muted">Public site safety stays intact when fields are left empty or partially configured.</small>
                 </div>
                 <div className="card-body">
-                  <div className="alert alert-warning mb-3">
-                    Template selections are stored now for admin control and reporting. Canonical category route switching remains pending so
-                    the public site keeps its current behavior unless an existing consumer already reads these values.
+                  <div className="alert alert-light border mb-3">
+                    Empty navigation keeps the public default menu. Saving a custom menu replaces that fallback without changing the public template markup.
                   </div>
-                  <div className="alert alert-info mb-0">
-                    Homepage hero, section titles, banner content, footer links, and social links only appear on public templates that already consume them.
+                  <div className="alert alert-light border mb-0">
+                    Homepage hero, section titles, banner content, footer links, and social links only appear where the current public templates already bind them.
                   </div>
                 </div>
               </div>
@@ -801,7 +844,7 @@ const AdminHomepageSettings: React.FC = () => {
                 <div className="card-header bg-white d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-2">
                   <div>
                     <h5 className="mb-1">Header navigation editor</h5>
-                    <small className="text-muted">Visual editor first, advanced JSON only for compatibility and debugging.</small>
+                    <small className="text-muted">Visual editor first, with a developer fallback only when you need raw JSON.</small>
                   </div>
                   <div className="d-flex gap-2">
                     <button type="button" className="btn btn-light border" onClick={loadDefaultHeaderMenu}>
@@ -815,9 +858,37 @@ const AdminHomepageSettings: React.FC = () => {
                 <div className="card-body">
                   {headerNavigationEditor.length === 0 && (
                     <div className="alert alert-light border mb-3">
-                      No custom header menu is stored. The public website will continue using the fallback menu until you save a custom one.
+                      No custom header menu is stored. The public website will keep using the default menu until you save a custom one.
                     </div>
                   )}
+
+                  <div className="border rounded-3 p-3 bg-light mb-3">
+                    <div className="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
+                      <div>
+                        <div className="fw-semibold">{headerNavigationEditor.length > 0 ? 'Custom menu preview' : 'Fallback menu preview'}</div>
+                        <small className="text-muted">
+                          {headerNavigationEditor.length > 0
+                            ? 'This is the menu currently staged in the editor.'
+                            : 'This is the default public menu that remains active until a custom menu is saved.'}
+                        </small>
+                      </div>
+                      <span className="badge bg-light text-muted border">{effectiveHeaderPreview.length} top-level items</span>
+                    </div>
+                    <div className="row g-2">
+                      {effectiveHeaderPreview.map((item, index) => (
+                        <div className="col-md-6" key={`${item.id || 'preview'}-${index}`}>
+                          <div className="border rounded-3 bg-white p-2 h-100">
+                            <div className="fw-semibold">{item.label || `Menu Item ${index + 1}`}</div>
+                            <small className="text-muted d-block">
+                              {item.type === 'dropdown'
+                                ? `${(item.children || []).filter((child) => child.visible !== false).length} child links`
+                                : normalizeWebsiteSettingsPath(item.url || '') || 'No URL yet'}
+                            </small>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
 
                   <div className="d-flex flex-column gap-3" data-testid="header-nav-editor">
                     {headerNavigationEditor.map((item, index) => (
@@ -964,19 +1035,26 @@ const AdminHomepageSettings: React.FC = () => {
               </div>
 
               <div className="card border-0 shadow-sm">
-                <div className="card-header bg-white">
-                  <h5 className="mb-1">Advanced JSON</h5>
-                  <small className="text-muted">Kept for debugging and backward compatibility with the existing <code>headerNavigation</code> field.</small>
+                <div className="card-header bg-white d-flex align-items-center justify-content-between gap-2">
+                  <div>
+                    <h5 className="mb-1">Developer JSON</h5>
+                    <small className="text-muted">Kept for debugging and backward compatibility with the existing <code>headerNavigation</code> field.</small>
+                  </div>
+                  <button type="button" className="btn btn-sm btn-light border" onClick={() => setShowNavigationJson((prev) => !prev)}>
+                    {showNavigationJson ? 'Hide' : 'Show'}
+                  </button>
                 </div>
-                <div className="card-body">
-                  <textarea
-                    className="form-control font-monospace"
-                    rows={14}
-                    value={headerNavigationText}
-                    onChange={(event) => setHeaderNavigationText(event.target.value)}
-                    data-testid="header-nav-json"
-                  />
-                </div>
+                {showNavigationJson && (
+                  <div className="card-body">
+                    <textarea
+                      className="form-control font-monospace"
+                      rows={14}
+                      value={headerNavigationText}
+                      onChange={(event) => setHeaderNavigationText(event.target.value)}
+                      data-testid="header-nav-json"
+                    />
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -985,21 +1063,20 @@ const AdminHomepageSettings: React.FC = () => {
             <div className="card border-0 shadow-sm">
               <div className="card-header bg-white">
                 <h5 className="mb-1">Templates & layouts</h5>
-                <small className="text-muted">
-                  Store active template keys under <code>publicTemplates</code> without deleting any existing public demo routes.
-                </small>
+                <small className="text-muted">Choose which saved template or layout should represent each public surface.</small>
               </div>
               <div className="card-body">
-                <div className="alert alert-warning">
-                  The selections below are stored safely today. Public canonical route switching remains pending for category layouts, so current public routes stay stable.
+                <div className="alert alert-light border">
+                  Selections are saved. Public canonical route switching will be enabled in a later phase.
                 </div>
                 <div className="row g-3" data-testid="template-selection-controls">
                   {TEMPLATE_CATEGORY_CONFIGS.map((category) => {
                     const value = settings.publicTemplates?.[category.key] || category.options[0]?.key || '';
+                    const selected = category.options.find((option) => option.key === value) || category.options[0];
                     return (
                       <div className="col-12" key={category.key}>
                         <div className="border rounded-3 p-3 h-100 bg-light">
-                          <div className="row g-3 align-items-end">
+                          <div className="row g-3">
                             <div className="col-lg-4">
                               <label className="form-label">{category.label}</label>
                               <select
@@ -1013,23 +1090,27 @@ const AdminHomepageSettings: React.FC = () => {
                                   </option>
                                 ))}
                               </select>
+                              <small className="text-muted d-block mt-2">{category.helper}</small>
                             </div>
-                            <div className="col-lg-8">
-                              <div className="row g-2">
-                                {category.options.map((option) => (
-                                  <div className="col-md-6 col-xl-4" key={option.key}>
-                                    <div className={`border rounded-3 p-2 h-100 ${value === option.key ? 'border-primary bg-white' : 'bg-white'}`}>
-                                      <div className="fw-semibold">{option.label}</div>
-                                      <small className="text-muted d-block">Key: {option.key}</small>
-                                      <small className="text-muted d-block">Route: {option.route}</small>
-                                      <small className="text-muted d-block">Component: {option.component}</small>
-                                    </div>
-                                  </div>
-                                ))}
+                            <div className="col-lg-5">
+                              <div className="border rounded-3 p-3 h-100 bg-white">
+                                <div className="text-muted small mb-2">Selected template</div>
+                                <div className="fw-semibold mb-1">{selected.label}</div>
+                                <small className="text-muted d-block">
+                                  {selected.note || 'Saved as the active selection for this public surface.'}
+                                </small>
+                                <small className="text-muted d-block mt-2">Status: Template selection saved</small>
+                              </div>
+                            </div>
+                            <div className="col-lg-3">
+                              <div className="border rounded-3 p-3 h-100 bg-white">
+                                <div className="fw-semibold mb-2">Technical details</div>
+                                <small className="text-muted d-block">Key: {selected.key}</small>
+                                <small className="text-muted d-block">Route: {selected.route}</small>
+                                <small className="text-muted d-block">Component: {selected.component}</small>
                               </div>
                             </div>
                           </div>
-                          <small className="text-muted d-block mt-2">{category.helper}</small>
                         </div>
                       </div>
                     );
@@ -1401,36 +1482,43 @@ const AdminHomepageSettings: React.FC = () => {
               </div>
 
               <div className="card border-0 shadow-sm">
-                <div className="card-header bg-white">
-                  <h5 className="mb-1">Template inventory report</h5>
-                  <small className="text-muted">Actual discovered public route/component pairs currently available in the app.</small>
-                </div>
-                <div className="card-body">
-                  <div className="table-responsive">
-                    <table className="table align-middle mb-0">
-                      <thead>
-                        <tr>
-                          <th>Category</th>
-                          <th>Key</th>
-                          <th>Route</th>
-                          <th>Component</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {TEMPLATE_CATEGORY_CONFIGS.flatMap((category) =>
-                          category.options.map((option) => (
-                            <tr key={`${category.key}-${option.key}`}>
-                              <td>{category.key}</td>
-                              <td><code>{option.key}</code></td>
-                              <td><code>{option.route}</code></td>
-                              <td><code>{option.component}</code></td>
-                            </tr>
-                          ))
-                        )}
-                      </tbody>
-                    </table>
+                <div className="card-header bg-white d-flex align-items-center justify-content-between gap-2">
+                  <div>
+                    <h5 className="mb-1">Developer diagnostics</h5>
+                    <small className="text-muted">Route/component inventory used for debugging and future layout routing.</small>
                   </div>
+                  <button type="button" className="btn btn-sm btn-light border" onClick={() => setShowAdvancedDiagnostics((prev) => !prev)}>
+                    {showAdvancedDiagnostics ? 'Hide' : 'Show'}
+                  </button>
                 </div>
+                {showAdvancedDiagnostics && (
+                  <div className="card-body">
+                    <div className="table-responsive">
+                      <table className="table align-middle mb-0">
+                        <thead>
+                          <tr>
+                            <th>Category</th>
+                            <th>Key</th>
+                            <th>Route</th>
+                            <th>Component</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {TEMPLATE_CATEGORY_CONFIGS.flatMap((category) =>
+                            category.options.map((option) => (
+                              <tr key={`${category.key}-${option.key}`}>
+                                <td>{category.key}</td>
+                                <td><code>{option.key}</code></td>
+                                <td><code>{option.route}</code></td>
+                                <td><code>{option.component}</code></td>
+                              </tr>
+                            ))
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           )}
