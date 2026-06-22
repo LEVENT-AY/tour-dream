@@ -232,54 +232,16 @@ const TEMPLATE_CATEGORY_CONFIGS: TemplateCategoryConfig[] = [
 
 const DEFAULT_HEADER_NAVIGATION: HeaderNavigationItem[] = [
   { id: 'home', label: 'Home', url: '/', visible: true, type: 'link' },
-  {
-    id: 'hotels',
-    label: 'Hotels',
-    visible: true,
-    type: 'dropdown',
-    imageUrl: 'assets/img/menu/hotel.jpg',
-    children: [
-      { label: 'Hotel Grid', url: '/hotel/hotel-grid', visible: true },
-      { label: 'Chalet Grid', url: '/chalet/chalet-grid', visible: true },
-      { label: 'Resort Grid', url: '/resort/resort-grid', visible: true },
-    ],
-  },
-  {
-    id: 'tours',
-    label: 'Tours',
-    visible: true,
-    type: 'dropdown',
-    imageUrl: 'assets/img/menu/tour.jpg',
-    children: [
-      { label: 'Tour Grid', url: '/tour/tour-grid', visible: true },
-      { label: 'Tour List', url: '/tour/tour-list', visible: true },
-    ],
-  },
-  {
-    id: 'transport',
-    label: 'Transport',
-    visible: true,
-    type: 'dropdown',
-    imageUrl: 'assets/img/menu/flight.jpg',
-    children: [
-      { label: 'Flight Grid', url: '/flight/flight-grid', visible: true },
-      { label: 'Car Grid', url: '/car/car-grid', visible: true },
-      { label: 'Bus List', url: '/bus/bus-list', visible: true },
-      { label: 'Cruise Grid', url: '/cruise/cruise-grid', visible: true },
-    ],
-  },
-  {
-    id: 'experiences',
-    label: 'Experiences',
-    visible: true,
-    type: 'dropdown',
-    imageUrl: 'assets/img/menu/activity.jpg',
-    children: [
-      { label: 'Activities', url: '/activity/activity-grid', visible: true },
-      { label: 'Guides', url: '/guide/guide-grid', visible: true },
-      { label: 'Visa Services', url: '/visa/visa-grid', visible: true },
-    ],
-  },
+  { id: 'flight', label: 'Flight', url: '/flight/flight-list', visible: true, type: 'link' },
+  { id: 'hotel', label: 'Hotel', url: '/hotel/hotel-map', visible: true, type: 'link' },
+  { id: 'car', label: 'Car', url: '/car/car-map', visible: true, type: 'link' },
+  { id: 'cruise', label: 'Cruise', url: '/cruise/cruise-grid', visible: true, type: 'link' },
+  { id: 'tour', label: 'Tour', url: '/tour/tour-map', visible: true, type: 'link' },
+  { id: 'bus', label: 'Bus', url: '/bus/bus-left-sidebar', visible: true, type: 'link' },
+  { id: 'activity', label: 'Activity', url: '/activity/activity-map', visible: true, type: 'link' },
+  { id: 'visa', label: 'Visa', url: '/visa/visa-list', visible: true, type: 'link' },
+  { id: 'guide', label: 'Guide', url: '/guide/guide-grid', visible: true, type: 'link' },
+  { id: 'pricing-plan', label: 'Pricing Plan', url: '/pages/pricing-plan', visible: true, type: 'link' },
   { id: 'contact', label: 'Contact', url: '/contact-us', visible: true, type: 'link' },
 ];
 

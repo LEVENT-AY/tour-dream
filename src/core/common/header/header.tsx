@@ -113,6 +113,21 @@ const Header = () => {
   const customHeaderNavigation = (homepageSettings?.headerNavigation || []).filter(
     (item): item is HeaderNavigationItem => !!item && item.visible !== false && !!item.label?.trim()
   );
+  const useFlatPublicHeaderNavigation = displayPathname !== "/index-10" && displayPathname !== "/index-12";
+  const publicHeaderNavigation = [
+    { label: "Home", url: routes.allService1 },
+    { label: "Flight", url: routes.flightList },
+    { label: "Hotel", url: routes.hotelMap },
+    { label: "Car", url: routes.carMap },
+    { label: "Cruise", url: routes.cruiseGrid },
+    { label: "Tour", url: routes.tourMap },
+    { label: "Bus", url: routes.busLeftSidebar },
+    { label: "Activity", url: routes.activityMap },
+    { label: "Visa", url: routes.visaList },
+    { label: "Guide", url: routes.guideGrid },
+    { label: "Pricing Plan", url: routes.pricingPlan },
+    { label: "Contact", url: routes.contactUs },
+  ];
   const currentPath = normalizeWebsiteSettingsPath(displayPathname) || displayPathname || "/";
   const isExactActivePath = (route?: string) => {
     const normalizedRoute = normalizeWebsiteSettingsPath(route);
@@ -179,6 +194,15 @@ const Header = () => {
       </li>
     );
   };
+
+  const renderFlatNavigation = (item: { label: string; url: string }, index: number, mobile = false) => (
+    <li
+      key={`${item.label}-${index}`}
+      className={`${mobile ? "" : "me-3"} ${isExactActivePath(item.url) ? "active" : ""}`}
+    >
+      <Link to={item.url}>{item.label}</Link>
+    </li>
+  );
 
   const sideBar = [
     {
@@ -2037,9 +2061,7 @@ const Header = () => {
           ${displayPathname === "/index-9" && "header-seven"} ${displayPathname === "/index-10" && "header-ten"} 
           ${displayPathname === "/index-11" && "header-eleven"} ${displayPathname === "/index-12" && "header-eight header-twelve"}`}
         >
-          <div
-            className={` ${displayPathname === "/index" || displayPathname === "/index-10" || displayPathname === "/index-2" || displayPathname === "/index-6" || displayPathname === "/index-11" || displayPathname === "/index-12" ? "container-fluid" : "container"}`}
-          >
+          <div className={` ${useFlatPublicHeaderNavigation ? "container-fluid" : "container"}`}>
             <div className={`offcanvas-info ${isOffcanva ? "show" : ""}`}>
               <div className="offcanvas-wrap">
                 <div className="offcanvas-detail">
@@ -2087,7 +2109,9 @@ const Header = () => {
                     <div className="mean-bar">
                       <nav className="mean-nav">
                         <ul className="main-nav" style={{ display: "none" }}>
-                          {customHeaderNavigation.length > 0
+                          {useFlatPublicHeaderNavigation
+                            ? publicHeaderNavigation.map((item, index) => renderFlatNavigation(item, index, true))
+                            : customHeaderNavigation.length > 0
                             ? customHeaderNavigation.map((item, index) => renderCustomNavigation(item, index, true))
                             : sideBar.map((mainMenus, i) => (
                             <React.Fragment key={i}>
@@ -2634,7 +2658,9 @@ const Header = () => {
                 </div>
                 <nav id="mobile-menu">
                   <ul className={`main-nav ${isMegaMenu ? "active" : ""}`}>
-                    {customHeaderNavigation.length > 0
+                    {useFlatPublicHeaderNavigation
+                      ? publicHeaderNavigation.map((item, index) => renderFlatNavigation(item, index))
+                      : customHeaderNavigation.length > 0
                       ? customHeaderNavigation.map((item, index) => renderCustomNavigation(item, index))
                       : sideBar.map((mainMenus: any, index) => (
                       <React.Fragment key={index}>
