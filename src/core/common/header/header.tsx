@@ -119,6 +119,8 @@ const Header = () => {
     { label: "Flight", url: routes.flightList },
     { label: "Hotel", url: routes.hotelMap },
     { label: "Car", url: routes.carMap },
+    { label: "Resort", url: routes.resortGrid },
+    { label: "Chalet", url: routes.chaletGrid },
     { label: "Cruise", url: routes.cruiseGrid },
     { label: "Tour", url: routes.tourMap },
     { label: "Bus", url: routes.busLeftSidebar },
@@ -198,9 +200,15 @@ const Header = () => {
   const renderFlatNavigation = (item: { label: string; url: string }, index: number, mobile = false) => (
     <li
       key={`${item.label}-${index}`}
-      className={`${mobile ? "" : "me-3"} ${isExactActivePath(item.url) ? "active" : ""}`}
+      className={`${mobile ? "" : "me-4"} ${isExactActivePath(item.url) ? "active" : ""}`}
     >
-      <Link to={item.url}>{item.label}</Link>
+      <Link
+        to={item.url}
+        className={mobile ? "" : "header-flat-link"}
+        style={mobile ? undefined : { fontSize: "15px", fontWeight: 500, whiteSpace: "nowrap", letterSpacing: "0.01em" }}
+      >
+        {item.label}
+      </Link>
     </li>
   );
 

@@ -10,6 +10,8 @@ const EXPECTED_LABELS = [
   'Flight',
   'Hotel',
   'Car',
+  'Resort',
+  'Chalet',
   'Cruise',
   'Tour',
   'Bus',
@@ -50,12 +52,14 @@ async function readHeaderState(page) {
   const dropdownToggleCount = await header.locator('.main-nav a[href="#"], .main-nav .fa-angle-down').count();
   const fluidContainerCount = await header.locator('.container-fluid').count();
   const hasSubmenuCount = await header.locator('.main-nav .has-submenu').count();
+  const homeTemplateRouteCount = await header.locator('a[href^="/index-"]').count();
   return {
     path: new URL(page.url()).pathname,
     topNavLabels,
     dropdownToggleCount,
     fluidContainerCount,
     hasSubmenuCount,
+    homeTemplateRouteCount,
   };
 }
 
@@ -83,6 +87,8 @@ async function main() {
   let rootNoDropdowns = false;
   let rootFluid = false;
   let localTemplateDropdownsKept = false;
+  let previewRoutesOk = false;
+  let hiddenHomeTemplatesOk = false;
 
   try {
     await page.goto(`${BASE_URL}/`, { waitUntil: 'domcontentloaded' });
@@ -93,17 +99,26 @@ async function main() {
       rootState.topNavLabels.every((label, index) => label === EXPECTED_LABELS[index]);
     rootNoDropdowns = rootState.dropdownToggleCount === 0;
     rootFluid = rootState.fluidContainerCount > 0;
+    hiddenHomeTemplatesOk = rootState.homeTemplateRouteCount === 0;
 
     await page.goto(`${BASE_URL}/index-10`, { waitUntil: 'domcontentloaded' });
     const localState = await readHeaderState(page);
     localTemplateDropdownsKept = localState.hasSubmenuCount > 0 || localState.dropdownToggleCount > 0;
+
+    await page.goto(`${BASE_URL}/index-3`, { waitUntil: 'domcontentloaded' });
+    const previewOne = await readHeaderState(page);
+    await page.goto(`${BASE_URL}/index-12`, { waitUntil: 'domcontentloaded' });
+    const previewTwo = await readHeaderState(page);
+    previewRoutesOk = previewOne.path === '/index-3' && previewTwo.path === '/index-12';
 
     const success =
       rootOk &&
       rootLabelsOk &&
       rootNoDropdowns &&
       rootFluid &&
+      hiddenHomeTemplatesOk &&
       localTemplateDropdownsKept &&
+      previewRoutesOk &&
       errors.length === 0;
 
     console.log(JSON.stringify({
@@ -112,7 +127,9 @@ async function main() {
       rootLabelsOk,
       rootNoDropdowns,
       rootFluid,
+      hiddenHomeTemplatesOk,
       localTemplateDropdownsKept,
+      previewRoutesOk,
       rootTopNavLabels: rootState.topNavLabels,
       localPath: localState.path,
       errors,
@@ -125,7 +142,9 @@ async function main() {
       rootLabelsOk,
       rootNoDropdowns,
       rootFluid,
+      hiddenHomeTemplatesOk,
       localTemplateDropdownsKept,
+      previewRoutesOk,
       errors,
       reason: error.message || String(error),
     }));
