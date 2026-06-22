@@ -19,10 +19,8 @@ import BookingDropdown from "../../core/common/booking-dropdown/bookingDropdown"
 import BannerCounter from "../../core/common/banner-counter/counter";
 import {
   fetchHomepageSettings,
-  normalizeWebsiteSettingsPath,
   type HomepageSettings,
 } from "../../core/services/firebaseServices";
-import { img_path } from "../../environment";
 type Mode = "flight" | "hotel" | "cruise" | "tour" | "bus" | "activity" | "visa" | "guide";
 
 type BookingState = {
@@ -105,20 +103,6 @@ const HomeServiceOne = () => {
       cancelled = true;
     };
   }, []);
-
-  const resolveAssetSrc = (src?: string) => {
-    if (!src) return "";
-    if (/^https?:\/\//i.test(src) || src.startsWith("//")) return src;
-    return `${img_path}${src.replace(/^\/+/, "")}`;
-  };
-
-  const heroBackgroundStyle = homepageSettings?.heroImage
-    ? {
-        backgroundImage: `url(${resolveAssetSrc(homepageSettings.heroImage)})`,
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-      }
-    : undefined;
 
 
 const [formData, setFormData] = useState<BookingState>({
@@ -287,12 +271,9 @@ const guidePassenger =
   return (
     <>
       {/* Hero Section */}
-      <section className="hero-sec-eight" style={heroBackgroundStyle}>
+      <section className="hero-sec-eight" data-homepage-settings={homepageSettings ? "loaded" : "empty"}>
         <div className="container">
-          <h1 className="animate-text">{homepageSettings?.heroTitle || "Adventure"}</h1>
-          <p className="text-white-50 text-center mx-auto mb-3" style={{ maxWidth: 900 }}>
-            {homepageSettings?.heroSubtitle || ""}
-          </p>
+          <h1 className="animate-text">Adventure</h1>
           <div
             className="animate-button"
             ref={buttonRef}
@@ -313,16 +294,6 @@ const guidePassenger =
               videoUrl={videoUrl}
             />
           </div>
-          {(homepageSettings?.ctaLabel && homepageSettings?.ctaLink) && (
-            <div className="d-flex justify-content-center mt-3">
-              <Link
-                to={normalizeWebsiteSettingsPath(homepageSettings.ctaLink) || all_routes.tourGrid}
-                className="btn btn-primary"
-              >
-                {homepageSettings.ctaLabel}
-              </Link>
-            </div>
-          )}
           <div className="hero-content">
             <div className="row align-items-center">
               <div className="col-md-12 mx-auto">

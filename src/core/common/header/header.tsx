@@ -108,10 +108,10 @@ const Header = () => {
   const customHeaderNavigation = (homepageSettings?.headerNavigation || []).filter(
     (item): item is HeaderNavigationItem => !!item && item.visible !== false && !!item.label?.trim()
   );
-  const headerBrandLogo = homepageSettings?.logo || "";
-  const headerSiteName = homepageSettings?.siteName || "DreamsTour";
-  const headerContactPhone = homepageSettings?.contactPhone || "+1 56565 56594";
-  const headerContactEmail = homepageSettings?.contactEmail || "info@example.com";
+  const headerBrandLogo = "";
+  const headerSiteName = "Logo";
+  const headerContactPhone = "+1 56565 56594";
+  const headerContactEmail = "info@example.com";
 
   const renderCustomNavigation = (item: HeaderNavigationItem, index: number, mobile = false) => {
     const url = normalizeWebsiteSettingsPath(item.url);
@@ -1862,9 +1862,6 @@ const Header = () => {
                       alt={headerSiteName}
                     />
                   </Link>
-                  {homepageSettings?.siteName && (
-                    <span className="ms-2 fw-semibold d-none d-xl-inline-block">{homepageSettings.siteName}</span>
-                  )}
                 </div>
                 <div className="d-flex align-items-center">
                   <div className="dropdown mb-2 me-3">
@@ -2619,9 +2616,6 @@ const Header = () => {
                         />
                       )}
                     </Link>
-                  )}
-                  {homepageSettings?.siteName && (
-                    <span className="ms-2 fw-semibold d-none d-xl-inline-block">{homepageSettings.siteName}</span>
                   )}
                 </div>
                 <nav id="mobile-menu">
