@@ -87,7 +87,7 @@ const AdminHomepageSettings: React.FC = () => {
         setLoading(false);
       }
     };
-    load();
+    void load();
   }, []);
 
   const update = (path: string, value: any) => {
@@ -95,7 +95,7 @@ const AdminHomepageSettings: React.FC = () => {
       const keys = path.split('.');
       const next: any = { ...prev };
       let cur = next;
-      for (let i = 0; i < keys.length - 1; i++) {
+      for (let i = 0; i < keys.length - 1; i += 1) {
         cur[keys[i]] = { ...cur[keys[i]] };
         cur = cur[keys[i]];
       }
@@ -173,39 +173,70 @@ const AdminHomepageSettings: React.FC = () => {
     );
   }
 
-  const sectionKeys: (keyof HomepageSettings['sections'])[] = [
-    'featuredTours',
-    'featuredHotels',
-    'featuredFlights',
-    'featuredCars',
-    'featuredActivities',
+  const sectionConfigs: Array<{
+    key: keyof HomepageSettings['sections'];
+    label: string;
+    description: string;
+  }> = [
+    {
+      key: 'featuredTours',
+      label: 'Featured Tours',
+      description: 'Controls the tours section title and visibility on supported homepage templates.',
+    },
+    {
+      key: 'featuredHotels',
+      label: 'Featured Hotels',
+      description: 'Controls the hotels section title and visibility on supported homepage templates.',
+    },
+    {
+      key: 'featuredFlights',
+      label: 'Featured Flights',
+      description: 'Controls the flights section title and visibility on supported homepage templates.',
+    },
+    {
+      key: 'featuredCars',
+      label: 'Featured Cars',
+      description: 'Controls the cars section title and visibility on supported homepage templates.',
+    },
+    {
+      key: 'featuredActivities',
+      label: 'Featured Activities',
+      description: 'Controls the activities section title and visibility on supported homepage templates.',
+    },
   ];
 
-  const renderFeaturedSelector = (label: string, key: keyof HomepageSettings, options: any[]) => {
-    const selected: string[] = (settings[key] as string[]) || [];
-    return (
-      <div className="mb-3">
-        <label className="form-label">{label}</label>
-        <select
-          multiple
-          className="form-select"
-          size={5}
-          value={selected}
-          onChange={(e) => {
-            const opts = Array.from(e.target.selectedOptions).map((o) => o.value);
-            update(key as string, opts);
-          }}
-        >
-          {options.map((opt) => (
-            <option key={opt.id} value={opt.id}>
-              {opt.title || opt.name}
-            </option>
-          ))}
-        </select>
-        <small className="text-muted">Hold Ctrl/Cmd to select multiple.</small>
-      </div>
-    );
-  };
+  const featuredCollections = [
+    {
+      key: 'featuredTours' as const,
+      label: 'Tours',
+      description: 'Pick which tour listings appear in the featured homepage block.',
+      options: tours,
+    },
+    {
+      key: 'featuredHotels' as const,
+      label: 'Hotels',
+      description: 'Pick which hotel listings appear in the featured homepage block.',
+      options: hotels,
+    },
+    {
+      key: 'featuredFlights' as const,
+      label: 'Flights',
+      description: 'Pick which flight listings appear in the featured homepage block.',
+      options: flights,
+    },
+    {
+      key: 'featuredCars' as const,
+      label: 'Cars',
+      description: 'Pick which car listings appear in the featured homepage block.',
+      options: cars,
+    },
+    {
+      key: 'featuredActivities' as const,
+      label: 'Activities',
+      description: 'Pick which activity listings appear in the featured homepage block.',
+      options: activities,
+    },
+  ] as const;
 
   return (
     <div>
@@ -224,9 +255,10 @@ const AdminHomepageSettings: React.FC = () => {
 
       <div className="row g-4">
         <div className="col-lg-6">
-          <div className="card">
+          <div className="card h-100">
             <div className="card-header bg-white">
               <h5 className="mb-0">Branding</h5>
+              <small className="text-muted d-block mt-1">Core brand identity used by the public website.</small>
             </div>
             <div className="card-body">
               <div className="mb-3">
@@ -249,18 +281,26 @@ const AdminHomepageSettings: React.FC = () => {
                   className="form-control"
                   value={settings.siteName || ''}
                   onChange={(e) => update('siteName', e.target.value)}
+                  placeholder="DreamsTour"
                 />
               </div>
-              <ImageUpload label="Logo" value={settings.logo || ''} onChange={(url) => update('logo', url)} />
-              <ImageUpload label="Favicon" value={settings.favicon || ''} onChange={(url) => update('favicon', url)} />
+              <div className="row g-3">
+                <div className="col-md-6">
+                  <ImageUpload label="Logo" value={settings.logo || ''} onChange={(url) => update('logo', url)} />
+                </div>
+                <div className="col-md-6">
+                  <ImageUpload label="Favicon" value={settings.favicon || ''} onChange={(url) => update('favicon', url)} />
+                </div>
+              </div>
             </div>
           </div>
         </div>
 
         <div className="col-lg-6">
-          <div className="card">
+          <div className="card h-100">
             <div className="card-header bg-white">
               <h5 className="mb-0">Contact Details</h5>
+              <small className="text-muted d-block mt-1">Shared contact values used in supported header and footer areas.</small>
             </div>
             <div className="card-body">
               <div className="mb-3">
@@ -270,6 +310,7 @@ const AdminHomepageSettings: React.FC = () => {
                   className="form-control"
                   value={settings.contactEmail || ''}
                   onChange={(e) => update('contactEmail', e.target.value)}
+                  placeholder="info@example.com"
                 />
               </div>
               <div className="mb-3">
@@ -279,15 +320,17 @@ const AdminHomepageSettings: React.FC = () => {
                   className="form-control"
                   value={settings.contactPhone || ''}
                   onChange={(e) => update('contactPhone', e.target.value)}
+                  placeholder="+1 56565 56594"
                 />
               </div>
-              <div className="mb-3">
+              <div className="mb-0">
                 <label className="form-label">Address</label>
                 <textarea
                   className="form-control"
                   rows={2}
                   value={settings.contactAddress || ''}
                   onChange={(e) => update('contactAddress', e.target.value)}
+                  placeholder="Office or support address"
                 />
               </div>
             </div>
@@ -298,10 +341,11 @@ const AdminHomepageSettings: React.FC = () => {
           <div className="card">
             <div className="card-header bg-white">
               <h5 className="mb-0">Homepage Hero</h5>
+              <small className="text-muted d-block mt-1">Controls the main hero content on supported homepage templates.</small>
             </div>
             <div className="card-body">
-              <div className="row">
-                <div className="col-md-6">
+              <div className="row g-4">
+                <div className="col-lg-6">
                   <div className="mb-3">
                     <label className="form-label">Hero Title</label>
                     <input
@@ -309,44 +353,48 @@ const AdminHomepageSettings: React.FC = () => {
                       className="form-control"
                       value={settings.heroTitle}
                       onChange={(e) => update('heroTitle', e.target.value)}
+                      placeholder="Adventure starts here"
                     />
                   </div>
                   <div className="mb-3">
                     <label className="form-label">Hero Subtitle</label>
                     <textarea
                       className="form-control"
-                      rows={3}
+                      rows={4}
                       value={settings.heroSubtitle}
                       onChange={(e) => update('heroSubtitle', e.target.value)}
+                      placeholder="A short supporting message for the homepage hero."
                     />
                   </div>
                 </div>
-                <div className="col-md-6">
+                <div className="col-lg-6">
                   <ImageUpload
                     label="Hero Background Image"
                     value={settings.heroImage}
                     onChange={(url) => update('heroImage', url)}
                   />
-                  <div className="row">
-                    <div className="col-6">
-                      <div className="mb-3">
+                  <div className="row g-3">
+                    <div className="col-md-6">
+                      <div className="mb-0">
                         <label className="form-label">CTA Label</label>
                         <input
                           type="text"
                           className="form-control"
                           value={settings.ctaLabel}
                           onChange={(e) => update('ctaLabel', e.target.value)}
+                          placeholder="Discover Now"
                         />
                       </div>
                     </div>
-                    <div className="col-6">
-                      <div className="mb-3">
+                    <div className="col-md-6">
+                      <div className="mb-0">
                         <label className="form-label">CTA Link</label>
                         <input
                           type="text"
                           className="form-control"
                           value={settings.ctaLink}
                           onChange={(e) => update('ctaLink', e.target.value)}
+                          placeholder="/tour/tour-grid"
                         />
                       </div>
                     </div>
@@ -357,52 +405,59 @@ const AdminHomepageSettings: React.FC = () => {
           </div>
         </div>
 
-        <div className="col-lg-6">
+        <div className="col-12">
           <div className="card">
             <div className="card-header bg-white">
               <h5 className="mb-0">Section Visibility & Titles</h5>
+              <small className="text-muted d-block mt-1">Turn homepage sections on or off and adjust their labels in one place.</small>
             </div>
             <div className="card-body">
-              {sectionKeys.map((key) => (
-                <div className="mb-3" key={key}>
-                  <div className="form-check mb-1">
-                    <input
-                      className="form-check-input"
-                      type="checkbox"
-                      checked={!!settings.sections[key]}
-                      onChange={() => toggleSection(key)}
-                      id={`section-${key}`}
-                    />
-                    <label className="form-check-label fw-medium" htmlFor={`section-${key}`}>
-                      {key.replace('featured', 'Featured ')}
-                    </label>
+              <div className="row g-3">
+                {sectionConfigs.map((section) => (
+                  <div className="col-md-6 col-xl-4" key={section.key}>
+                    <div className="border rounded-3 p-3 h-100 bg-light">
+                      <div className="form-check form-switch mb-2">
+                        <input
+                          className="form-check-input"
+                          type="checkbox"
+                          checked={!!settings.sections[section.key]}
+                          onChange={() => toggleSection(section.key)}
+                          id={`section-${section.key}`}
+                        />
+                        <label className="form-check-label fw-semibold" htmlFor={`section-${section.key}`}>
+                          {section.label}
+                        </label>
+                      </div>
+                      <p className="text-muted small mb-2">{section.description}</p>
+                      <input
+                        type="text"
+                        className="form-control form-control-sm"
+                        value={settings.sectionTitles[section.key] || ''}
+                        onChange={(e) => update(`sectionTitles.${section.key}`, e.target.value)}
+                        placeholder={section.label}
+                      />
+                    </div>
                   </div>
-                  <input
-                    type="text"
-                    className="form-control form-control-sm"
-                    value={settings.sectionTitles[key] || ''}
-                    onChange={(e) => update(`sectionTitles.${key}`, e.target.value)}
-                    placeholder="Section title"
-                  />
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           </div>
         </div>
 
         <div className="col-lg-6">
-          <div className="card">
+          <div className="card h-100">
             <div className="card-header bg-white">
               <h5 className="mb-0">Homepage Banners</h5>
+              <small className="text-muted d-block mt-1">Add or edit rotating hero banners for supported layouts.</small>
             </div>
             <div className="card-body">
               {(settings.banners || []).map((banner, i) => (
-                <div key={i} className="border rounded p-2 mb-2">
+                <div key={i} className="border rounded-3 p-3 mb-3">
                   <div className="mb-2">
                     <input
                       type="text"
                       className="form-control form-control-sm"
-                      placeholder="Title"
+                      placeholder="Banner title"
                       value={banner.title || ''}
                       onChange={(e) => updateBanner(i, 'title', e.target.value)}
                     />
@@ -411,7 +466,7 @@ const AdminHomepageSettings: React.FC = () => {
                     <input
                       type="text"
                       className="form-control form-control-sm"
-                      placeholder="Link"
+                      placeholder="Banner link"
                       value={banner.link || ''}
                       onChange={(e) => updateBanner(i, 'link', e.target.value)}
                     />
@@ -421,7 +476,7 @@ const AdminHomepageSettings: React.FC = () => {
                     value={banner.image || ''}
                     onChange={(url) => updateBanner(i, 'image', url)}
                   />
-                  <button type="button" className="btn btn-sm btn-outline-danger mt-2" onClick={() => removeBanner(i)}>
+                  <button type="button" className="btn btn-sm btn-outline-danger" onClick={() => removeBanner(i)}>
                     Remove Banner
                   </button>
                 </div>
@@ -433,53 +488,41 @@ const AdminHomepageSettings: React.FC = () => {
           </div>
         </div>
 
-        <div className="col-12">
-          <div className="card">
-            <div className="card-header bg-white">
-              <h5 className="mb-0">Featured Items</h5>
-            </div>
-            <div className="card-body">
-              <div className="row">
-                <div className="col-md-4">{renderFeaturedSelector('Featured Tours', 'featuredTours', tours)}</div>
-                <div className="col-md-4">{renderFeaturedSelector('Featured Hotels', 'featuredHotels', hotels)}</div>
-                <div className="col-md-4">{renderFeaturedSelector('Featured Flights', 'featuredFlights', flights)}</div>
-                <div className="col-md-4">{renderFeaturedSelector('Featured Cars', 'featuredCars', cars)}</div>
-                <div className="col-md-4">{renderFeaturedSelector('Featured Activities', 'featuredActivities', activities)}</div>
-              </div>
-            </div>
-          </div>
-        </div>
-
         <div className="col-lg-6">
-          <div className="card">
+          <div className="card h-100">
             <div className="card-header bg-white">
               <h5 className="mb-0">Navigation Links</h5>
+              <small className="text-muted d-block mt-1">Optional extra links shown in supported public navigation areas.</small>
             </div>
             <div className="card-body">
               {(settings.navLinks || []).map((link, i) => (
-                <div key={i} className="row g-2 mb-2 align-items-end">
-                  <div className="col-5">
-                    <input
-                      type="text"
-                      className="form-control form-control-sm"
-                      placeholder="Label"
-                      value={link.label}
-                      onChange={(e) => updateListItem(settings.navLinks || [], i, 'label', e.target.value, 'navLinks')}
-                    />
-                  </div>
-                  <div className="col-5">
-                    <input
-                      type="text"
-                      className="form-control form-control-sm"
-                      placeholder="Path"
-                      value={link.path}
-                      onChange={(e) => updateListItem(settings.navLinks || [], i, 'path', e.target.value, 'navLinks')}
-                    />
-                  </div>
-                  <div className="col-2">
-                    <button className="btn btn-sm btn-outline-danger w-100" onClick={() => removeListItem('navLinks', i)}>
-                      ×
-                    </button>
+                <div key={i} className="border rounded-3 p-3 mb-3">
+                  <div className="row g-2 align-items-end">
+                    <div className="col-5">
+                      <label className="form-label small">Label</label>
+                      <input
+                        type="text"
+                        className="form-control form-control-sm"
+                        placeholder="Contact"
+                        value={link.label}
+                        onChange={(e) => updateListItem(settings.navLinks || [], i, 'label', e.target.value, 'navLinks')}
+                      />
+                    </div>
+                    <div className="col-5">
+                      <label className="form-label small">Path</label>
+                      <input
+                        type="text"
+                        className="form-control form-control-sm"
+                        placeholder="/contact"
+                        value={link.path}
+                        onChange={(e) => updateListItem(settings.navLinks || [], i, 'path', e.target.value, 'navLinks')}
+                      />
+                    </div>
+                    <div className="col-2">
+                      <button className="btn btn-sm btn-outline-danger w-100" onClick={() => removeListItem('navLinks', i)}>
+                        &times;
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -491,45 +534,51 @@ const AdminHomepageSettings: React.FC = () => {
         </div>
 
         <div className="col-lg-6">
-          <div className="card">
+          <div className="card h-100">
             <div className="card-header bg-white">
               <h5 className="mb-0">Footer</h5>
+              <small className="text-muted d-block mt-1">Controls the public footer copy and footer links where the footer is mounted.</small>
             </div>
             <div className="card-body">
               <div className="mb-3">
                 <label className="form-label">Footer Text</label>
                 <textarea
                   className="form-control"
-                  rows={2}
+                  rows={3}
                   value={settings.footerText || ''}
                   onChange={(e) => update('footerText', e.target.value)}
+                  placeholder="Copyright 2026. All Rights Reserved,"
                 />
               </div>
               <label className="form-label">Footer Links</label>
               {(settings.footerLinks || []).map((link, i) => (
-                <div key={i} className="row g-2 mb-2 align-items-end">
-                  <div className="col-5">
-                    <input
-                      type="text"
-                      className="form-control form-control-sm"
-                      placeholder="Label"
-                      value={link.label}
-                      onChange={(e) => updateListItem(settings.footerLinks || [], i, 'label', e.target.value, 'footerLinks')}
-                    />
-                  </div>
-                  <div className="col-5">
-                    <input
-                      type="text"
-                      className="form-control form-control-sm"
-                      placeholder="Path"
-                      value={link.path}
-                      onChange={(e) => updateListItem(settings.footerLinks || [], i, 'path', e.target.value, 'footerLinks')}
-                    />
-                  </div>
-                  <div className="col-2">
-                    <button className="btn btn-sm btn-outline-danger w-100" onClick={() => removeListItem('footerLinks', i)}>
-                      ×
-                    </button>
+                <div key={i} className="border rounded-3 p-3 mb-3">
+                  <div className="row g-2 align-items-end">
+                    <div className="col-5">
+                      <label className="form-label small">Label</label>
+                      <input
+                        type="text"
+                        className="form-control form-control-sm"
+                        placeholder="Privacy"
+                        value={link.label}
+                        onChange={(e) => updateListItem(settings.footerLinks || [], i, 'label', e.target.value, 'footerLinks')}
+                      />
+                    </div>
+                    <div className="col-5">
+                      <label className="form-label small">Path</label>
+                      <input
+                        type="text"
+                        className="form-control form-control-sm"
+                        placeholder="/privacy"
+                        value={link.path}
+                        onChange={(e) => updateListItem(settings.footerLinks || [], i, 'path', e.target.value, 'footerLinks')}
+                      />
+                    </div>
+                    <div className="col-2">
+                      <button className="btn btn-sm btn-outline-danger w-100" onClick={() => removeListItem('footerLinks', i)}>
+                        &times;
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -543,7 +592,54 @@ const AdminHomepageSettings: React.FC = () => {
         <div className="col-12">
           <div className="card">
             <div className="card-header bg-white">
+              <h5 className="mb-0">Featured Items</h5>
+              <small className="text-muted d-block mt-1">Choose the items that should appear in the featured homepage slots.</small>
+            </div>
+            <div className="card-body">
+              <div className="row g-3">
+                {featuredCollections.map((collection) => {
+                  const selected: string[] = (settings[collection.key] as string[]) || [];
+                  return (
+                    <div className="col-md-6 col-xl-4" key={collection.key}>
+                      <div className="border rounded-3 p-3 h-100 bg-light">
+                        <div className="d-flex align-items-start justify-content-between mb-2">
+                          <div>
+                            <div className="fw-semibold">{collection.label}</div>
+                            <small className="text-muted">{collection.description}</small>
+                          </div>
+                          <span className="badge bg-primary">{selected.length} selected</span>
+                        </div>
+                        <select
+                          multiple
+                          className="form-select"
+                          size={5}
+                          value={selected}
+                          onChange={(e) => {
+                            const opts = Array.from(e.target.selectedOptions).map((o) => o.value);
+                            update(collection.key as string, opts);
+                          }}
+                        >
+                          {collection.options.map((opt) => (
+                            <option key={opt.id} value={opt.id}>
+                              {opt.title || opt.name}
+                            </option>
+                          ))}
+                        </select>
+                        <small className="text-muted d-block mt-2">Hold Ctrl/Cmd to select multiple.</small>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="col-12">
+          <div className="card">
+            <div className="card-header bg-white">
               <h5 className="mb-0">Social Links</h5>
+              <small className="text-muted d-block mt-1">These URLs are shown only where the public theme consumes social links.</small>
             </div>
             <div className="card-body">
               <div className="row">

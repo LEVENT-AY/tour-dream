@@ -111,6 +111,8 @@ async function main() {
 
     await page.reload({ waitUntil: 'domcontentloaded' });
     await page.locator('h3:has-text("Website Settings")').waitFor({ state: 'visible', timeout: 15000 });
+    await footerInput().waitFor({ state: 'visible', timeout: 15000 });
+    await page.waitForTimeout(1000);
     const reloadedValue = await footerInput().inputValue();
     reloadKeptValue = reloadedValue === TEST_VALUE;
 

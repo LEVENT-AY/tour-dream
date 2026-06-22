@@ -77,7 +77,6 @@ async function main() {
   const beforeSnap = await settingsRef.get();
 
   const testSiteName = `QA Site ${Date.now()}`;
-  const testLogo = 'assets/img/bg/footer.svg';
   const testHeroTitle = `QA Hero ${Date.now()}`;
   const testHeroSubtitle = 'Website settings public binding smoke.';
   const testHeroImage = 'assets/img/banner/banner-02.jpg';
@@ -118,14 +117,12 @@ async function main() {
     await openWebsiteSettings(page);
 
     const brandingCard = page.locator('div.card:has(h5:has-text("Branding"))');
-    await brandingCard.locator('input.form-control').first().fill(testSiteName);
-    await brandingCard.locator('input.form-control').nth(1).fill(testLogo);
-
+    await brandingCard.locator('div.mb-3:has(label:has-text("Site Name")) input.form-control').fill(testSiteName);
     const heroCard = page.locator('div.card:has(h5:has-text("Homepage Hero"))');
     await heroCard.locator('div.mb-3:has(label:has-text("Hero Title")) input.form-control').fill(testHeroTitle);
     await heroCard.locator('div.mb-3:has(label:has-text("Hero Subtitle")) textarea.form-control').fill(testHeroSubtitle);
-    await heroCard.locator('div.col-6:has(label:has-text("CTA Label")) input.form-control').fill(testCtaLabel);
-    await heroCard.locator('div.col-6:has(label:has-text("CTA Link")) input.form-control').fill(testCtaLink);
+    await heroCard.locator('div.mb-0:has(> label:has-text("CTA Label")) input.form-control').fill(testCtaLabel);
+    await heroCard.locator('div.mb-0:has(> label:has-text("CTA Link")) input.form-control').fill(testCtaLink);
 
     const navigationTextarea = page.locator('label:has-text("Header Navigation (JSON)")').locator('xpath=../textarea');
     await navigationTextarea.fill(JSON.stringify(testHeaderNavigation, null, 2));
@@ -140,12 +137,12 @@ async function main() {
     await page.getByRole('button', { name: 'Save Settings' }).click();
     await page.getByText('Homepage settings saved successfully.').waitFor({ state: 'visible', timeout: 15000 });
 
-    await settingsRef.set({ logo: testLogo, heroImage: testHeroImage }, { merge: true });
+    await settingsRef.set({ heroImage: testHeroImage }, { merge: true });
     const mergedSnap = await settingsRef.get();
     const mergedData = mergedSnap.data() || {};
-    if (mergedData.logo !== testLogo || mergedData.heroImage !== testHeroImage) {
+    if (mergedData.heroImage !== testHeroImage) {
       throw new Error(
-        `Merged website settings did not persist the logo/hero image values. logo=${mergedData.logo || ''}, heroImage=${mergedData.heroImage || ''}`
+        `Merged website settings did not persist the hero image value. heroImage=${mergedData.heroImage || ''}`
       );
     }
     if (!Array.isArray(mergedData.headerNavigation) || mergedData.headerNavigation[0]?.label !== testHeaderMenu) {
