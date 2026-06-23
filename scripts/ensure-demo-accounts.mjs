@@ -3,13 +3,11 @@ import { getAuth } from 'firebase-admin/auth';
 import { getFirestore } from 'firebase-admin/firestore';
 
 const PROJECT_ID = 'tour-tunisi';
+export const DEMO_PASSWORD = '123123123';
 const REQUIRED_ENV_VARS = [
   'DEMO_ADMIN_EMAIL',
-  'DEMO_ADMIN_PASSWORD',
   'DEMO_AGENT_EMAIL',
-  'DEMO_AGENT_PASSWORD',
   'DEMO_CUSTOMER_EMAIL',
-  'DEMO_CUSTOMER_PASSWORD',
 ];
 
 function requireEnv(name) {
@@ -37,7 +35,12 @@ function maskEmail(email) {
 async function ensureAuthUser(auth, { email, password, displayName }) {
   try {
     const existing = await auth.getUserByEmail(email);
-    await auth.updateUser(existing.uid, { password, displayName });
+    await auth.updateUser(existing.uid, {
+      password,
+      displayName,
+      emailVerified: false,
+      disabled: false,
+    });
     return { user: await auth.getUser(existing.uid), created: false };
   } catch (error) {
     if (error.code !== 'auth/user-not-found') {
@@ -49,6 +52,7 @@ async function ensureAuthUser(auth, { email, password, displayName }) {
       password,
       displayName,
       emailVerified: false,
+      disabled: false,
     });
     return { user: created, created: true };
   }
@@ -84,7 +88,7 @@ export async function ensureDemoAccounts() {
     {
       key: 'admin',
       email: requireEnv('DEMO_ADMIN_EMAIL'),
-      password: requireEnv('DEMO_ADMIN_PASSWORD'),
+      password: DEMO_PASSWORD,
       displayName: 'Demo Admin',
       claims: { role: 'admin' },
       profile: {
@@ -95,7 +99,7 @@ export async function ensureDemoAccounts() {
     {
       key: 'agent',
       email: requireEnv('DEMO_AGENT_EMAIL'),
-      password: requireEnv('DEMO_AGENT_PASSWORD'),
+      password: DEMO_PASSWORD,
       displayName: 'Demo Agent',
       claims: { role: 'agent' },
       profile: {
@@ -109,7 +113,7 @@ export async function ensureDemoAccounts() {
     {
       key: 'customer',
       email: requireEnv('DEMO_CUSTOMER_EMAIL'),
-      password: requireEnv('DEMO_CUSTOMER_PASSWORD'),
+      password: DEMO_PASSWORD,
       displayName: 'Demo Customer',
       claims: { role: 'customer' },
       profile: {

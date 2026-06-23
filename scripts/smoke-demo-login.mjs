@@ -2,7 +2,7 @@ import admin from 'firebase-admin';
 import { getAuth } from 'firebase-admin/auth';
 import { getFirestore } from 'firebase-admin/firestore';
 import { chromium } from 'playwright';
-import { ensureDemoAccounts } from './ensure-demo-accounts.mjs';
+import { DEMO_PASSWORD, ensureDemoAccounts } from './ensure-demo-accounts.mjs';
 
 const BASE_URL = process.env.BASE_URL || 'http://localhost:5174';
 
@@ -110,11 +110,8 @@ async function verifyWrongPasswordModal(browser, { email }) {
 
 async function main() {
   const demoAdminEmail = requireEnv('DEMO_ADMIN_EMAIL');
-  const demoAdminPassword = requireEnv('DEMO_ADMIN_PASSWORD');
   const demoAgentEmail = requireEnv('DEMO_AGENT_EMAIL');
-  const demoAgentPassword = requireEnv('DEMO_AGENT_PASSWORD');
   const demoCustomerEmail = requireEnv('DEMO_CUSTOMER_EMAIL');
-  const demoCustomerPassword = requireEnv('DEMO_CUSTOMER_PASSWORD');
 
   await ensureDemoAccounts();
 
@@ -129,17 +126,17 @@ async function main() {
   try {
     const adminResult = await loginThroughPage(browser, {
       email: demoAdminEmail,
-      password: demoAdminPassword,
+      password: DEMO_PASSWORD,
       expectedUrlPart: '/admin/dashboard',
     });
     const agentResult = await loginThroughPage(browser, {
       email: demoAgentEmail,
-      password: demoAgentPassword,
+      password: DEMO_PASSWORD,
       expectedUrlPart: '/agent/agent-dashboard',
     });
     const customerResult = await loginThroughPage(browser, {
       email: demoCustomerEmail,
-      password: demoCustomerPassword,
+      password: DEMO_PASSWORD,
       expectedUrlPart: '/user/dashboard',
     });
     const wrongPasswordResult = await verifyWrongPasswordModal(browser, {
