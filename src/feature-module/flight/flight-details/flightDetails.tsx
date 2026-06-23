@@ -24,6 +24,7 @@ type FlightDetailsView = {
     departureCity: string;
     arrivalCity: string;
     location: string;
+    dates: string;
     rating: string;
     reviewsLabel: string;
     seatsLabel: string;
@@ -44,6 +45,7 @@ const fallbackFlightDetails: FlightDetailsView = {
     departureCity: "Newyork",
     arrivalCity: "Sydney",
     location: "15,Adri Street,Ciutat Vella,Barcelona",
+    dates: "Flexible dates",
     rating: "5.0",
     reviewsLabel: "(400 Reviews)",
     seatsLabel: "40 Seats Left",
@@ -79,6 +81,15 @@ const normalizeFlightDetails = (data?: Record<string, any> | null): FlightDetail
     const gallery = Array.isArray(data?.gallery) && data.gallery.length > 0
         ? data.gallery.filter((src): src is string => typeof src === "string" && Boolean(src.trim()))
         : [];
+    const dates = Array.isArray(data?.dates)
+        ? data.dates.filter((value): value is string => typeof value === "string" && Boolean(value.trim())).join(" - ")
+        : typeof data?.dates === "string" && data.dates.trim()
+            ? data.dates
+            : typeof data?.departureDate === "string" && data.departureDate.trim()
+                ? typeof data?.arrivalDate === "string" && data.arrivalDate.trim()
+                    ? `${data.departureDate} - ${data.arrivalDate}`
+                    : data.departureDate
+                : fallbackFlightDetails.dates;
     const image = typeof data?.image === "string" && data.image.trim()
         ? data.image
         : typeof data?.mainImage === "string" && data.mainImage.trim()
@@ -121,6 +132,7 @@ const normalizeFlightDetails = (data?: Record<string, any> | null): FlightDetail
         location: typeof data?.location === "string" && data.location.trim()
             ? data.location
             : [departureCity, arrivalCity].filter(Boolean).join(" - ") || fallbackFlightDetails.location,
+        dates,
         rating: typeof data?.rating === "number"
             ? String(data.rating)
             : typeof data?.rating === "string" && data.rating.trim()
@@ -244,6 +256,8 @@ const FlightDetails = () => {
     }, [flightId]);
 
     const displayFlight = normalizeFlightDetails(flightData);
+    const isFirestoreBackedFlight = Boolean(flightId);
+    const routeSummary = [displayFlight.departureCity, displayFlight.arrivalCity].filter(Boolean).join(' - ') || displayFlight.location;
     const galleryImages = displayFlight.gallery.length > 0 ? displayFlight.gallery : fallbackFlightDetails.gallery;
     const lightboxSlides = galleryImages.map((src) => ({ src }));
 
@@ -493,44 +507,44 @@ const FlightDetails = () => {
                                         <div className="row">
                                             <div className="col-lg-3 col-md-4 col-sm-6">
                                                 <div className="mb-3">
-                                                    <h6 className="mb-1">Launched On</h6>
-                                                    <p>25 May 2025 </p>
+                                                    <h6 className="mb-1">Airline</h6>
+                                                    <p>{displayFlight.airline}</p>
                                                 </div>
                                             </div>
                                             <div className="col-lg-3 col-md-4 col-sm-6">
                                                 <div className="mb-3">
-                                                    <h6 className="mb-1">Length</h6>
-                                                    <p>35 M</p>
+                                                    <h6 className="mb-1">Route</h6>
+                                                    <p>{routeSummary}</p>
                                                 </div>
                                             </div>
                                             <div className="col-lg-3 col-md-4 col-sm-6">
                                                 <div className="mb-3">
-                                                    <h6 className="mb-1">Staffs</h6>
-                                                    <p>200</p>
+                                                    <h6 className="mb-1">Departure Date</h6>
+                                                    <p>{displayFlight.dates}</p>
                                                 </div>
                                             </div>
                                             <div className="col-lg-3 col-md-4 col-sm-6">
                                                 <div className="mb-3">
-                                                    <h6 className="mb-1">Beam</h6>
-                                                    <p>200 ft</p>
+                                                    <h6 className="mb-1">Seats Left</h6>
+                                                    <p>{displayFlight.seatsLabel}</p>
                                                 </div>
                                             </div>
                                             <div className="col-lg-3 col-md-4 col-sm-6">
                                                 <div className="mb-3">
-                                                    <h6 className="mb-1">Weight</h6>
-                                                    <p>8000 grt</p>
+                                                    <h6 className="mb-1">Price</h6>
+                                                    <p>{displayFlight.priceLabel}</p>
                                                 </div>
                                             </div>
                                             <div className="col-lg-3 col-md-4 col-sm-6">
                                                 <div className="mb-3">
-                                                    <h6 className="mb-1">Dining Crew</h6>
-                                                    <p>12</p>
+                                                    <h6 className="mb-1">Badge</h6>
+                                                    <p>{displayFlight.badge}</p>
                                                 </div>
                                             </div>
                                             <div className="col-lg-3 col-md-4 col-sm-6">
                                                 <div className="mb-3">
-                                                    <h6 className="mb-1">Speed</h6>
-                                                    <p>80.6 knots</p>
+                                                    <h6 className="mb-1">Rating</h6>
+                                                    <p>{displayFlight.rating}</p>
                                                 </div>
                                             </div>
                                         </div>
@@ -557,23 +571,16 @@ const FlightDetails = () => {
                                                 <p className="mb-2">
                                                     {displayFlight.description}
                                                 </p>
-                                                <div className="read-more">
-                                                    <div className="more-text">
-                                                        <p>
-                                                            {displayFlight.airline} continues with the selected flight details and booking summary from Firestore.
-                                                        </p>
-                                                    </div>
-                                                    <Link
-                                                        to="#"
-                                                        className="fs-14 fw-medium more-link text-decoration-underline mb-2"
-                                                    >
-                                                        Show More
-                                                    </Link>
-                                                </div>
+                                                <p className="mb-0">
+                                                    Firestore-backed flight details are shown for this itinerary only.
+                                                </p>
                                             </div>
                                         </div>
                                     </div>
-                                    <div className="accordion-item mb-0 border-0 pb-1">
+                                    <div
+                                        className="accordion-item mb-0 border-0 pb-1"
+                                        style={{ display: isFirestoreBackedFlight ? 'none' : 'block' }}
+                                    >
                                         <div className="accordion-header">
                                             <button
                                                 className="accordion-button"
@@ -709,7 +716,10 @@ const FlightDetails = () => {
                                             </div>
                                         </div>
                                     </div>
-                                    <div className="accordion-item mb-0 border-0 pb-1">
+                                    <div
+                                        className="accordion-item mb-0 border-0 pb-1"
+                                        style={{ display: isFirestoreBackedFlight ? 'none' : 'block' }}
+                                    >
                                         <div className="accordion-header">
                                             <button
                                                 className="accordion-button"
@@ -803,7 +813,7 @@ const FlightDetails = () => {
                                                                                 defaultValue={displayFlight.departureCity}
                                                                             />
                                                                             <p className="fs-12 mb-0">
-                                                                                Ken International Airport
+                                                                                {displayFlight.dates}
                                                                             </p>
                                                                         </div>
                                                                         <div className="dropdown-menu dropdown-md p-0">
@@ -890,9 +900,9 @@ const FlightDetails = () => {
                                                                             <label className="form-label fs-14 text-default mb-1">
                                                                                 To
                                                                             </label>
-                                                                            <h5>Las Vegas</h5>
+                                                                            <h5>{displayFlight.arrivalCity}</h5>
                                                                             <p className="fs-12 mb-0">
-                                                                                Martini International Airport
+                                                                                {displayFlight.stopInfo || displayFlight.location}
                                                                             </p>
                                                                             <span className="way-icon badge badge-primary rounded-pill translate-middle">
                                                                                 <i className="fa-solid fa-arrow-right-arrow-left" />
@@ -1717,7 +1727,10 @@ const FlightDetails = () => {
                                             </div>
                                         </div>
                                     </div>
-                                    <div className="accordion-item mb-4 border-0">
+                                    <div
+                                        className="accordion-item mb-4 border-0"
+                                        style={{ display: isFirestoreBackedFlight ? 'none' : 'block' }}
+                                    >
                                         <div className="accordion-header">
                                             <button
                                                 className="accordion-button"
@@ -2245,7 +2258,10 @@ const FlightDetails = () => {
                                             </div>
                                         </div>
                                     </div>
-                                    <div className="card shadow-none mb-0">
+                                    <div
+                                        className="card shadow-none mb-0"
+                                        style={{ display: isFirestoreBackedFlight ? 'none' : 'block' }}
+                                    >
                                         <div className="card-body">
                                             <h5 className="fs-18 mb-3">Provider Details</h5>
                                             <div className="py-1">

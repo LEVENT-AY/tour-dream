@@ -34,6 +34,7 @@ async function main() {
   const context = await browser.newContext();
   const page = await context.newPage();
   const errors = [];
+  let stage = 'init';
 
   page.on('console', (msg) => {
     if (msg.type() === 'error') errors.push(msg.text());
@@ -48,6 +49,7 @@ async function main() {
       departureCity: 'QA Departure',
       arrivalCity: 'QA Arrival',
       stopInfo: 'QA Stop',
+      dates: 'QA Flight Date',
       seatsLeft: 17,
       price: 987,
       rating: 4.8,
@@ -61,28 +63,34 @@ async function main() {
     });
     createdIds.push(featuredId);
 
+    stage = 'homepage';
     await page.goto(`${BASE_URL}/`, { waitUntil: 'domcontentloaded' });
     await page.locator('#loader-wrapper').waitFor({ state: 'hidden', timeout: 15000 }).catch(() => {});
 
     const section = page.locator('.trending-list').first();
     await section.waitFor({ state: 'visible', timeout: 15000 });
     await page.getByText('Trending Listings & Best Sellers', { exact: false }).waitFor({ state: 'visible', timeout: 15000 });
-    const targetCard = page.locator('#tab-1 .trending-list-item').filter({ hasText: featuredTitle }).first();
-    await targetCard.waitFor({ state: 'visible', timeout: 30000 });
+    stage = 'homepage-card-text';
     await page.waitForFunction((title) => document.body.innerText.includes(title), featuredTitle, { timeout: 30000 });
 
-    const firstLink = targetCard.getByRole('link').first();
+    stage = 'homepage-link';
+    const firstLink = page.locator(`a[href*="id=${featuredId}"]`).first();
+    await firstLink.waitFor({ state: 'visible', timeout: 30000 });
     const href = await firstLink.getAttribute('href');
     if (!href || !href.includes(`id=${featuredId}`)) {
       throw new Error('Trending flight card link did not include the Firestore document id.');
     }
 
+    stage = 'detail-url';
     await firstLink.click();
     await page.waitForURL((url) => url.pathname === '/flight/flight-details' && url.searchParams.get('id') === featuredId, { timeout: 30000 });
+    stage = 'detail-title';
     await page.waitForFunction((title) => document.body.innerText.includes(title), featuredTitle, { timeout: 30000 });
+    stage = 'detail-fields';
     await page.waitForFunction(() => document.body.innerText.includes('QA Airline'), null, { timeout: 30000 });
     await page.waitForFunction(() => document.body.innerText.includes('QA Departure'), null, { timeout: 30000 });
     await page.waitForFunction(() => document.body.innerText.includes('QA Arrival'), null, { timeout: 30000 });
+    await page.waitForFunction(() => document.body.innerText.includes('QA Flight Date'), null, { timeout: 30000 });
     await page.waitForFunction(() => document.body.innerText.includes('$987'), null, { timeout: 30000 });
     await page.waitForFunction(
       () => {
@@ -95,21 +103,31 @@ async function main() {
     );
 
     const detailImageSrc = await page.locator('.service-wrap .service-img img').first().getAttribute('src');
-    const detailText = (await page.locator('body').textContent()) || '';
-    const detailSuccess =
-      detailText.includes(featuredTitle) &&
-      detailText.includes('QA Badge') &&
-      detailText.includes('QA Departure') &&
-      detailText.includes('QA Arrival') &&
-      detailText.includes('17 Seats Left') &&
-      detailText.includes('$987') &&
-      detailImageSrc === featuredImage &&
-      errors.length === 0;
+    const sidebarRouteText = await page.locator('.col-xl-4 .d-flex.align-items-center.mb-4').first().innerText();
+    const detailText = (await page.locator('body').innerText()) || '';
+    const detailChecks = {
+      title: detailText.includes(featuredTitle),
+      badge: detailText.includes('QA Badge'),
+      departure: detailText.includes('QA Departure'),
+      arrival: detailText.includes('QA Arrival'),
+      date: detailText.includes('QA Flight Date'),
+      seats: detailText.includes('17 Seats Left'),
+      price: detailText.includes('$987'),
+      faqRemoved: !detailText.includes('How old do I need to be to rent a car?'),
+      providerRemoved: !detailText.includes('Provider Details'),
+      availabilityRemoved: !detailText.includes('Available Seats'),
+      sidebarRouteClean: sidebarRouteText.includes('QA Departure') && sidebarRouteText.includes('QA Arrival') && !sidebarRouteText.includes('Las Vegas') && !sidebarRouteText.includes('Newyork'),
+      imageMatches: detailImageSrc === featuredImage,
+      noErrors: errors.length === 0,
+    };
+    const detailSuccess = Object.values(detailChecks).every(Boolean);
+    stage = 'fallback-detail';
 
     await page.goto(`${BASE_URL}/flight/flight-details`, { waitUntil: 'domcontentloaded' });
     await page.locator('#loader-wrapper').waitFor({ state: 'hidden', timeout: 15000 }).catch(() => {});
     await page.getByText('Antonov An-32', { exact: false }).waitFor({ state: 'visible', timeout: 30000 });
 
+    stage = 'invalid-detail';
     await page.goto(`${BASE_URL}/flight/flight-details?id=missing-flight-id`, { waitUntil: 'domcontentloaded' });
     await page.locator('#loader-wrapper').waitFor({ state: 'hidden', timeout: 15000 }).catch(() => {});
     await page.getByText('Antonov An-32', { exact: false }).waitFor({ state: 'visible', timeout: 30000 });
@@ -119,7 +137,9 @@ async function main() {
       featuredId,
       href,
       detailImageSrc,
+      detailChecks,
       errors,
+      stage,
     }));
     process.exitCode = detailSuccess ? 0 : 1;
   } catch (error) {
@@ -127,6 +147,8 @@ async function main() {
       success: false,
       createdIds,
       errors,
+      detailChecks: typeof detailChecks === 'undefined' ? null : detailChecks,
+      stage,
       reason: error.message || String(error),
     }));
     process.exitCode = 1;
