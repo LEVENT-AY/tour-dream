@@ -22,6 +22,14 @@ async function createFlightDoc(db, payload) {
   return ref.id;
 }
 
+async function getFirstCardHref(page, tabSelector) {
+  const tab = page.locator(tabSelector);
+  await tab.waitFor({ state: 'visible', timeout: 20000 });
+  const card = tab.locator('.trending-list-item').first();
+  await card.waitFor({ state: 'visible', timeout: 20000 });
+  return card.locator('a').first().getAttribute('href');
+}
+
 async function main() {
   const { db } = initAdminSdk();
   const stampValue = Date.now();
@@ -117,6 +125,14 @@ async function main() {
     const cardImageSrc = await firstCard.locator('img').first().getAttribute('src');
     const tabText = (await activeFlightsTab.textContent()) || '';
 
+    await page.locator('.trending-list .nav-link[data-bs-target="#tab-4"]').click();
+    await page.waitForTimeout(1200);
+    const cruiseHref = await getFirstCardHref(page, '#tab-4');
+
+    await page.locator('.trending-list .nav-link[data-bs-target="#tab-7"]').click();
+    await page.waitForTimeout(1200);
+    const visaHref = await getFirstCardHref(page, '#tab-7');
+
     const success =
       firstCardText.includes(featuredTitle) &&
       firstCardText.includes('QA Badge') &&
@@ -126,6 +142,8 @@ async function main() {
       firstCardText.includes('17 Seats Left') &&
       cardImageSrc === featuredImage &&
       !tabText.includes(hiddenTitle) &&
+      Boolean(cruiseHref && cruiseHref.includes('/cruise/cruise-details?id=fallback-cruise-1')) &&
+      Boolean(visaHref && visaHref.includes('/visa/visa-details?id=fallback-visa-1')) &&
       errors.length === 0;
 
     console.log(JSON.stringify({
@@ -135,6 +153,8 @@ async function main() {
       hiddenId,
       firstCardText,
       cardImageSrc,
+      cruiseHref,
+      visaHref,
       errors,
     }));
     process.exitCode = success ? 0 : 1;

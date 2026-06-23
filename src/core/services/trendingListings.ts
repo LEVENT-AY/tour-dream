@@ -138,6 +138,12 @@ const resolvePublished = (data: Record<string, any>) => data.published !== false
 const buildFlightDetailsRoute = (itemId?: string) =>
   itemId ? `${all_routes.flightDetails}?id=${encodeURIComponent(itemId)}` : all_routes.flightDetails;
 
+const buildCruiseDetailsRoute = (itemId?: string) =>
+  itemId ? `${all_routes.cruiseDetails}?id=${encodeURIComponent(itemId)}` : all_routes.cruiseDetails;
+
+const buildVisaDetailsRoute = (itemId?: string) =>
+  itemId ? `${all_routes.visaDetails}?id=${encodeURIComponent(itemId)}` : all_routes.visaDetails;
+
 const sortTrendingItems = (items: Record<string, any>[]) =>
   [...items].sort((left, right) => {
     const leftFeatured = resolveFeatured(left) ? 1 : 0;
@@ -255,7 +261,7 @@ const mapCruiseCard = (data: Record<string, any>, index: number): TrendingCruise
   id: toStringValue(data.id, `cruise-${index}`),
   title: toStringValue(data.title || data.name, `Cruise ${index + 1}`),
   image: resolveImage(data, "default"),
-  route: all_routes.cruiseDetails,
+  route: buildCruiseDetailsRoute(toStringValue(data.id, "")),
   badge: toStringValue(data.badge || (data.featured ? "Trending" : ""), data.featured ? "Trending" : ""),
   featured: resolveFeatured(data),
   published: resolvePublished(data),
@@ -275,7 +281,7 @@ const mapVisaCard = (data: Record<string, any>, index: number): TrendingVisaCard
   id: toStringValue(data.id, `visa-${index}`),
   title: toStringValue(data.title || data.name, `Visa ${index + 1}`),
   image: resolveImage(data, "default"),
-  route: all_routes.visaDetails,
+  route: buildVisaDetailsRoute(toStringValue(data.id, "")),
   badge: toStringValue(data.badge || data.type || data.name, data.type || data.name || "Visa"),
   featured: resolveFeatured(data),
   published: resolvePublished(data),
