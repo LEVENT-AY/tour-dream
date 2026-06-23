@@ -6,11 +6,14 @@ import Reviews from '../../../core/common/reviews/reviews';
 import { all_routes } from '../../router/all_routes';
 import { fetchResortById } from '../../../core/services/firebaseServices';
 import LodgingStickyContent from '../../lodging/LodgingStickyContent';
+import { isPublicListing, normalizeResortDetails } from '../../../core/services/listingDetailModels';
 
 const ResortDetails = () => {
   const routes = all_routes;
   const [searchParams] = useSearchParams();
   const [resortData, setResortData] = useState<any>(null);
+  const [loading, setLoading] = useState(Boolean(searchParams.get('id')));
+  const [notFound, setNotFound] = useState(false);
   const resortId = searchParams.get('id');
 
   useEffect(() => {
@@ -18,11 +21,25 @@ const ResortDetails = () => {
 
     const loadResort = async () => {
       if (!resortId) return;
+      setLoading(true);
       try {
         const data = await fetchResortById(resortId);
-        if (isMounted && data) setResortData(data);
+        if (isMounted) {
+          if (data && isPublicListing(data)) {
+            setResortData(data);
+            setNotFound(false);
+          } else {
+            setResortData(null);
+            setNotFound(true);
+          }
+        }
       } catch (error) {
-        console.error('Failed to load resort:', error);
+        if (isMounted) {
+          setResortData(null);
+          setNotFound(true);
+        }
+      } finally {
+        if (isMounted) setLoading(false);
       }
     };
 
@@ -33,7 +50,7 @@ const ResortDetails = () => {
     };
   }, [resortId]);
 
-  const displayResort = resortData || {
+  const displayResort: any = resortData ? normalizeResortDetails(resortData) : {
     id: 'resort-demo',
     title: 'Seaside Resort',
     name: 'Seaside Resort',
@@ -45,6 +62,28 @@ const ResortDetails = () => {
     propertyType: 'resort',
     listingCategory: 'lodging',
   };
+
+  if (resortId && loading) {
+    return (
+      <div className="content">
+        <div className="container">
+          <div className="text-center py-5">Loading resort listing...</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (resortId && !loading && notFound) {
+    return (
+      <div className="content">
+        <div className="container">
+          <div className="alert alert-warning mb-0">
+            The selected resort listing could not be found or is not published yet.
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const breadcrumbs = [
     { label: 'Resort Details', active: false, link: routes.home1 },

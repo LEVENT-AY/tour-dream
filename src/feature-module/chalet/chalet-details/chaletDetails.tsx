@@ -6,11 +6,14 @@ import Reviews from '../../../core/common/reviews/reviews';
 import { all_routes } from '../../router/all_routes';
 import { fetchChaletById } from '../../../core/services/firebaseServices';
 import LodgingStickyContent from '../../lodging/LodgingStickyContent';
+import { isPublicListing, normalizeChaletDetails } from '../../../core/services/listingDetailModels';
 
 const ChaletDetails = () => {
   const routes = all_routes;
   const [searchParams] = useSearchParams();
   const [chaletData, setChaletData] = useState<any>(null);
+  const [loading, setLoading] = useState(Boolean(searchParams.get('id')));
+  const [notFound, setNotFound] = useState(false);
   const chaletId = searchParams.get('id');
 
   useEffect(() => {
@@ -18,11 +21,25 @@ const ChaletDetails = () => {
 
     const loadChalet = async () => {
       if (!chaletId) return;
+      setLoading(true);
       try {
         const data = await fetchChaletById(chaletId);
-        if (isMounted && data) setChaletData(data);
+        if (isMounted) {
+          if (data && isPublicListing(data)) {
+            setChaletData(data);
+            setNotFound(false);
+          } else {
+            setChaletData(null);
+            setNotFound(true);
+          }
+        }
       } catch (error) {
-        console.error('Failed to load chalet:', error);
+        if (isMounted) {
+          setChaletData(null);
+          setNotFound(true);
+        }
+      } finally {
+        if (isMounted) setLoading(false);
       }
     };
 
@@ -33,7 +50,7 @@ const ChaletDetails = () => {
     };
   }, [chaletId]);
 
-  const displayChalet = chaletData || {
+  const displayChalet: any = chaletData ? normalizeChaletDetails(chaletData) : {
     id: 'chalet-demo',
     title: 'Mountain Chalet',
     name: 'Mountain Chalet',
@@ -45,6 +62,28 @@ const ChaletDetails = () => {
     propertyType: 'chalet',
     listingCategory: 'lodging',
   };
+
+  if (chaletId && loading) {
+    return (
+      <div className="content">
+        <div className="container">
+          <div className="text-center py-5">Loading chalet listing...</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (chaletId && !loading && notFound) {
+    return (
+      <div className="content">
+        <div className="container">
+          <div className="alert alert-warning mb-0">
+            The selected chalet listing could not be found or is not published yet.
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const breadcrumbs = [
     { label: 'Chalet Details', active: false, link: routes.home1 },

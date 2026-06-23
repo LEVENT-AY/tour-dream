@@ -2,7 +2,6 @@ import dayjs from 'dayjs';
 import { useState } from 'react';
 import { DatePicker, TimePicker } from 'antd';
 import { Link, useNavigate } from 'react-router-dom';
-import ImageWithBasePath from '../../../core/common/imageWithBasePath';
 import BannerCounter from '../../../core/common/banner-counter/counter';
 import { useAuth } from '../../../core/contexts/AuthContext';
 import { createBookingRequest } from '../../../core/services/firebaseServices';
@@ -88,7 +87,7 @@ const CarInfo = ({ car }: CarInfoProps) => {
               <div className="d-flex align-items-center border rounded mb-3">
                 <div className="flex-fill">
                   <div className="form-item p-3">
-                    <label className="form-label fs-14 text-default mb-1">From</label>
+                    <label className="form-label fs-14 text-default mb-1">Pickup</label>
                     <input
                       type="text"
                       className="form-control"
@@ -99,14 +98,14 @@ const CarInfo = ({ car }: CarInfoProps) => {
                   </div>
                 </div>
                 <div className="form-item flex-fill ps-3 ps-sm-4 p-3">
-                  <label className="form-label fs-14 text-default mb-1">To</label>
+                  <label className="form-label fs-14 text-default mb-1">Return</label>
                   <input
                     type="text"
                     className="form-control"
-                    value={car?.location || 'Drop-off location'}
+                    value={car?.location || 'Return location'}
                     readOnly
                   />
-                  <p className="fs-12 mb-0">Return at same location</p>
+                  <p className="fs-12 mb-0">Return at the selected listing location</p>
                 </div>
               </div>
               <div className="form-info border-0">
@@ -164,7 +163,7 @@ const CarInfo = ({ car }: CarInfoProps) => {
                   </div>
                 </div>
               </div>
-              <h6 className="text-success fs-14 fw-medium mb-3">Available For Ride</h6>
+              <h6 className="text-success fs-14 fw-medium mb-3">Available For Booking</h6>
               <button
                 type="submit"
                 disabled={submitting}
@@ -250,18 +249,14 @@ const CarInfo = ({ car }: CarInfoProps) => {
           <h5 className="fs-18 mb-3">Provider Details</h5>
           <div className="py-1">
             <div className="bg-light-500 br-10 mb-3 d-flex align-items-center p-3">
-              <Link to="#" className="avatar avatar-lg flex-shrink-0">
-                <ImageWithBasePath
-                  src="assets/img/users/user-05.jpg"
-                  alt="img"
-                  className="rounded-circle"
-                />
-              </Link>
+              <div className="avatar avatar-lg flex-shrink-0 bg-primary-transparent rounded-circle d-flex align-items-center justify-content-center">
+                <i className="isax isax-user text-primary" />
+              </div>
               <div className="ms-2 overflow-hidden">
-                <h6 className="fw-medium text-truncate">
+                <h6 className="fw-medium text-truncate mb-1">
                   <Link to="#">{car?.title || car?.name || 'Listing Provider'}</Link>
                 </h6>
-                <p className="fs-14">Member Since : 14 May 2024</p>
+                <p className="fs-14 mb-0">Managed listing support</p>
               </div>
             </div>
             <div className="border br-10 mb-3 p-3">
@@ -269,19 +264,19 @@ const CarInfo = ({ car }: CarInfoProps) => {
                 <span className="avatar avatar-sm me-2 rounded-circle flex-shrink-0 bg-primary">
                   <i className="isax isax-call-outgoing5"></i>
                 </span>
-                <p>+1 12545 45548</p>
+                <p>{car?.location || 'Support details available in the listing'}</p>
               </div>
               <div className="d-flex align-items-center border-bottom pb-3 mb-3">
                 <span className="avatar avatar-sm me-2 rounded-circle flex-shrink-0 bg-primary">
                   <i className="isax isax-message-search5"></i>
                 </span>
-                <p>Info@example.com</p>
+                <p>support@tour-dream.com</p>
               </div>
               <div className="d-flex align-items-center">
                 <span className="avatar avatar-sm me-2 rounded-circle flex-shrink-0 bg-primary">
                   <i className="isax isax-location-tick5"></i>
                 </span>
-                <p>{car?.location || '4635 Pheasant Ridge Road, USA'}</p>
+                <p>{car?.location || 'Location unavailable'}</p>
               </div>
             </div>
           </div>

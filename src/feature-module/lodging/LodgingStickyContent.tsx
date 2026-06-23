@@ -130,8 +130,8 @@ const LodgingStickyContent = ({ listingType, lodging }: LodgingStickyContentProp
             </form>
           </div>
           <div className="d-flex align-items-center justify-content-between mt-1">
-            <p className="fs-14 text-dark d-inline-flex align-items-center mb-0"><i className="isax isax-eye me-2"></i>400 Views</p>
-            <Link to="#availability" className="link-primary text-decoration-underline fs-14">View Rooms</Link>
+            <p className="fs-14 text-dark d-inline-flex align-items-center mb-0"><i className="isax isax-eye me-2"></i>Listing details available</p>
+            <Link to="#" className="link-primary text-decoration-underline fs-14">View Availability</Link>
           </div>
         </div>
       </div>

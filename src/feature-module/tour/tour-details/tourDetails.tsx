@@ -1,593 +1,265 @@
-import React from 'react'
-import { all_routes } from '../../router/all_routes';
-import Breadcrumb from '../../../core/common/Breadcrumb/breadcrumb';
-import TourDetailSlick from './tourDetailSlider';
+import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
+import Breadcrumb from '../../../core/common/Breadcrumb/breadcrumb';
 import ImageWithBasePath from '../../../core/common/imageWithBasePath';
-import Slider from 'react-slick';
-import Lightbox from "yet-another-react-lightbox";
 import Reviews from '../../../core/common/reviews/reviews';
-import StickyContent from './stickyContent';
+import { all_routes } from '../../router/all_routes';
 import { fetchTourById } from '../../../core/services/firebaseServices';
+import StickyContent from './stickyContent';
+import { getCategoryFallbackSrc } from '../../../core/services/firebaseStorage';
+import { isPublicListing, normalizeTourDetails } from '../../../core/services/listingDetailModels';
 
+const fallbackTour = {
+  id: 'tour-demo',
+  title: 'DreamsTour',
+  name: 'DreamsTour',
+  image: 'assets/img/tours/tours-16.jpg',
+  gallery: [
+    'assets/img/tours/gallery-tour-01.jpg',
+    'assets/img/tours/gallery-tour-02.jpg',
+    'assets/img/tours/gallery-tour-03.jpg',
+  ],
+  price: 500,
+  location: 'Los Angeles',
+  duration: '4 Day, 3 Night',
+  category: 'Tour',
+  badge: 'Demo',
+  description: 'Tour details are shown here when no Firestore id is provided.',
+  published: false,
+};
 
 const TourDetails = () => {
+  const routes = all_routes;
+  const [searchParams] = useSearchParams();
+  const tourId = searchParams.get('id');
+  const [tourData, setTourData] = useState<any>(null);
+  const [loading, setLoading] = useState(Boolean(tourId));
+  const [notFound, setNotFound] = useState(false);
 
-    const routes = all_routes
-    const [searchParams] = useSearchParams();
-    const [tourData, setTourData] = React.useState<any>(null);
+  useEffect(() => {
+    let active = true;
 
-    const [gallery, setGallery] = React.useState(false);
-    const tourId = searchParams.get('id');
+    const loadTour = async () => {
+      if (!tourId) {
+        setLoading(false);
+        setNotFound(false);
+        setTourData(null);
+        return;
+      }
 
-    React.useEffect(() => {
-        let isMounted = true;
+      setLoading(true);
+      try {
+        const data = await fetchTourById(tourId);
+        if (!active) return;
 
-        const loadTour = async () => {
-            if (!tourId) return;
-            try {
-                const data = await fetchTourById(tourId);
-                if (isMounted && data) setTourData(data);
-            } catch (error) {
-                console.error('Failed to load tour:', error);
-            }
-        };
-
-        loadTour();
-
-        return () => {
-            isMounted = false;
-        };
-    }, [tourId]);
-
-    //Breadcrumb Data
-    const breadcrumbs = [
-        {
-            label: 'Tour Details',
-            link: routes.allService1,
-            active: false,
-        },
-        {
-            label: 'Tours',
-            active: true,
-        },
-        {
-            label: 'Tour Details',
-            active: true,
-        },
-    ];
-
-
-    const gallarySlick = {
-        infinite: false, // Equivalent to loop: false
-        slidesToShow: 6, // Default to the largest breakpoint
-        slidesToScroll: 1,
-        margin: 8, // Adjusted spacing between slides
-        dots: false,
-        arrows: false, // nav: false
-        autoplay: false,
-        responsive: [
-            {
-                breakpoint: 1400, // Matches 1400px
-                settings: {
-                    slidesToShow: 6,
-                },
-            },
-            {
-                breakpoint: 1200, // Matches 1200px
-                settings: {
-                    slidesToShow: 5,
-                },
-            },
-            {
-                breakpoint: 992, // Matches 992px
-                settings: {
-                    slidesToShow: 4,
-                },
-            },
-            {
-                breakpoint: 550, // Matches 550px
-                settings: {
-                    slidesToShow: 4,
-                },
-            },
-            {
-                breakpoint: 0, // Matches < 550px
-                settings: {
-                    slidesToShow: 2,
-                },
-            },
-        ],
+        if (data && isPublicListing(data)) {
+          setTourData(data);
+          setNotFound(false);
+        } else {
+          setTourData(null);
+          setNotFound(true);
+        }
+      } catch (error) {
+        if (active) {
+          setTourData(null);
+          setNotFound(true);
+        }
+      } finally {
+        if (active) {
+          setLoading(false);
+        }
+      }
     };
 
-    const displayTour = tourData || {
-        id: 'tour-demo',
-        title: 'DreamsTour',
-        name: 'DreamsTour',
-        image: 'assets/img/tours/tours-16.jpg',
-        gallery: [
-            'assets/img/tours/gallery-tour-01.jpg',
-            'assets/img/tours/gallery-tour-02.jpg',
-            'assets/img/tours/gallery-tour-03.jpg',
-        ],
-        price: 500,
-        location: 'Los Angeles',
-        duration: '4 Day, 3 Night',
-    };
+    loadTour();
 
+    return () => {
+      active = false;
+    };
+  }, [tourId]);
+
+  const displayTour: any = tourData ? normalizeTourDetails(tourData) : fallbackTour;
+  const galleryImages = (displayTour.gallery?.length ? displayTour.gallery : [displayTour.image]).filter(Boolean);
+  const heroImage = galleryImages[0] || getCategoryFallbackSrc('tours');
+  const summaryBadges = [
+    displayTour.category,
+    displayTour.duration,
+    displayTour.location,
+  ].filter(Boolean);
+
+  if (tourId && loading) {
     return (
-        <div>
-            <Breadcrumb
-                title={displayTour.title || displayTour.name || 'Tour Details'}
-                breadcrumbs={breadcrumbs}
-                backgroundClass="breadcrumb-bg-02"
-            />
-
-            {/* Page Wrapper */}
-            <div className="content">
-                <div className="container">
-                    <div className="row">
-                        <div className="col-xl-8">
-                            <TourDetailSlick />
-                            <div className="bg-light-200 card-bg-light mb-4">
-                                <h4 className="mb-2">{displayTour.title || displayTour.name || 'Tour Details'}</h4>
-                                <p className="text-muted mb-0">{displayTour.location || 'Tour destination details'}</p>
-                            </div>
-                            {/* Description */}
-                            <div className="bg-light-200 card-bg-light mb-4">
-                                <h5 className="fs-18 mb-3">Description</h5>
-                                <div className="mb-2">
-                                    <p>
-                                        Kicking off on April 1, 2025, the "DreamsTour" will take Luna to
-                                        major cities across North America and Europe, including Los
-                                        Angeles, New York, Chicago, Toronto, and London. Each concert
-                                        will showcase her unique blend of pop and ethereal soundscapes,
-                                        bringing her music to life in a way you've never seen before.
-                                    </p>
-                                </div>
-                                <div className="read-more">
-                                    <div className="more-text">
-                                        <p>
-                                            Each concert will showcase her unique blend of pop and
-                                            ethereal soundscapes, bringing her music to life in a way
-                                            you've never seen before.
-                                        </p>
-                                    </div>
-                                    <Link
-                                        to="#"
-                                        className="fs-14 fw-medium more-link text-decoration-underline mb-2"
-                                    >
-                                        Show More
-                                    </Link>
-                                </div>
-                            </div>
-                            {/* /Description */}
-                            {/* Highlights */}
-                            <div className="bg-light-200 card-bg-light mb-4">
-                                <h5 className="fs-18 mb-3">Highlights</h5>
-                                <div>
-                                    <div className="d-flex align-items-center mb-2">
-                                        <span className="avatar avatar-md bg-primary-transparent rounded-circle me-2">
-                                            <i className="isax isax-send-sqaure-2 fs-16" />
-                                        </span>
-                                        <p>Exclusive merchandise available at each show</p>
-                                    </div>
-                                    <div className="d-flex align-items-center mb-2">
-                                        <span className="avatar avatar-md bg-primary-transparent rounded-circle me-2">
-                                            <i className="isax isax-send-sqaure-2 fs-16" />
-                                        </span>
-                                        <p>VIP packages with meet-and-greet options</p>
-                                    </div>
-                                    <div className="d-flex align-items-center">
-                                        <span className="avatar avatar-md bg-primary-transparent rounded-circle me-2">
-                                            <i className="isax isax-send-sqaure-2 fs-16" />
-                                        </span>
-                                        <p>Special acoustic set in select cities</p>
-                                    </div>
-                                </div>
-                            </div>
-                            {/* /Highlights */}
-                            {/* Itinerary */}
-                            <div className="bg-light-200 card-bg-light mb-4">
-                                <h5 className="fs-18 mb-3">Itinerary</h5>
-                                <div className="card shadow-none mb-0">
-                                    <div className="card-body p-3">
-                                        <div className="stage-flow">
-                                            <div className="d-flex align-items-center flows-step">
-                                                <span className="flow-step">01</span>
-                                                <div className="flow-content">
-                                                    <div className="d-flex align-items-center justify-content-between mb-2">
-                                                        <div>
-                                                            <h6 className="fw-medium mb-1">
-                                                                Day 1, Kickoff in Los Angeles
-                                                            </h6>
-                                                            <p>25 May 2025, 04:45 AM</p>
-                                                        </div>
-                                                        <span className="avatar avatar-lg avatar-rounded flex-shrink-0">
-                                                            <ImageWithBasePath src="assets/img/tours/tours-16.jpg" alt="Img" />
-                                                        </span>
-                                                    </div>
-                                                    <p>
-                                                        The tour launches with a spectacular concert at The
-                                                        Hollywood Bowl, where Luna will debut her latest hits
-                                                        amidst a breathtaking backdrop of lights and visuals.
-                                                    </p>
-                                                </div>
-                                            </div>
-                                            <div className="d-flex align-items-center flows-step">
-                                                <span className="flow-step">02</span>
-                                                <div className="flow-content">
-                                                    <div className="d-flex align-items-center justify-content-between mb-2">
-                                                        <div>
-                                                            <h6 className="fw-medium mb-1">
-                                                                Day 2, West Coast Wonders
-                                                            </h6>
-                                                            <p>26 May 2025, 09:45 AM</p>
-                                                        </div>
-                                                        <span className="avatar avatar-lg avatar-rounded flex-shrink-0">
-                                                            <ImageWithBasePath src="assets/img/tours/tours-17.jpg" alt="Img" />
-                                                        </span>
-                                                    </div>
-                                                    <p>
-                                                        Fans in Seattle and Portland can look forward to
-                                                        intimate performances, complete with fan meet-and-greets
-                                                        that allow for personal connections with Luna.
-                                                    </p>
-                                                </div>
-                                            </div>
-                                            <div className="d-flex align-items-center flows-step">
-                                                <span className="flow-step">03</span>
-                                                <div className="flow-content">
-                                                    <div className="d-flex align-items-center justify-content-between mb-2">
-                                                        <div>
-                                                            <h6 className="fw-medium mb-1">
-                                                                Day 3, Midwest Magic
-                                                            </h6>
-                                                            <p>27 May 2025, 09:45 AM</p>
-                                                        </div>
-                                                        <span className="avatar avatar-lg avatar-rounded flex-shrink-0">
-                                                            <ImageWithBasePath src="assets/img/tours/tours-18.jpg" alt="Img" />
-                                                        </span>
-                                                    </div>
-                                                    <p>
-                                                        The tour moves to Chicago, where Luna will perform at
-                                                        the iconic United Center. Expect a night filled with
-                                                        energy and emotion as she shares her music with devoted
-                                                        fans.
-                                                    </p>
-                                                </div>
-                                            </div>
-                                            <div className="d-flex align-items-center flows-step">
-                                                <span className="flow-step">04</span>
-                                                <div className="flow-content">
-                                                    <div className="d-flex align-items-center justify-content-between mb-2">
-                                                        <div>
-                                                            <h6 className="fw-medium mb-1">
-                                                                Day 4, East Coast Excitement
-                                                            </h6>
-                                                            <p>31 May 2025, 09:45 AM</p>
-                                                        </div>
-                                                        <span className="avatar avatar-lg avatar-rounded flex-shrink-0">
-                                                            <ImageWithBasePath src="assets/img/tours/tours-19.jpg" alt="Img" />
-                                                        </span>
-                                                    </div>
-                                                    <p>
-                                                        The New York show at Madison Square Garden promises to
-                                                        be a highlight of the tour, featuring special guests and
-                                                        surprises. Luna will also engage with fans in Central
-                                                        Park, offering a chance for unforgettable memories.
-                                                    </p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            {/* /Itinerary */}
-                            {/* Includes & Excludes */}
-                            <div className="bg-light-200 card-bg-light mb-4">
-                                <h5 className="fs-18 mb-3">Includes &amp; Excludes</h5>
-                                <div className="row gy-2">
-                                    <div className="col-md-6">
-                                        <p className="d-flex align-items-center mb-2">
-                                            <i className="isax isax-tick-square5 text-success me-2" />{" "}
-                                            Exclusive Merchandise
-                                        </p>
-                                        <p className="d-flex align-items-center mb-2">
-                                            <i className="isax isax-tick-square5 text-success me-2" />{" "}
-                                            Early Venue Access
-                                        </p>
-                                        <p className="d-flex align-items-center mb-2">
-                                            <i className="isax isax-tick-square5 text-success me-2" />{" "}
-                                            Acoustic Performance
-                                        </p>
-                                        <p className="d-flex align-items-center mb-2">
-                                            <i className="isax isax-tick-square5 text-success me-2" />{" "}
-                                            Tour Program
-                                        </p>
-                                        <p className="d-flex align-items-center">
-                                            <i className="isax isax-tick-square5 text-success me-2" />{" "}
-                                            Transportation (if applicable)
-                                        </p>
-                                    </div>
-                                    <div className="col-md-6">
-                                        <p className="d-flex align-items-center mb-2">
-                                            <i className="isax isax-close-square5 text-danger me-2" />{" "}
-                                            Travel Expenses
-                                        </p>
-                                        <p className="d-flex align-items-center mb-2">
-                                            <i className="isax isax-close-square5 text-danger me-2" />{" "}
-                                            Accommodation
-                                        </p>
-                                        <p className="d-flex align-items-center mb-2">
-                                            <i className="isax isax-close-square5 text-danger me-2" />{" "}
-                                            Food and Beverage
-                                        </p>
-                                        <p className="d-flex align-items-center mb-2">
-                                            <i className="isax isax-close-square5 text-danger me-2" />{" "}
-                                            Parking Fees
-                                        </p>
-                                        <p className="d-flex align-items-center">
-                                            <i className="isax isax-close-square5 text-danger me-2" />{" "}
-                                            Personal Expenses
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-                            {/* /Includes & Excludes */}
-                            {/* Gallery */}
-                            <div className="bg-light-200 card-bg-light mb-4">
-                                <h5 className="fs-18 mb-3">Gallery</h5>
-                                <div className="tour-gallery-slider owl-carousel">
-                                    <Lightbox
-                                        open={gallery}
-                                        close={() => setGallery(false)}
-                                        slides={[
-                                            { src: "/react/assets/img/tours/gallery-tour-01.jpg" },
-                                            { src: "/react/assets/img/tours/gallery-tour-02.jpg" },
-                                            { src: "/react/assets/img/tours/gallery-tour-03.jpg" },
-                                            { src: "/react/assets/img/tours/gallery-tour-04.jpg" },
-                                            { src: "/react/assets/img/tours/gallery-tour-05.jpg" },
-                                            { src: "/react/assets/img/tours/gallery-tour-06.jpg" },
-                                        ]}
-                                    />
-                                    <Slider {...gallarySlick}>
-                                        <Link
-                                            className="galley-wrap"
-                                            data-fancybox="gallery"
-                                            onClick={() => setGallery(true)} to="#" title="Demo 01"
-                                        >
-                                            <ImageWithBasePath src="assets/img/tours/gallery-tour-01.jpg" alt="img" />
-                                        </Link>
-                                        <Link
-                                            className="galley-wrap"
-                                            data-fancybox="gallery"
-                                            onClick={() => setGallery(true)} to="#" title="Demo 02"
-                                        >
-                                            <ImageWithBasePath src="assets/img/tours/gallery-tour-02.jpg" alt="img" />
-                                        </Link>
-                                        <Link
-                                            className="galley-wrap"
-                                            data-fancybox="gallery"
-                                            onClick={() => setGallery(true)} to="#" title="Demo 03"
-                                        >
-                                            <ImageWithBasePath src="assets/img/tours/gallery-tour-03.jpg" alt="img" />
-                                        </Link>
-                                        <Link
-                                            className="galley-wrap"
-                                            data-fancybox="gallery"
-                                            onClick={() => setGallery(true)} to="#" title="Demo 04"
-                                        >
-                                            <ImageWithBasePath src="assets/img/tours/gallery-tour-04.jpg" alt="img" />
-                                        </Link>
-                                        <Link
-                                            className="galley-wrap"
-                                            data-fancybox="gallery"
-                                            onClick={() => setGallery(true)} to="#" title="Demo 05"
-                                        >
-                                            <ImageWithBasePath src="assets/img/tours/gallery-tour-05.jpg" alt="img" />
-                                        </Link>
-                                        <Link
-                                            className="galley-wrap"
-                                            data-fancybox="gallery"
-                                            onClick={() => setGallery(true)} to="#" title="Demo 06"
-                                        >
-                                            <ImageWithBasePath src="assets/img/tours/gallery-tour-06.jpg" alt="img" />
-                                        </Link>
-                                    </Slider>
-
-                                </div>
-                            </div>
-                            {/* /Gallery */}
-                            <div className="bg-light-200 card-bg-light mb-4" id="location">
-                                <h5 className="fs-18 mb-3">Location</h5>
-                                {/* Map */}
-                                <div>
-                                    <iframe
-                                        title='mapw'
-                                        src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d6509170.989457427!2d-123.80081967108484!3d37.192957227641294!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x808fb9fe5f285e3d%3A0x8b5109a227086f55!2sCalifornia%2C%20USA!5e0!3m2!1sen!2sin!4v1669181581381!5m2!1sen!2sin"
-                                        allowFullScreen
-                                        loading="lazy"
-                                        referrerPolicy="no-referrer-when-downgrade"
-                                        className="tour-detail-map w-100"
-                                    />
-                                </div>
-                                {/* /Map */}
-                            </div>
-                            {/* FAQ */}
-                            <div className="bg-light-200 card-bg-light mb-4">
-                                <h5 className="fs-18 mb-3">Frequently Asked Questions</h5>
-                                <div className="accordion faq-accordion" id="accordionFaq">
-                                    <div className="accordion-item show mb-2">
-                                        <div className="accordion-header">
-                                            <button
-                                                className="accordion-button fw-medium"
-                                                type="button"
-                                                data-bs-toggle="collapse"
-                                                data-bs-target="#faq-collapseOne"
-
-                                                aria-controls="faq-collapseOne"
-                                            >
-                                                Does offer free cancellation for a full refund?
-                                            </button>
-                                        </div>
-                                        <div
-                                            id="faq-collapseOne"
-                                            className="accordion-collapse collapse show"
-                                            data-bs-parent="#accordionFaq"
-                                        >
-                                            <div className="accordion-body">
-                                                <p className="mb-0">
-                                                    Does have fully refundable room rates available to book on
-                                                    our site. If you’ve booked a fully refundable room rate,
-                                                    this can be cancelled up to a few days before check-in
-                                                    depending on the property's cancellation policy. Just make
-                                                    sure to check this property's cancellation policy for the
-                                                    exact terms and conditions.
-                                                </p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div className="accordion-item mb-2">
-                                        <div className="accordion-header">
-                                            <button
-                                                className="accordion-button fw-medium collapsed"
-                                                type="button"
-                                                data-bs-toggle="collapse"
-                                                data-bs-target="#faq-two"
-
-                                                aria-controls="faq-two"
-                                            >
-                                                Is there a pool?
-                                            </button>
-                                        </div>
-                                        <div
-                                            id="faq-two"
-                                            className="accordion-collapse collapse"
-                                            data-bs-parent="#accordionFaq"
-                                        >
-                                            <div className="accordion-body">
-                                                <p className="mb-0">
-                                                    Does have fully refundable room rates available to book on
-                                                    our site. If you’ve booked a fully refundable room rate,
-                                                    this can be cancelled up to a few days before check-in
-                                                    depending on the property's cancellation policy. Just make
-                                                    sure to check this property's cancellation policy for the
-                                                    exact terms and conditions.
-                                                </p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div className="accordion-item mb-2">
-                                        <div className="accordion-header">
-                                            <button
-                                                className="accordion-button fw-medium collapsed"
-                                                type="button"
-                                                data-bs-toggle="collapse"
-                                                data-bs-target="#faq-three"
-
-                                                aria-controls="faq-three"
-                                            >
-                                                Are pets allowed?
-                                            </button>
-                                        </div>
-                                        <div
-                                            id="faq-three"
-                                            className="accordion-collapse collapse"
-                                            data-bs-parent="#accordionFaq"
-                                        >
-                                            <div className="accordion-body">
-                                                <p className="mb-0">
-                                                    Does have fully refundable room rates available to book on
-                                                    our site. If you’ve booked a fully refundable room rate,
-                                                    this can be cancelled up to a few days before check-in
-                                                    depending on the property's cancellation policy. Just make
-                                                    sure to check this property's cancellation policy for the
-                                                    exact terms and conditions.
-                                                </p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div className="accordion-item mb-2">
-                                        <div className="accordion-header">
-                                            <button
-                                                className="accordion-button fw-medium collapsed"
-                                                type="button"
-                                                data-bs-toggle="collapse"
-                                                data-bs-target="#faq-four"
-
-                                                aria-controls="faq-four"
-                                            >
-                                                Is airport shuttle service offered?
-                                            </button>
-                                        </div>
-                                        <div
-                                            id="faq-four"
-                                            className="accordion-collapse collapse"
-                                            data-bs-parent="#accordionFaq"
-                                        >
-                                            <div className="accordion-body">
-                                                <p className="mb-0">
-                                                    Does have fully refundable room rates available to book on
-                                                    our site. If you’ve booked a fully refundable room rate,
-                                                    this can be cancelled up to a few days before check-in
-                                                    depending on the property's cancellation policy. Just make
-                                                    sure to check this property's cancellation policy for the
-                                                    exact terms and conditions.
-                                                </p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div className="accordion-item mb-2">
-                                        <div className="accordion-header">
-                                            <button
-                                                className="accordion-button fw-medium collapsed"
-                                                type="button"
-                                                data-bs-toggle="collapse"
-                                                data-bs-target="#faq-five"
-
-                                                aria-controls="faq-five"
-                                            >
-                                                What are the check-in and check-out times?
-                                            </button>
-                                        </div>
-                                        <div
-                                            id="faq-five"
-                                            className="accordion-collapse collapse"
-                                            data-bs-parent="#accordionFaq"
-                                        >
-                                            <div className="accordion-body">
-                                                <p className="mb-0">
-                                                    Does have fully refundable room rates available to book on
-                                                    our site. If you’ve booked a fully refundable room rate,
-                                                    this can be cancelled up to a few days before check-in
-                                                    depending on the property's cancellation policy. Just make
-                                                    sure to check this property's cancellation policy for the
-                                                    exact terms and conditions.
-                                                </p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            {/* /FAQ */}
-                            {/* Reviews */}
-                            <Reviews />
-                        </div>
-                        {/* /Reviews */}
-                        {/* Tour Sidebar */}
-                        <div className="col-xl-4 ">
-                            <StickyContent tour={displayTour} />
-                        </div>
-                        {/* /Tour Sidebar */}
-                    </div>
-                </div>
-            </div>
-            {/* /Page Wrapper */}
-
-
+      <div className="content">
+        <div className="container">
+          <div className="text-center py-5">Loading tour listing...</div>
         </div>
-    )
-}
+      </div>
+    );
+  }
 
-export default TourDetails
+  if (tourId && !loading && notFound) {
+    return (
+      <div className="content">
+        <div className="container">
+          <div className="alert alert-warning mb-0">
+            The selected tour listing could not be found or is not published yet.
+          </div>
+          <div className="mt-3">
+            <Link to={routes.tourGrid} className="btn btn-primary">
+              Back to Tours
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <Breadcrumb
+        title={displayTour.title || displayTour.name || 'Tour Details'}
+        breadcrumbs={[
+          { label: 'Tour Details', link: routes.allService1, active: false },
+          { label: 'Tours', active: true },
+          { label: 'Tour Details', active: true },
+        ]}
+        backgroundClass="breadcrumb-bg-02"
+      />
+
+      <div className="content">
+        <div className="container">
+          <div className="row">
+            <div className="col-xl-8">
+              <div className="card border-0 mb-4">
+                <div className="card-body">
+                  <ImageWithBasePath
+                    src={heroImage}
+                    className="img-fluid rounded mb-3"
+                    alt={displayTour.title || 'Tour'}
+                    fallbackSrc={getCategoryFallbackSrc('tours')}
+                  />
+                  <div className="d-flex align-items-center justify-content-between flex-wrap row-gap-2">
+                    <div>
+                      <h4 className="mb-1">{displayTour.title || displayTour.name}</h4>
+                      <div className="d-flex align-items-center flex-wrap gap-2">
+                        <span className="badge badge-warning badge-xs text-gray-9 fs-13 fw-medium">
+                          {displayTour.rating ?? 0}
+                        </span>
+                        <span className="text-muted">({displayTour.reviewsCount ?? 0} Reviews)</span>
+                        {summaryBadges.map((badge: string) => (
+                          <span key={badge} className="badge bg-light text-dark text-capitalize">
+                            {badge}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="text-end">
+                      <p className="fs-13 fw-medium mb-1">Starts From</p>
+                      <h5 className="text-primary mb-0">
+                        ${displayTour.price ?? 0}{' '}
+                        <span className="fs-14 text-default fw-normal">/ Person</span>
+                      </h5>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-light-200 card-bg-light mb-4">
+                <h5 className="fs-18 mb-3">Description</h5>
+                <p className="mb-0">
+                  {displayTour.description || 'Tour details will appear here once the selected Firestore listing provides a description.'}
+                </p>
+              </div>
+
+              <div className="bg-light-200 card-bg-light mb-4">
+                <h5 className="fs-18 mb-3">Tour Details</h5>
+                <div className="row gy-3">
+                  <div className="col-md-6 col-lg-3">
+                    <div className="p-3 rounded border bg-white h-100">
+                      <p className="text-muted fs-13 mb-1">Duration</p>
+                      <h6 className="mb-0">{displayTour.duration || 'Not provided'}</h6>
+                    </div>
+                  </div>
+                  <div className="col-md-6 col-lg-3">
+                    <div className="p-3 rounded border bg-white h-100">
+                      <p className="text-muted fs-13 mb-1">Location</p>
+                      <h6 className="mb-0">{displayTour.location || 'Not provided'}</h6>
+                    </div>
+                  </div>
+                  <div className="col-md-6 col-lg-3">
+                    <div className="p-3 rounded border bg-white h-100">
+                      <p className="text-muted fs-13 mb-1">Category</p>
+                      <h6 className="mb-0">{displayTour.category || 'Tour'}</h6>
+                    </div>
+                  </div>
+                  <div className="col-md-6 col-lg-3">
+                    <div className="p-3 rounded border bg-white h-100">
+                      <p className="text-muted fs-13 mb-1">Featured</p>
+                      <h6 className="mb-0">{displayTour.badge || (displayTour.featured ? 'Trending' : 'Standard')}</h6>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-light-200 card-bg-light mb-4">
+                <h5 className="fs-18 mb-3">Gallery</h5>
+                <div className="row g-3">
+                  {galleryImages.map((image: string, index: number) => (
+                    <div className="col-md-4" key={`${image}-${index}`}>
+                      <Link to="#">
+                        <ImageWithBasePath
+                          src={image}
+                          className="img-fluid rounded"
+                          alt={`Tour ${index + 1}`}
+                          fallbackSrc={getCategoryFallbackSrc('tours')}
+                        />
+                      </Link>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="bg-light-200 card-bg-light mb-4">
+                <h5 className="fs-18 mb-3">Frequently Asked Questions</h5>
+                <div className="accordion faq-accordion" id="accordionFaq">
+                  <div className="accordion-item show mb-2">
+                    <div className="accordion-header">
+                      <button className="accordion-button fw-medium" type="button" data-bs-toggle="collapse" data-bs-target="#faq-collapseOne" aria-controls="faq-collapseOne">
+                        Is this tour suitable for first-time travelers?
+                      </button>
+                    </div>
+                    <div id="faq-collapseOne" className="accordion-collapse collapse show" data-bs-parent="#accordionFaq">
+                      <div className="accordion-body">
+                        <p className="mb-0">Yes. This section now stays travel-focused and avoids unrelated demo copy.</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="accordion-item mb-2">
+                    <div className="accordion-header">
+                      <button className="accordion-button fw-medium collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq-two" aria-controls="faq-two">
+                        What happens if the listing has no dates yet?
+                      </button>
+                    </div>
+                    <div id="faq-two" className="accordion-collapse collapse" data-bs-parent="#accordionFaq">
+                      <div className="accordion-body">
+                        <p className="mb-0">We show the available Firestore fields and keep the rest neutral until more listing data is added.</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <Reviews />
+            </div>
+
+            <div className="col-xl-4">
+              <StickyContent tour={displayTour} />
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default TourDetails;

@@ -107,10 +107,12 @@ async function main() {
     const section = page.locator('.trending-list').first();
     await section.waitFor({ state: 'visible', timeout: 15000 });
     await page.getByText('Trending Listings & Best Sellers', { exact: false }).waitFor({ state: 'visible', timeout: 15000 });
-    await page.getByText(featuredTitle, { exact: false }).waitFor({ state: 'visible', timeout: 30000 });
+    await page.locator('.trending-list .nav-link[data-bs-target="#tab-1"]').click();
+    await page.waitForTimeout(1200);
 
     const activeFlightsTab = page.locator('#tab-1');
     const firstCard = activeFlightsTab.locator('.trending-list-item').first();
+    await firstCard.waitFor({ state: 'visible', timeout: 30000 });
     const firstCardText = (await firstCard.textContent()) || '';
     const cardImageSrc = await firstCard.locator('img').first().getAttribute('src');
     const tabText = (await activeFlightsTab.textContent()) || '';
