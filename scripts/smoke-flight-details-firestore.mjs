@@ -26,6 +26,7 @@ async function main() {
   const { db } = initAdminSdk();
   const stampValue = Date.now();
   const featuredTitle = `QA Featured Flight ${stampValue}`;
+  const featuredRouteLabel = 'QA Departure - QA Arrival';
   const featuredImage = `${BASE_URL}/assets/img/flight/flight-large-02.jpg?qa=${stampValue}`;
   const featuredDescription = `QA flight details smoke ${stampValue}`;
 
@@ -104,19 +105,24 @@ async function main() {
 
     const detailImageSrc = await page.locator('.service-wrap .service-img img').first().getAttribute('src');
     const sidebarRouteText = await page.locator('.col-xl-4 .d-flex.align-items-center.mb-4').first().innerText();
+    const mapSrc = await page.locator('#location iframe').first().getAttribute('src');
     const detailText = (await page.locator('body').innerText()) || '';
     const detailChecks = {
       title: detailText.includes(featuredTitle),
       badge: detailText.includes('QA Badge'),
       departure: detailText.includes('QA Departure'),
       arrival: detailText.includes('QA Arrival'),
+      route: detailText.includes(featuredRouteLabel),
       date: detailText.includes('QA Flight Date'),
       seats: detailText.includes('17 Seats Left'),
       price: detailText.includes('$987'),
+      reviews: detailText.includes('(41 Reviews)'),
       faqRemoved: !detailText.includes('How old do I need to be to rent a car?'),
       providerRemoved: !detailText.includes('Provider Details'),
       availabilityRemoved: !detailText.includes('Available Seats'),
       sidebarRouteClean: sidebarRouteText.includes('QA Departure') && sidebarRouteText.includes('QA Arrival') && !sidebarRouteText.includes('Las Vegas') && !sidebarRouteText.includes('Newyork'),
+      airportLabelsRemoved: !detailText.includes('Ken International Airport') && !detailText.includes('Martini International Airport'),
+      mapRouteBound: typeof mapSrc === 'string' && mapSrc.includes(encodeURIComponent(featuredRouteLabel)),
       imageMatches: detailImageSrc === featuredImage,
       noErrors: errors.length === 0,
     };

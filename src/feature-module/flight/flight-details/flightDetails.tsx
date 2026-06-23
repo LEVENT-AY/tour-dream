@@ -23,15 +23,22 @@ type FlightDetailsView = {
     stopInfo: string;
     departureCity: string;
     arrivalCity: string;
+    routeLabel: string;
     location: string;
     dates: string;
+    departureDateLabel: string;
     rating: string;
     reviewsLabel: string;
+    reviewsCount: number;
+    price: number;
     seatsLabel: string;
     priceLabel: string;
     description: string;
-    image: string;
-    gallery: string[];
+    mainImage: string;
+    galleryImages: string[];
+    mapRouteLabel: string;
+    fromAirportLabel: string;
+    toAirportLabel: string;
     published: boolean;
     featured: boolean;
 };
@@ -44,16 +51,20 @@ const fallbackFlightDetails: FlightDetailsView = {
     stopInfo: "1-stop at Dubai",
     departureCity: "Newyork",
     arrivalCity: "Sydney",
+    routeLabel: "Newyork - Sydney",
     location: "15,Adri Street,Ciutat Vella,Barcelona",
     dates: "Flexible dates",
+    departureDateLabel: "Flexible dates",
     rating: "5.0",
     reviewsLabel: "(400 Reviews)",
+    reviewsCount: 400,
+    price: 300,
     seatsLabel: "40 Seats Left",
     priceLabel: "$300",
     description:
         'Experience top-notch service, in-flight amenities, and smooth takeoffs for a stress-free journey.',
-    image: "assets/img/flight/flight-large-01.jpg",
-    gallery: [
+    mainImage: "assets/img/flight/flight-large-01.jpg",
+    galleryImages: [
         "assets/img/flight/flight-large-01.jpg",
         "assets/img/flight/flight-large-02.jpg",
         "assets/img/flight/flight-large-03.jpg",
@@ -61,13 +72,21 @@ const fallbackFlightDetails: FlightDetailsView = {
         "assets/img/flight/flight-large-05.jpg",
         "assets/img/flight/flight-large-06.jpg",
     ],
+    mapRouteLabel: "Newyork - Sydney",
+    fromAirportLabel: "Ken International Airport",
+    toAirportLabel: "Martini International Airport",
     published: true,
     featured: true,
 };
 
 const normalizeFlightDetails = (data?: Record<string, any> | null): FlightDetailsView => {
+    const toStringList = (value: unknown): string[] => Array.isArray(value)
+        ? value.filter((item): item is string => typeof item === "string" && Boolean(item.trim()))
+        : [];
     const departureCity = typeof data?.departureCity === "string" && data.departureCity.trim()
         ? data.departureCity
+        : typeof data?.from === "string" && data.from.trim()
+            ? data.from
         : typeof data?.city === "string" && data.city.trim()
             ? data.city
             : typeof data?.address === "string" && data.address.trim()
@@ -75,14 +94,19 @@ const normalizeFlightDetails = (data?: Record<string, any> | null): FlightDetail
                 : fallbackFlightDetails.departureCity;
     const arrivalCity = typeof data?.arrivalCity === "string" && data.arrivalCity.trim()
         ? data.arrivalCity
+        : typeof data?.to === "string" && data.to.trim()
+            ? data.to
         : typeof data?.country === "string" && data.country.trim()
             ? data.country
             : fallbackFlightDetails.arrivalCity;
-    const gallery = Array.isArray(data?.gallery) && data.gallery.length > 0
-        ? data.gallery.filter((src): src is string => typeof src === "string" && Boolean(src.trim()))
-        : [];
+    const routeLabel = [departureCity, arrivalCity].filter(Boolean).join(" - ") || fallbackFlightDetails.routeLabel;
+    const gallery = [
+        ...toStringList(data?.gallery),
+        ...toStringList(data?.galleryImages),
+        ...toStringList(data?.images),
+    ];
     const dates = Array.isArray(data?.dates)
-        ? data.dates.filter((value): value is string => typeof value === "string" && Boolean(value.trim())).join(" - ")
+        ? toStringList(data.dates).join(" - ")
         : typeof data?.dates === "string" && data.dates.trim()
             ? data.dates
             : typeof data?.departureDate === "string" && data.departureDate.trim()
@@ -90,13 +114,44 @@ const normalizeFlightDetails = (data?: Record<string, any> | null): FlightDetail
                     ? `${data.departureDate} - ${data.arrivalDate}`
                     : data.departureDate
                 : fallbackFlightDetails.dates;
+    const departureDateLabel = typeof data?.departureDate === "string" && data.departureDate.trim()
+        ? data.departureDate
+        : typeof data?.dates === "string" && data.dates.trim()
+            ? data.dates
+            : fallbackFlightDetails.departureDateLabel;
     const image = typeof data?.image === "string" && data.image.trim()
         ? data.image
         : typeof data?.mainImage === "string" && data.mainImage.trim()
             ? data.mainImage
-            : typeof data?.thumbnail === "string" && data.thumbnail.trim()
-                ? data.thumbnail
-                : gallery[0] || fallbackFlightDetails.image;
+        : typeof data?.thumbnail === "string" && data.thumbnail.trim()
+            ? data.thumbnail
+            : gallery[0] || fallbackFlightDetails.mainImage;
+    const mainImage = image;
+    const galleryImages = (gallery.length > 0 ? gallery : [mainImage]).slice(0, 6);
+    const reviewsCount = typeof data?.reviewsCount === "number"
+        ? data.reviewsCount
+        : Number(data?.reviewsCount) || 0;
+    const price = typeof data?.price === "number"
+        ? data.price
+        : Number(data?.price) || 0;
+    const fromAirportLabel = typeof data?.fromAirportLabel === "string" && data.fromAirportLabel.trim()
+        ? data.fromAirportLabel
+        : typeof data?.departureAirport === "string" && data.departureAirport.trim()
+            ? data.departureAirport
+            : typeof data?.fromAirport === "string" && data.fromAirport.trim()
+                ? data.fromAirport
+                : typeof data?.originAirport === "string" && data.originAirport.trim()
+                    ? data.originAirport
+                    : "";
+    const toAirportLabel = typeof data?.toAirportLabel === "string" && data.toAirportLabel.trim()
+        ? data.toAirportLabel
+        : typeof data?.arrivalAirport === "string" && data.arrivalAirport.trim()
+            ? data.arrivalAirport
+            : typeof data?.toAirport === "string" && data.toAirport.trim()
+                ? data.toAirport
+                : typeof data?.destinationAirport === "string" && data.destinationAirport.trim()
+                    ? data.destinationAirport
+                    : "";
     const title = typeof data?.title === "string" && data.title.trim()
         ? data.title
         : typeof data?.flightName === "string" && data.flightName.trim()
@@ -129,25 +184,32 @@ const normalizeFlightDetails = (data?: Record<string, any> | null): FlightDetail
                     : fallbackFlightDetails.stopInfo,
         departureCity,
         arrivalCity,
+        routeLabel,
         location: typeof data?.location === "string" && data.location.trim()
             ? data.location
-            : [departureCity, arrivalCity].filter(Boolean).join(" - ") || fallbackFlightDetails.location,
+            : routeLabel,
         dates,
+        departureDateLabel,
         rating: typeof data?.rating === "number"
             ? String(data.rating)
             : typeof data?.rating === "string" && data.rating.trim()
                 ? data.rating
                 : fallbackFlightDetails.rating,
-        reviewsLabel: `(${typeof data?.reviewsCount === "number" ? data.reviewsCount : Number(data?.reviewsCount) || 0} Reviews)`,
+        reviewsCount,
+        reviewsLabel: `(${reviewsCount} Reviews)`,
         seatsLabel: `${typeof data?.seatsLeft === "number" ? data.seatsLeft : Number(data?.seatsLeft ?? data?.staffs) || 0} Seats Left`,
-        priceLabel: `$${typeof data?.price === "number" ? data.price : Number(data?.price) || 0}`,
+        price,
+        priceLabel: `$${price}`,
         description: typeof data?.description === "string" && data.description.trim()
             ? data.description
             : typeof data?.details === "string" && data.details.trim()
                 ? data.details
                 : fallbackFlightDetails.description,
-        image,
-        gallery: (gallery.length > 0 ? gallery : [image]).slice(0, 6),
+        mainImage,
+        galleryImages,
+        mapRouteLabel: routeLabel,
+        fromAirportLabel,
+        toAirportLabel,
         published: data?.published !== false,
         featured: data?.featured === true,
     };
@@ -255,10 +317,10 @@ const FlightDetails = () => {
         };
     }, [flightId]);
 
-    const displayFlight = normalizeFlightDetails(flightData);
-    const isFirestoreBackedFlight = Boolean(flightId);
-    const routeSummary = [displayFlight.departureCity, displayFlight.arrivalCity].filter(Boolean).join(' - ') || displayFlight.location;
-    const galleryImages = displayFlight.gallery.length > 0 ? displayFlight.gallery : fallbackFlightDetails.gallery;
+    const isFirestoreBackedFlight = Boolean(flightId && flightData && flightData.published !== false);
+    const displayFlight = isFirestoreBackedFlight ? normalizeFlightDetails(flightData) : fallbackFlightDetails;
+    const routeSummary = displayFlight.routeLabel || displayFlight.location;
+    const galleryImages = isFirestoreBackedFlight ? displayFlight.galleryImages : fallbackFlightDetails.galleryImages;
     const lightboxSlides = galleryImages.map((src) => ({ src }));
 
 
@@ -408,7 +470,7 @@ const FlightDetails = () => {
                                                     </p>
                                                     <p className="fs-14 mb-2 me-3 pe-3 border-end">
                                                         <i className="isax isax-location5 me-2" />
-                                                        {displayFlight.location}
+                                                        {routeSummary}
                                                         <Link
                                                             to="#location"
                                                             className="link-primary text-decoration-underline fw-medium ms-2"
@@ -902,7 +964,7 @@ const FlightDetails = () => {
                                                                             </label>
                                                                             <h5>{displayFlight.arrivalCity}</h5>
                                                                             <p className="fs-12 mb-0">
-                                                                                {displayFlight.stopInfo || displayFlight.location}
+                                                                                {displayFlight.stopInfo || routeSummary}
                                                                             </p>
                                                                             <span className="way-icon badge badge-primary rounded-pill translate-middle">
                                                                                 <i className="fa-solid fa-arrow-right-arrow-left" />
@@ -1871,6 +1933,7 @@ const FlightDetails = () => {
                                     <div
                                         className="accordion-item mb-xl-0 mb-4 shadow-sm p-3 border-0"
                                         id="reviews"
+                                        style={{ display: isFirestoreBackedFlight ? 'none' : 'block' }}
                                     >
                                         <div className="accordion-header">
                                             <button
@@ -1894,280 +1957,292 @@ const FlightDetails = () => {
                                     </div>
                                 </div>
                             </div>
-                            <div className="col-xl-4 ">
+                                <div className="col-xl-4 ">
                                 <div className="">
                                     <div className="card shadow-none ">
                                         <div className="card-body">
-                                            <div className="d-flex align-items-center mb-4">
-                                                <span className="btn btn-outline-light flex-fill">
-                                                    <span className="icon-rotate-up me-2">
-                                                        <i className="isax isax-airplane" />
-                                                    </span>
-                                                    {displayFlight.departureCity}
-                                                </span>
-                                                <Link
-                                                    to="#"
-                                                    className="way-icon badge badge-primary rounded-pill mx-2"
-                                                >
-                                                    <i className="fa-solid fa-arrow-right-arrow-left" />
-                                                </Link>
-                                                <span className="btn btn-outline-light flex-fill">
-                                                    <span className="icon-rotate-down me-2">
-                                                        <i className="isax isax-airplane" />
-                                                    </span>
-                                                    {displayFlight.arrivalCity}
-                                                </span>
-                                            </div>
-                                            <div className="d-flex align-items-center justify-content-between bg-light-200 rounded p-3 mb-3">
-                                                <p className="fs-13 fw-medium mb-0">Starts From</p>
-                                                <h5 className="text-primary">
-                                                    {displayFlight.priceLabel}{" "}
-                                                    <span className="fs-14 text-default fw-normal">/ Person</span>
-                                                </h5>
-                                            </div>
-                                            <h5 className="fs-18 mb-3">Check Availability</h5>
-                                            <div className="banner-form">
-                                                <form
-
-                                                    className="form-info border-0"
-                                                >
-                                                    <div className="form-info border-0">
-                                                        <div className="form-item dropdown border rounded p-3 mb-3 w-100">
-                                                            <div
-                                                                data-bs-toggle="dropdown"
-                                                                data-bs-auto-close="outside"
-
-                                                                role="menu"
-                                                            >
-                                                                <label className="form-label fs-14 text-default mb-1">
-                                                                    From
-                                                                </label>
-                                                                <input
-                                                                    type="text"
-                                                                    className="form-control"
-                                                                    defaultValue={displayFlight.departureCity}
-                                                                />
-                                                                <p className="fs-12 mb-0">Ken International Airport</p>
-                                                            </div>
-                                                            <div className="dropdown-menu dropdown-md p-0">
-                                                                <div className="input-search p-3 border-bottom">
-                                                                    <div className="input-group">
-                                                                        <input
-                                                                            type="text"
-                                                                            className="form-control"
-                                                                            placeholder="Search Location"
-                                                                        />
-                                                                        <span className="input-group-text px-2 border-start-0">
-                                                                            <i className="isax isax-search-normal" />
-                                                                        </span>
-                                                                    </div>
-                                                                </div>
-                                                                <ul>
-                                                                    <li className="border-bottom">
-                                                                        <Link
-                                                                            className="dropdown-item"
-                                                                            to="#"
-                                                                        >
-                                                                            <h6 className="fs-16 fw-medium">Newyork</h6>
-                                                                            <p>Ken International Airport</p>
-                                                                        </Link>
-                                                                    </li>
-                                                                    <li className="border-bottom">
-                                                                        <Link
-                                                                            className="dropdown-item"
-                                                                            to="#"
-                                                                        >
-                                                                            <h6 className="fs-16 fw-medium">Boston</h6>
-                                                                            <p>Boston Logan International Airport</p>
-                                                                        </Link>
-                                                                    </li>
-                                                                    <li className="border-bottom">
-                                                                        <Link
-                                                                            className="dropdown-item"
-                                                                            to="#"
-                                                                        >
-                                                                            <h6 className="fs-16 fw-medium">
-                                                                                Northern Virginia
-                                                                            </h6>
-                                                                            <p>Dulles International Airport</p>
-                                                                        </Link>
-                                                                    </li>
-                                                                    <li className="border-bottom">
-                                                                        <Link
-                                                                            className="dropdown-item"
-                                                                            to="#"
-                                                                        >
-                                                                            <h6 className="fs-16 fw-medium">Los Angeles</h6>
-                                                                            <p>Los Angeles International Airport</p>
-                                                                        </Link>
-                                                                    </li>
-                                                                    <li className="border-bottom">
-                                                                        <Link
-                                                                            className="dropdown-item"
-                                                                            to="#"
-                                                                        >
-                                                                            <h6 className="fs-16 fw-medium">Orlando</h6>
-                                                                            <p>Orlando International Airport</p>
-                                                                        </Link>
-                                                                    </li>
-                                                                </ul>
-                                                            </div>
+                                            {isFirestoreBackedFlight ? (
+                                                <>
+                                                    <div className="d-flex align-items-center mb-4">
+                                                        <span className="btn btn-outline-light flex-fill">
+                                                            <span className="icon-rotate-up me-2">
+                                                                <i className="isax isax-airplane" />
+                                                            </span>
+                                                            {displayFlight.departureCity}
+                                                        </span>
+                                                        <Link
+                                                            to="#"
+                                                            className="way-icon badge badge-primary rounded-pill mx-2"
+                                                        >
+                                                            <i className="fa-solid fa-arrow-right-arrow-left" />
+                                                        </Link>
+                                                        <span className="btn btn-outline-light flex-fill">
+                                                            <span className="icon-rotate-down me-2">
+                                                                <i className="isax isax-airplane" />
+                                                            </span>
+                                                            {displayFlight.arrivalCity}
+                                                        </span>
+                                                    </div>
+                                                    <div className="d-flex align-items-center justify-content-between bg-light-200 rounded p-3 mb-3">
+                                                        <p className="fs-13 fw-medium mb-0">Starts From</p>
+                                                        <h5 className="text-primary">
+                                                            {displayFlight.priceLabel}{" "}
+                                                            <span className="fs-14 text-default fw-normal">/ Person</span>
+                                                        </h5>
+                                                    </div>
+                                                    <div className="border rounded p-3 mb-3">
+                                                        <h5 className="fs-18 mb-3">Flight Summary</h5>
+                                                        <div className="d-flex justify-content-between align-items-start mb-2">
+                                                            <span className="text-default">Route</span>
+                                                            <strong className="text-end">{displayFlight.routeLabel}</strong>
                                                         </div>
-                                                        <div className="form-item dropdown border rounded p-2 mb-3 w-100">
-                                                            <div
-                                                                data-bs-toggle="dropdown"
-                                                                data-bs-auto-close="outside"
-
-                                                                role="menu"
-                                                            >
-                                                                <label className="form-label fs-14 text-default mb-1">
-                                                                    To
-                                                                </label>
-                                                                <h5>Las Vegas</h5>
-                                                                <p className="fs-12 mb-0">
-                                                                    Martini International Airport
-                                                                </p>
-                                                            </div>
-                                                            <div className="dropdown-menu dropdown-md p-0">
-                                                                <div className="input-search p-3 border-bottom">
-                                                                    <div className="input-group">
-                                                                        <input
-                                                                            type="text"
-                                                                            className="form-control"
-                                                                            placeholder="Search Location"
-                                                                        />
-                                                                        <span className="input-group-text px-2 border-start-0">
-                                                                            <i className="isax isax-search-normal" />
-                                                                        </span>
-                                                                    </div>
-                                                                </div>
-                                                                <ul>
-                                                                    <li className="border-bottom">
-                                                                        <Link
-                                                                            className="dropdown-item"
-                                                                            to="#"
-                                                                        >
-                                                                            <h6 className="fs-16 fw-medium">Newyork</h6>
-                                                                            <p>Ken International Airport</p>
-                                                                        </Link>
-                                                                    </li>
-                                                                    <li className="border-bottom">
-                                                                        <Link
-                                                                            className="dropdown-item"
-                                                                            to="#"
-                                                                        >
-                                                                            <h6 className="fs-16 fw-medium">Boston</h6>
-                                                                            <p>Boston Logan International Airport</p>
-                                                                        </Link>
-                                                                    </li>
-                                                                    <li className="border-bottom">
-                                                                        <Link
-                                                                            className="dropdown-item"
-                                                                            to="#"
-                                                                        >
-                                                                            <h6 className="fs-16 fw-medium">
-                                                                                Northern Virginia
-                                                                            </h6>
-                                                                            <p>Dulles International Airport</p>
-                                                                        </Link>
-                                                                    </li>
-                                                                    <li className="border-bottom">
-                                                                        <Link
-                                                                            className="dropdown-item"
-                                                                            to="#"
-                                                                        >
-                                                                            <h6 className="fs-16 fw-medium">Los Angeles</h6>
-                                                                            <p>Los Angeles International Airport</p>
-                                                                        </Link>
-                                                                    </li>
-                                                                    <li>
-                                                                        <Link
-                                                                            className="dropdown-item"
-                                                                            to="#"
-                                                                        >
-                                                                            <h6 className="fs-16 fw-medium">Orlando</h6>
-                                                                            <p>Orlando International Airport</p>
-                                                                        </Link>
-                                                                    </li>
-                                                                </ul>
-                                                            </div>
+                                                        <div className="d-flex justify-content-between align-items-start mb-2">
+                                                            <span className="text-default">From</span>
+                                                            <strong className="text-end">
+                                                                {displayFlight.departureCity}
+                                                                {displayFlight.fromAirportLabel ? ` · ${displayFlight.fromAirportLabel}` : ''}
+                                                            </strong>
                                                         </div>
-                                                        <div className="form-item border rounded p-3 mb-3 w-100">
-                                                            <label className="form-label fs-14 text-default mb-1">
-                                                                Departure
-                                                            </label>
-                                                            <DatePicker
-                                                                className="form-control datetimepicker"
-                                                                placeholder="dd/mm/yyyy"
-                                                                defaultValue={defaultDate}
-                                                                format="DD-MM-YYYY"
-                                                            />
-                                                            <p className="fs-12 mb-0">Monday</p>
+                                                        <div className="d-flex justify-content-between align-items-start mb-2">
+                                                            <span className="text-default">To</span>
+                                                            <strong className="text-end">
+                                                                {displayFlight.arrivalCity}
+                                                                {displayFlight.toAirportLabel ? ` · ${displayFlight.toAirportLabel}` : ''}
+                                                            </strong>
                                                         </div>
-                                                        <div className="mb-3">
-                                                            <label className="form-label fs-14 text-default mb-1">
-                                                                Preferred Class
-                                                            </label>
-                                                            <CustomSelect
-                                                                options={PreferredClass}
-                                                                className="select d-flex"
-                                                                placeholder="Select"
-                                                            />
+                                                        <div className="d-flex justify-content-between align-items-start mb-2">
+                                                            <span className="text-default">Departure</span>
+                                                            <strong className="text-end">{displayFlight.departureDateLabel}</strong>
                                                         </div>
-                                                        <div className="card shadow-none mb-3">
-                                                            <div className="card-body p-3 pb-0">
-                                                                <div className="border-bottom pb-2 mb-2">
-                                                                    <h6>Details</h6>
-                                                                </div>
-                                                                <div className="custom-increment">
-                                                                    <div className="mb-3 d-flex align-items-center justify-content-between">
-                                                                        <label className="form-label text-gray-9 mb-0">
-                                                                            Adults
-                                                                        </label>
-                                                                        <BannerCounter />
-                                                                    </div>
-                                                                    <div className="mb-3 d-flex align-items-center justify-content-between">
-                                                                        <label className="form-label text-gray-9 mb-0">
-                                                                            Infants{" "}
-                                                                            <span className="text-default fw-normal">
-                                                                                ( 0-12 Yrs )
-                                                                            </span>
-                                                                        </label>
-                                                                        <BannerCounter />
-                                                                    </div>
-                                                                    <div className="mb-3 d-flex align-items-center justify-content-between">
-                                                                        <label className="form-label text-gray-9 mb-0">
-                                                                            Children{" "}
-                                                                            <span className="text-default fw-normal">
-                                                                                ( 2-12 Yrs )
-                                                                            </span>
-                                                                        </label>
-                                                                        <BannerCounter />
-                                                                    </div>
-                                                                </div>
-                                                            </div>
+                                                        <div className="d-flex justify-content-between align-items-start mb-2">
+                                                            <span className="text-default">Seats</span>
+                                                            <strong className="text-end">{displayFlight.seatsLabel}</strong>
+                                                        </div>
+                                                        <div className="d-flex justify-content-between align-items-start mb-2">
+                                                            <span className="text-default">Reviews</span>
+                                                            <strong className="text-end">{displayFlight.reviewsLabel}</strong>
+                                                        </div>
+                                                        <div className="d-flex justify-content-between align-items-start">
+                                                            <span className="text-default">Badge</span>
+                                                            <strong className="text-end">{displayFlight.badge}</strong>
                                                         </div>
                                                     </div>
                                                     <button
-                                                        type="submit"
+                                                        type="button"
                                                         className="btn btn-primary btn-lg search-btn ms-0 w-100 mb-3 fs-14 justify-content-center"
                                                     >
                                                         Book Now
                                                     </button>
-                                                    <div className="d-flex align-items-center justify-content-between mt-1">
-                                                        <h6 className="fs-14 fw-medium text-success">
-                                                            {displayFlight.seatsLabel} on your Search
-                                                        </h6>
-                                                    </div>
-                                                </form>
-                                            </div>
+                                                </>
+                                            ) : (
+                                                <div className="banner-form">
+                                                    <form className="form-info border-0">
+                                                        <div className="form-info border-0">
+                                                            <div className="form-item dropdown border rounded p-3 mb-3 w-100">
+                                                                <div
+                                                                    data-bs-toggle="dropdown"
+                                                                    data-bs-auto-close="outside"
+                                                                    role="menu"
+                                                                >
+                                                                    <label className="form-label fs-14 text-default mb-1">
+                                                                        From
+                                                                    </label>
+                                                                    <input
+                                                                        type="text"
+                                                                        className="form-control"
+                                                                        defaultValue={displayFlight.departureCity}
+                                                                    />
+                                                                    <p className="fs-12 mb-0">Ken International Airport</p>
+                                                                </div>
+                                                                <div className="dropdown-menu dropdown-md p-0">
+                                                                    <div className="input-search p-3 border-bottom">
+                                                                        <div className="input-group">
+                                                                            <input
+                                                                                type="text"
+                                                                                className="form-control"
+                                                                                placeholder="Search Location"
+                                                                            />
+                                                                            <span className="input-group-text px-2 border-start-0">
+                                                                                <i className="isax isax-search-normal" />
+                                                                            </span>
+                                                                        </div>
+                                                                    </div>
+                                                                    <ul>
+                                                                        <li className="border-bottom">
+                                                                            <Link className="dropdown-item" to="#">
+                                                                                <h6 className="fs-16 fw-medium">Newyork</h6>
+                                                                                <p>Ken International Airport</p>
+                                                                            </Link>
+                                                                        </li>
+                                                                        <li className="border-bottom">
+                                                                            <Link className="dropdown-item" to="#">
+                                                                                <h6 className="fs-16 fw-medium">Boston</h6>
+                                                                                <p>Boston Logan International Airport</p>
+                                                                            </Link>
+                                                                        </li>
+                                                                        <li className="border-bottom">
+                                                                            <Link className="dropdown-item" to="#">
+                                                                                <h6 className="fs-16 fw-medium">
+                                                                                    Northern Virginia
+                                                                                </h6>
+                                                                                <p>Dulles International Airport</p>
+                                                                            </Link>
+                                                                        </li>
+                                                                        <li className="border-bottom">
+                                                                            <Link className="dropdown-item" to="#">
+                                                                                <h6 className="fs-16 fw-medium">Los Angeles</h6>
+                                                                                <p>Los Angeles International Airport</p>
+                                                                            </Link>
+                                                                        </li>
+                                                                        <li className="border-bottom">
+                                                                            <Link className="dropdown-item" to="#">
+                                                                                <h6 className="fs-16 fw-medium">Orlando</h6>
+                                                                                <p>Orlando International Airport</p>
+                                                                            </Link>
+                                                                        </li>
+                                                                    </ul>
+                                                                </div>
+                                                            </div>
+                                                            <div className="form-item dropdown border rounded p-2 mb-3 w-100">
+                                                                <div
+                                                                    data-bs-toggle="dropdown"
+                                                                    data-bs-auto-close="outside"
+                                                                    role="menu"
+                                                                >
+                                                                    <label className="form-label fs-14 text-default mb-1">
+                                                                        To
+                                                                    </label>
+                                                                    <h5>Las Vegas</h5>
+                                                                    <p className="fs-12 mb-0">
+                                                                        Martini International Airport
+                                                                    </p>
+                                                                </div>
+                                                                <div className="dropdown-menu dropdown-md p-0">
+                                                                    <div className="input-search p-3 border-bottom">
+                                                                        <div className="input-group">
+                                                                            <input
+                                                                                type="text"
+                                                                                className="form-control"
+                                                                                placeholder="Search Location"
+                                                                            />
+                                                                            <span className="input-group-text px-2 border-start-0">
+                                                                                <i className="isax isax-search-normal" />
+                                                                            </span>
+                                                                        </div>
+                                                                    </div>
+                                                                    <ul>
+                                                                        <li className="border-bottom">
+                                                                            <Link className="dropdown-item" to="#">
+                                                                                <h6 className="fs-16 fw-medium">Newyork</h6>
+                                                                                <p>Ken International Airport</p>
+                                                                            </Link>
+                                                                        </li>
+                                                                        <li className="border-bottom">
+                                                                            <Link className="dropdown-item" to="#">
+                                                                                <h6 className="fs-16 fw-medium">Boston</h6>
+                                                                                <p>Boston Logan International Airport</p>
+                                                                            </Link>
+                                                                        </li>
+                                                                        <li className="border-bottom">
+                                                                            <Link className="dropdown-item" to="#">
+                                                                                <h6 className="fs-16 fw-medium">
+                                                                                    Northern Virginia
+                                                                                </h6>
+                                                                                <p>Dulles International Airport</p>
+                                                                            </Link>
+                                                                        </li>
+                                                                        <li className="border-bottom">
+                                                                            <Link className="dropdown-item" to="#">
+                                                                                <h6 className="fs-16 fw-medium">Los Angeles</h6>
+                                                                                <p>Los Angeles International Airport</p>
+                                                                            </Link>
+                                                                        </li>
+                                                                        <li>
+                                                                            <Link className="dropdown-item" to="#">
+                                                                                <h6 className="fs-16 fw-medium">Orlando</h6>
+                                                                                <p>Orlando International Airport</p>
+                                                                            </Link>
+                                                                        </li>
+                                                                    </ul>
+                                                                </div>
+                                                            </div>
+                                                            <div className="form-item border rounded p-3 mb-3 w-100">
+                                                                <label className="form-label fs-14 text-default mb-1">
+                                                                    Departure
+                                                                </label>
+                                                                <DatePicker
+                                                                    className="form-control datetimepicker"
+                                                                    placeholder="dd/mm/yyyy"
+                                                                    defaultValue={defaultDate}
+                                                                    format="DD-MM-YYYY"
+                                                                />
+                                                                <p className="fs-12 mb-0">Monday</p>
+                                                            </div>
+                                                            <div className="mb-3">
+                                                                <label className="form-label fs-14 text-default mb-1">
+                                                                    Preferred Class
+                                                                </label>
+                                                                <CustomSelect
+                                                                    options={PreferredClass}
+                                                                    className="select d-flex"
+                                                                    placeholder="Select"
+                                                                />
+                                                            </div>
+                                                            <div className="card shadow-none mb-3">
+                                                                <div className="card-body p-3 pb-0">
+                                                                    <div className="border-bottom pb-2 mb-2">
+                                                                        <h6>Details</h6>
+                                                                    </div>
+                                                                    <div className="custom-increment">
+                                                                        <div className="mb-3 d-flex align-items-center justify-content-between">
+                                                                            <label className="form-label text-gray-9 mb-0">
+                                                                                Adults
+                                                                            </label>
+                                                                            <BannerCounter />
+                                                                        </div>
+                                                                        <div className="mb-3 d-flex align-items-center justify-content-between">
+                                                                            <label className="form-label text-gray-9 mb-0">
+                                                                                Infants{" "}
+                                                                                <span className="text-default fw-normal">
+                                                                                    ( 0-12 Yrs )
+                                                                                </span>
+                                                                            </label>
+                                                                            <BannerCounter />
+                                                                        </div>
+                                                                        <div className="mb-3 d-flex align-items-center justify-content-between">
+                                                                            <label className="form-label text-gray-9 mb-0">
+                                                                                Children{" "}
+                                                                                <span className="text-default fw-normal">
+                                                                                    ( 2-12 Yrs )
+                                                                                </span>
+                                                                            </label>
+                                                                            <BannerCounter />
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        <button
+                                                            type="submit"
+                                                            className="btn btn-primary btn-lg search-btn ms-0 w-100 mb-3 fs-14 justify-content-center"
+                                                        >
+                                                            Book Now
+                                                        </button>
+                                                        <div className="d-flex align-items-center justify-content-between mt-1">
+                                                            <h6 className="fs-14 fw-medium text-success">
+                                                                {displayFlight.seatsLabel} on your Search
+                                                            </h6>
+                                                        </div>
+                                                    </form>
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                     {/* Map */}
                                     <div className="card shadow-none" id="location">
                                         <div className="d-flex">
                                             <iframe
-                                                src={`https://www.google.com/maps?q=${encodeURIComponent(displayFlight.location)}&output=embed`}
+                                                src={`https://www.google.com/maps?q=${encodeURIComponent(displayFlight.mapRouteLabel)}&output=embed`}
                                                 allowFullScreen
                                                 loading="lazy"
                                                 referrerPolicy="no-referrer-when-downgrade"
@@ -2178,7 +2253,7 @@ const FlightDetails = () => {
                                             <div className="d-flex align-items-center justify-content-between flex-wrap row-gap-2">
                                                 <p className="d-flex align-items-center mb-0">
                                                     <i className="isax isax-location5 me-2" />
-                                                    {displayFlight.location}
+                                                    {displayFlight.mapRouteLabel}
                                                 </p>
                                             </div>
                                         </div>
