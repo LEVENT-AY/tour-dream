@@ -155,14 +155,16 @@ const sortTrendingItems = (items: Record<string, any>[]) =>
 
 const takeTrendingItems = (items: Record<string, any>[], fallback: Record<string, any>[]) => {
   const eligible = sortTrendingItems(items.filter(resolvePublished));
-  return eligible.length > 0 ? eligible.slice(0, FALLBACK_LIMIT) : fallback;
+  return eligible.length > 0
+    ? eligible.slice(0, FALLBACK_LIMIT)
+    : fallback.map((item) => ({ ...item, __fallback: true }));
 };
 
 const mapFlightCard = (data: Record<string, any>, index: number): TrendingFlightCard => ({
   id: toStringValue(data.id, `flight-${index}`),
   title: toStringValue(data.title || data.flightName || data.airlineName || data.flightNumber, `Flight ${index + 1}`),
   image: resolveImage(data, "flights"),
-  route: buildFlightDetailsRoute(toStringValue(data.id, "")),
+  route: data.__fallback ? buildFlightDetailsRoute() : buildFlightDetailsRoute(toStringValue(data.id, "")),
   badge: toStringValue(data.badge || (data.featured ? "Trending" : ""), data.featured ? "Trending" : ""),
   featured: resolveFeatured(data),
   published: resolvePublished(data),
@@ -180,7 +182,7 @@ const mapHotelCard = (data: Record<string, any>, index: number): TrendingHotelCa
   id: toStringValue(data.id, `hotel-${index}`),
   title: toStringValue(data.title || data.name, `Hotel ${index + 1}`),
   image: resolveImage(data, "hotels"),
-  route: all_routes.hotelDetails,
+  route: data.__fallback ? all_routes.hotelDetails : `${all_routes.hotelDetails}?id=${encodeURIComponent(toStringValue(data.id, ""))}`,
   badge: toStringValue(data.badge || (data.featured ? "Trending" : ""), data.featured ? "Trending" : ""),
   featured: resolveFeatured(data),
   published: resolvePublished(data),

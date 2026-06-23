@@ -13,6 +13,7 @@ interface StickyContentProps {
         id?: string;
         title?: string;
         name?: string;
+        location?: string;
         image?: string;
         gallery?: string[];
         price?: number;
@@ -20,6 +21,11 @@ interface StickyContentProps {
         ownerId?: string | null;
         agentId?: string | null;
         createdBy?: string | null;
+        providerName?: string;
+        providerSince?: string;
+        providerPhone?: string;
+        providerEmail?: string;
+        nearbyLandmarks?: string[];
     } | null;
 }
 
@@ -78,7 +84,7 @@ const StickyContent = ({ hotel }: StickyContentProps) => {
         <div className="card-body">
             <div className="mb-3">
                 <p className="fs-13 fw-medium mb-1">Starts From</p>
-                <h5 className="text-primary mb-1">$500 <span className="fs-14 text-default fw-normal">/ Night</span></h5>
+                <h5 className="text-primary mb-1">${hotel?.price ?? 500} <span className="fs-14 text-default fw-normal">/ Night</span></h5>
             </div>
             <div className="banner-form">
                 <form >
@@ -149,12 +155,12 @@ const StickyContent = ({ hotel }: StickyContentProps) => {
         </div>
         <div className="card-body">
             <div className="mb-1 d-flex align-items-center justify-content-between flex-wrap">
-                <p className="d-flex align-items-center mb-3"><i className="isax isax-location5 me-2"></i>15,Adri Street,Ciutat Vella,Barcelona</p>
+                <p className="d-flex align-items-center mb-3"><i className="isax isax-location5 me-2"></i>{hotel?.location || 'Property location not specified'}</p>
             </div>
             <h5 className="mb-3 fs-18">Nearby Landmarks & Visits</h5>
-            <p className="d-flex align-items-center mb-2"><i className="isax isax-tick-circle me-2"></i>Near By Statue of Liberty</p>
-            <p className="d-flex align-items-center mb-2"><i className="isax isax-tick-circle me-2"></i>The Metropolitan Museum of Art</p>
-            <p className="d-flex align-items-center mb-0"><i className="isax isax-tick-circle me-2"></i>Yellowstone National Park</p>
+            {(hotel?.nearbyLandmarks?.length ? hotel.nearbyLandmarks : ['Nearby attractions not provided']).map((landmark) => (
+                <p className="d-flex align-items-center mb-2" key={landmark}><i className="isax isax-tick-circle me-2"></i>{landmark}</p>
+            ))}
         </div>
     </div>
     {/* /Map */}
@@ -213,18 +219,18 @@ const StickyContent = ({ hotel }: StickyContentProps) => {
                         <ImageWithBasePath src="assets/img/users/user-05.jpg" alt="img" className="rounded-circle" />
                     </Link>
                     <div className="ms-2 overflow-hidden">
-                        <h6 className="fw-medium text-truncate"><Link to="#">Adrian Hendriques</Link></h6>
-                        <p className="fs-14">Member Since : 14 May 2024</p>
+                        <h6 className="fw-medium text-truncate"><Link to="#">{hotel?.providerName || 'Property support team'}</Link></h6>
+                        <p className="fs-14">{hotel?.providerSince || 'Member since available on request'}</p>
                     </div>
                 </div>
                 <div className="border br-10 mb-3 p-3">
                     <div className="d-flex align-items-center border-bottom pb-3 mb-3">
                         <span className="avatar avatar-sm me-2 rounded-circle flex-shrink-0 bg-primary"><i className="isax isax-call-outgoing5"></i></span>
-                        <p>Call Us : +1 12545 45548</p>
+                        <p>Call Us : {hotel?.providerPhone || 'Contact support'}</p>
                     </div>
                     <div className="d-flex align-items-center">
                         <span className="avatar avatar-sm me-2 rounded-circle flex-shrink-0 bg-primary"><i className="isax isax-message-search5"></i></span>
-                        <p>Email : Info@example.com</p>
+                        <p>Email : {hotel?.providerEmail || 'support@example.com'}</p>
                     </div>
                 </div>
             </div>

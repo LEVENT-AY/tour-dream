@@ -12,7 +12,150 @@ import Lightbox from "yet-another-react-lightbox";
 import "yet-another-react-lightbox/styles.css";
 import RoomDetailModal from "../../../core/common/modal/roomDetailModal";
 import { all_routes } from "../../router/all_routes";
-import { fetchHotelById } from '../../../core/services/firebaseServices';
+import { fetchHotelById, fetchHotels } from '../../../core/services/firebaseServices';
+
+type HotelDetailsView = {
+    id: string;
+    title: string;
+    name: string;
+    badge: string;
+    location: string;
+    rating: string;
+    reviewsCount: number;
+    reviewsLabel: string;
+    price: number;
+    priceLabel: string;
+    description: string;
+    image: string;
+    gallery: string[];
+    roomsLabel: string;
+    amenities: string[];
+    roomTypes: string[];
+    highlights: string[];
+    services: string[];
+    nearbyLandmarks: string[];
+    providerName: string;
+    providerSince: string;
+    providerPhone: string;
+    providerEmail: string;
+    published: boolean;
+    featured: boolean;
+};
+
+const fallbackHotelDetails: HotelDetailsView = {
+    id: 'hotel-plaza-athenee',
+    title: 'Hotel Plaza Athenee',
+    name: 'Hotel Plaza Athenee',
+    badge: 'Popular',
+    location: 'Barcelona',
+    rating: '4.5',
+    reviewsCount: 500,
+    reviewsLabel: '(500 Reviews)',
+    price: 500,
+    priceLabel: '$500',
+    description:
+        'Hotel Plaza Athenee is an excellent choice for travellers visiting Coimbatore, offering a budget friendly environment alongside many helpful amenities designed to enhance your stay.',
+    image: 'assets/img/hotels/hotel-large-01.jpg',
+    gallery: [
+        'assets/img/hotels/hotel-large-01.jpg',
+        'assets/img/hotels/hotel-large-02.jpg',
+        'assets/img/hotels/hotel-large-03.jpg',
+        'assets/img/hotels/hotel-large-04.jpg',
+        'assets/img/hotels/hotel-large-05.jpg',
+        'assets/img/hotels/hotel-large-06.jpg',
+    ],
+    roomsLabel: 'Total 48 Rooms',
+    amenities: ['Pool', 'Coffee', 'Laundry Facilities', 'In-Room Safe', 'Airport Transfer', 'Bar'],
+    roomTypes: ['Smoking rooms', 'Suite', 'Connecting Rooms'],
+    highlights: [
+        'Spacious rooms with contemporary furnishings and helpful amenities.',
+        'Easy access to local attractions and city landmarks.',
+        'Comfort-focused stay with practical guest services.',
+    ],
+    services: ['Concierge Services', 'Daily Housekeeping', 'Front Desk Services', 'Valet Parking'],
+    nearbyLandmarks: [
+        'Near By Statue of Liberty',
+        'The Metropolitan Museum of Art',
+        'Yellowstone National Park',
+    ],
+    providerName: 'Property support team',
+    providerSince: 'Member since: 14 May 2024',
+    providerPhone: '+1 12545 45548',
+    providerEmail: 'Info@example.com',
+    published: true,
+    featured: true,
+};
+
+const toStringList = (value: unknown): string[] =>
+    Array.isArray(value)
+        ? value.filter((item): item is string => typeof item === 'string' && Boolean(item.trim()))
+        : typeof value === 'string' && value.trim()
+            ? [value.trim()]
+            : [];
+
+const firstTextValue = (...values: unknown[]) =>
+    values.find((value) => typeof value === 'string' && value.trim()) as string | undefined;
+
+const normalizeHotelDetails = (data?: Record<string, any> | null): HotelDetailsView => {
+    const gallery = [
+        ...toStringList(data?.gallery),
+        ...toStringList(data?.galleryImages),
+        ...toStringList(data?.images),
+    ];
+    const image = firstTextValue(data?.image, data?.mainImage, data?.thumbnail) || gallery[0] || fallbackHotelDetails.image;
+    const title = firstTextValue(data?.title, data?.name, data?.hotelName, data?.propertyName) || fallbackHotelDetails.title;
+    const location = firstTextValue(data?.location, data?.city, data?.address, data?.country) || fallbackHotelDetails.location;
+    const ratingValue = typeof data?.rating === 'number' ? data.rating : Number(data?.rating);
+    const reviewsCountValue = typeof data?.reviewsCount === 'number' ? data.reviewsCount : Number(data?.reviewsCount);
+    const priceValue = typeof data?.price === 'number'
+        ? data.price
+        : Number(firstTextValue(data?.price, data?.pricePerNight, data?.startingPrice) || 0);
+    const amenities = toStringList(data?.amenities || data?.facilities || data?.features || data?.services);
+    const roomTypes = toStringList(data?.roomTypes || data?.roomType || data?.type || data?.propertyType);
+    const highlights = toStringList(data?.highlights);
+    const services = toStringList(data?.services || data?.amenities);
+    return {
+        id: typeof data?.id === 'string' && data.id.trim() ? data.id : fallbackHotelDetails.id,
+        title,
+        name: title,
+        badge: firstTextValue(data?.badge) || (data?.featured === true ? 'Trending' : fallbackHotelDetails.badge),
+        location,
+        rating: Number.isFinite(ratingValue) ? String(ratingValue) : fallbackHotelDetails.rating,
+        reviewsCount: Number.isFinite(reviewsCountValue) ? reviewsCountValue : fallbackHotelDetails.reviewsCount,
+        reviewsLabel: `(${Number.isFinite(reviewsCountValue) ? reviewsCountValue : fallbackHotelDetails.reviewsCount} Reviews)`,
+        price: Number.isFinite(priceValue) ? priceValue : fallbackHotelDetails.price,
+        priceLabel: `$${Number.isFinite(priceValue) ? priceValue : fallbackHotelDetails.price}`,
+        description: firstTextValue(data?.description, data?.details, data?.summary) || fallbackHotelDetails.description,
+        image,
+        gallery: gallery.length > 0 ? gallery : [image],
+        roomsLabel: firstTextValue(
+            typeof data?.roomsCount === 'number' ? `Total ${data.roomsCount} Rooms` : '',
+            typeof data?.roomCount === 'number' ? `Total ${data.roomCount} Rooms` : '',
+            typeof data?.rooms === 'number' ? `Total ${data.rooms} Rooms` : '',
+            typeof data?.availableRooms === 'number' ? `Total ${data.availableRooms} Rooms` : ''
+        ) || fallbackHotelDetails.roomsLabel,
+        amenities: amenities.length > 0 ? amenities : fallbackHotelDetails.amenities,
+        roomTypes: roomTypes.length > 0 ? roomTypes : fallbackHotelDetails.roomTypes,
+        highlights: highlights.length > 0 ? highlights : amenities.slice(0, 3).concat(fallbackHotelDetails.highlights).slice(0, 3),
+        services: services.length > 0 ? services : fallbackHotelDetails.services,
+        nearbyLandmarks: (() => {
+            const landmarks = toStringList(data?.nearbyLandmarks || data?.landmarks);
+            return landmarks.length > 0 ? landmarks : fallbackHotelDetails.nearbyLandmarks;
+        })(),
+        providerName: firstTextValue(data?.providerName, data?.ownerName, data?.hostName, data?.managerName) || fallbackHotelDetails.providerName,
+        providerSince: firstTextValue(data?.providerSince, data?.memberSince) || fallbackHotelDetails.providerSince,
+        providerPhone: firstTextValue(data?.providerPhone, data?.phone, data?.contactPhone) || fallbackHotelDetails.providerPhone,
+        providerEmail: firstTextValue(data?.providerEmail, data?.email, data?.contactEmail) || fallbackHotelDetails.providerEmail,
+        published: data?.published !== false,
+        featured: data?.featured === true,
+    };
+};
+
+const isPublicHotelRecord = (data?: Record<string, any> | null) => {
+    if (!data || data.published !== true) return false;
+    const approvalStatus = String(data.approvalStatus || data.status || 'approved').toLowerCase();
+    return approvalStatus !== 'rejected' && approvalStatus !== 'suspended';
+};
 const HotelDetails = () => {
     const routes = all_routes
     const [searchParams] = useSearchParams();
@@ -24,6 +167,7 @@ const HotelDetails = () => {
     const [isPolicy3,setIsPolicy3] = useState(false);
     const [isPolicy4,setIsPolicy4] = useState(false);
     const [hotelData, setHotelData] = useState<any>(null);
+    const [hotelNotFound, setHotelNotFound] = useState(false);
 
     const [gallery, setGallery] = React.useState(false);
     const hotelId = searchParams.get('id');
@@ -32,12 +176,41 @@ const HotelDetails = () => {
         let isMounted = true;
 
         const loadHotel = async () => {
-            if (!hotelId) return;
+            if (!hotelId) {
+                if (isMounted) {
+                    setHotelData(null);
+                    setHotelNotFound(false);
+                }
+                return;
+            }
             try {
                 const data = await fetchHotelById(hotelId);
-                if (isMounted && data) setHotelData(data);
-            } catch (error) {
-                console.error('Failed to load hotel:', error);
+                if (isMounted) {
+                    if (isPublicHotelRecord(data)) {
+                        setHotelData(data);
+                        setHotelNotFound(false);
+                        return;
+                    }
+                }
+            } catch {
+                // Fall through to the published hotel query below.
+            }
+
+            try {
+                const hotels = await fetchHotels();
+                const matchedHotel = hotels.find((hotel) => hotel.id === hotelId);
+                if (isMounted && matchedHotel) {
+                    setHotelData(matchedHotel);
+                    setHotelNotFound(false);
+                    return;
+                }
+            } catch {
+                // Ignore and fall back to the template state below.
+            }
+
+            if (isMounted) {
+                setHotelData(null);
+                setHotelNotFound(true);
             }
         };
 
@@ -190,26 +363,19 @@ const HotelDetails = () => {
               });
             };
 
-    const displayHotel = hotelData || {
-        id: 'hotel-plaza-athenee',
-        title: 'Hotel Plaza Athenee',
-        image: 'assets/img/hotels/hotel-large-01.jpg',
-        gallery: [
-            'assets/img/hotels/hotel-large-01.jpg',
-            'assets/img/hotels/hotel-large-02.jpg',
-            'assets/img/hotels/hotel-large-03.jpg',
-            'assets/img/hotels/hotel-large-04.jpg',
-            'assets/img/hotels/hotel-large-05.jpg',
-            'assets/img/hotels/hotel-large-06.jpg',
-        ],
-        titleText: 'Hotel Plaza Athenee',
-    };
+    const isFirestoreBackedHotel = Boolean(hotelId && hotelData && isPublicHotelRecord(hotelData));
+    const displayHotel = isFirestoreBackedHotel ? normalizeHotelDetails(hotelData) : fallbackHotelDetails;
 
     return (
     <>
-    <Breadcrumb title="Tours" breadcrumbs={breadcrumbs} backgroundClass="breadcrumb-bg-01" />
+    <Breadcrumb title="Hotel Details" breadcrumbs={breadcrumbs} backgroundClass="breadcrumb-bg-01" />
     <div className="content">
         <div className="container">
+            {hotelId && hotelNotFound && (
+                <div className="alert alert-warning mb-4" role="alert">
+                    We could not load a public hotel listing for this link, so the page is showing the template fallback instead.
+                </div>
+            )}
 
             <div className="row">
 
@@ -219,13 +385,13 @@ const HotelDetails = () => {
                     {/* Slider */}
                     <div className="d-flex align-items-center justify-content-between flex-wrap mb-2">
                         <div className="mb-2">
-                            <h4 className="mb-1 d-flex align-items-center flex-wrap">{displayHotel.title || displayHotel.name || 'Hotel Plaza Athenee'}<span className="badge badge-xs bg-success rounded-pill ms-2"><i className="isax isax-ticket-star me-1"></i>Verified</span></h4>
+                            <h4 className="mb-1 d-flex align-items-center flex-wrap">{displayHotel.title || displayHotel.name}<span className="badge badge-xs bg-success rounded-pill ms-2"><i className="isax isax-ticket-star me-1"></i>{displayHotel.badge || 'Verified'}</span></h4>
                             <div className="d-flex align-items-center flex-wrap">
                                 <p className="fs-14 mb-2 me-3 pe-3 border-end"><i className="isax isax-buildings me-2"></i>Hotel</p>
-                                <p className="fs-14 mb-2 me-3 pe-3 border-end"><i className="isax isax-location5 me-2"></i>Barcelona<Link to="#location" className="link-primary text-decoration-underline fw-medium ms-2">View Location</Link></p>
+                                <p className="fs-14 mb-2 me-3 pe-3 border-end"><i className="isax isax-location5 me-2"></i>{displayHotel.location}<Link to="#location" className="link-primary text-decoration-underline fw-medium ms-2">View Location</Link></p>
                                 <div className="d-flex align-items-center mb-2">
-                                    <span className="badge badge-warning badge-xs text-gray-9 fs-13 fw-medium me-2">4.5</span>
-                                    <p className="fs-14"><Link to="#reviews">(500 Reviews)</Link></p>
+                                    <span className="badge badge-warning badge-xs text-gray-9 fs-13 fw-medium me-2">{displayHotel.rating}</span>
+                                    <p className="fs-14"><Link to="#reviews">{displayHotel.reviewsLabel}</Link></p>
                                 </div>
                             </div>
                         </div>
@@ -236,11 +402,13 @@ const HotelDetails = () => {
                     </div>
                     <div className="d-flex align-items-center justify-content-between flex-wrap mb-3">
                         <div className="d-flex align-items-center flex-wrap">
-                            <p className="fs-14 me-2 mb-2"><i className="isax isax-tick-circle5 text-success me-2"></i>Fully refundable</p>
-                            <p className="fs-14 me-2 mb-2"><i className="isax isax-tick-circle5 text-success me-2"></i>Express check-in/out available</p>
-                            <p className="fs-14 mb-2"><i className="isax isax-tick-circle5 text-success me-2"></i>Minimum check-in age: 18</p>
+                            {displayHotel.highlights.slice(0, 3).map((item) => (
+                                <p key={item} className="fs-14 me-2 mb-2"><i className="isax isax-tick-circle5 text-success me-2"></i>{item}</p>
+                            ))}
                         </div>
-                        <span className="badge badge-light text-gray-9 badge-md fs-13 fw-medium rounded-pill mb-2">Total 48 Rooms </span>
+                        {displayHotel.roomsLabel && (
+                            <span className="badge badge-light text-gray-9 badge-md fs-13 fw-medium rounded-pill mb-2">{displayHotel.roomsLabel}</span>
+                        )}
                     </div>
                     <div className="border-bottom pb-4 mb-4">
                                 <div className="service-wrap mb-4">
@@ -284,14 +452,11 @@ const HotelDetails = () => {
                         </div>
                         <h5 className="mb-3 fs-18">Description</h5>
                         <div>
-                            <p>Hotel Plaza Athenee is an excellent choice for travellers visiting Coimbatore, offering a budget friendly environment alongside many helpful amenities designed to enhance your stay. The rooms offer a flat screen TV and air
-                                conditioning
-                            </p>
+                            <p>{displayHotel.description}</p>
                         </div>
                         <div className="read-more">
                             <div className="more-text">
-                                <p>and getting online is possible, as free internet access is available, allowing you to rest and refresh with ease.
-                                </p>
+                                <p>{displayHotel.highlights[0] || 'Comfort-focused accommodation with practical guest services.'}</p>
                             </div>
                             <Link to="#" className="fs-14 fw-medium more-link text-decoration-underline mb-2">Show More</Link>
                         </div>
@@ -317,102 +482,16 @@ const HotelDetails = () => {
                     <div className="border-bottom pb-2 mb-4">
                         <h5 className="mb-3 fs-18">Popular Amenities</h5>
                         <div className="row">
-                            <div className="col-sm-6 col-lg-4">
-                                <div className="d-flex align-items-center mb-3">
-                                    <span className="avatar avatar-md bg-primary-transparent rounded-circle me-2">
-										<i className="isax isax-wind-2 fs-16"></i>
-									</span>
-                                    <p>Pool</p>
+                            {displayHotel.amenities.slice(0, 9).map((amenity) => (
+                                <div className="col-sm-6 col-lg-4" key={amenity}>
+                                    <div className="d-flex align-items-center mb-3">
+                                        <span className="avatar avatar-md bg-primary-transparent rounded-circle me-2">
+                                            <i className="isax isax-wind-2 fs-16"></i>
+                                        </span>
+                                        <p>{amenity}</p>
+                                    </div>
                                 </div>
-                                <div className="d-flex align-items-center mb-3">
-                                    <span className="avatar avatar-md bg-primary-transparent rounded-circle me-2">
-										<i className="isax isax-coffee fs-16"></i>
-									</span>
-                                    <p>Coffee</p>
-                                </div>
-                                <div className="d-flex align-items-center mb-3">
-                                    <span className="avatar avatar-md bg-primary-transparent rounded-circle me-2">
-										<i className="isax isax-shopping-bag fs-16"></i>
-									</span>
-                                    <p>Laundry Facilities</p>
-                                </div>
-                                <div className="d-flex align-items-center mb-3">
-                                    <span className="avatar avatar-md bg-primary-transparent rounded-circle me-2">
-										<i className="isax isax-finger-scan fs-16"></i>
-									</span>
-                                    <p>In-Room Safe</p>
-                                </div>
-                                <div className="d-flex align-items-center mb-3">
-                                    <span className="avatar avatar-md bg-primary-transparent rounded-circle me-2">
-										<i className="isax isax-airplane fs-16"></i>
-									</span>
-                                    <p>Airport Transfer</p>
-                                </div>
-                            </div>
-                            <div className="col-sm-6 col-lg-4">
-                                <div className="d-flex align-items-center mb-3">
-                                    <span className="avatar avatar-md bg-primary-transparent rounded-circle me-2">
-										<i className="isax isax-diamonds fs-16"></i>
-									</span>
-                                    <p>Bar</p>
-                                </div>
-                                <div className="d-flex align-items-center mb-3">
-                                    <span className="avatar avatar-md bg-primary-transparent rounded-circle me-2">
-										<i className="isax isax-health fs-16"></i>
-									</span>
-                                    <p>Fitness Facility</p>
-                                </div>
-                                <div className="d-flex align-items-center mb-3">
-                                    <span className="avatar avatar-md bg-primary-transparent rounded-circle me-2">
-										<i className="isax isax-weight fs-16"></i>
-									</span>
-                                    <p>Gym</p>
-                                </div>
-                                <div className="d-flex align-items-center mb-3">
-                                    <span className="avatar avatar-md bg-primary-transparent rounded-circle me-2">
-										<i className="isax isax-headphone fs-16"></i>
-									</span>
-                                    <p>24/7 Front Desk</p>
-                                </div>
-                                <div className="d-flex align-items-center mb-3">
-                                    <span className="avatar avatar-md bg-primary-transparent rounded-circle me-2">
-										<i className="isax isax-reserve fs-16"></i>
-									</span>
-                                    <p>Free Breakfast</p>
-                                </div>
-                            </div>
-                            <div className="col-sm-6 col-lg-4">
-                                <div className="d-flex align-items-center mb-3">
-                                    <span className="avatar avatar-md bg-primary-transparent rounded-circle me-2">
-										<i className="isax isax-buildings-2 fs-16"></i>
-									</span>
-                                    <p>Connecting Rooms</p>
-                                </div>
-                                <div className="d-flex align-items-center mb-3">
-                                    <span className="avatar avatar-md bg-primary-transparent rounded-circle me-2">
-										<i className="isax isax-car fs-16"></i>
-									</span>
-                                    <p>Free Parking</p>
-                                </div>
-                                <div className="d-flex align-items-center mb-3">
-                                    <span className="avatar avatar-md bg-primary-transparent rounded-circle me-2">
-										<i className="isax isax-mirroring-screen fs-16"></i>
-									</span>
-                                    <p>Television</p>
-                                </div>
-                                <div className="d-flex align-items-center mb-3">
-                                    <span className="avatar avatar-md bg-primary-transparent rounded-circle me-2">
-										<i className="isax isax-airpod fs-16"></i>
-									</span>
-                                    <p>Air Conditioning</p>
-                                </div>
-                                <div className="d-flex align-items-center mb-3">
-                                    <span className="avatar avatar-md bg-primary-transparent rounded-circle me-2">
-										<i className="isax isax-lovely fs-16"></i>
-									</span>
-                                    <p>Spa</p>
-                                </div>
-                            </div>
+                            ))}
                         </div>
                     </div>
                     {/* /Popular Amenities */}
@@ -421,36 +500,16 @@ const HotelDetails = () => {
                     <div className="border-bottom pb-2 mb-4">
                         <h5 className="mb-3 fs-18">Room types</h5>
                         <div className="row">
-                            <div className="col-sm-6 col-lg-4">
-                                <div className="d-flex align-items-center mb-3">
-                                    <span className="avatar avatar-md bg-primary-transparent rounded-circle me-2">
-										<i className="isax isax-send-sqaure-2 fs-16"></i>
-									</span>
-                                    <p>Smoking rooms</p>
+                            {(displayHotel.roomTypes.length > 0 ? displayHotel.roomTypes : [displayHotel.name]).slice(0, 3).map((roomType) => (
+                                <div className="col-sm-6 col-lg-4" key={roomType}>
+                                    <div className="d-flex align-items-center mb-3">
+                                        <span className="avatar avatar-md bg-primary-transparent rounded-circle me-2">
+                                            <i className="isax isax-send-sqaure-2 fs-16"></i>
+                                        </span>
+                                        <p>{roomType}</p>
+                                    </div>
                                 </div>
-                                <div className="d-flex align-items-center mb-3">
-                                    <span className="avatar avatar-md bg-primary-transparent rounded-circle me-2">
-										<i className="isax isax-building fs-16"></i>
-									</span>
-                                    <p>City View</p>
-                                </div>
-                            </div>
-                            <div className="col-sm-6 col-lg-4">
-                                <div className="d-flex align-items-center mb-3">
-                                    <span className="avatar avatar-md bg-primary-transparent rounded-circle me-2">
-										<i className="isax isax-diamonds fs-16"></i>
-									</span>
-                                    <p>Suite</p>
-                                </div>
-                            </div>
-                            <div className="col-sm-6 col-lg-4">
-                                <div className="d-flex align-items-center mb-3">
-                                    <span className="avatar avatar-md bg-primary-transparent rounded-circle me-2">
-										<i className="isax isax-buildings-2 fs-16"></i>
-									</span>
-                                    <p>Connecting Rooms</p>
-                                </div>
-                            </div>
+                            ))}
                         </div>
                     </div>
                     {/* /Room types */}
@@ -626,6 +685,7 @@ const HotelDetails = () => {
                                 </div>
                             </div>
                         </div>
+                        {!isFirestoreBackedHotel && (
                         <div className="hotel-list">
                             <div className="place-item mb-4">
                                 <div className="place-img">
@@ -780,6 +840,7 @@ const HotelDetails = () => {
                                 </div>
                             </div>
                         </div>
+                        )}
                     </div>
                     {/* /Availability */}
 
@@ -787,66 +848,16 @@ const HotelDetails = () => {
                     <div className="border-bottom pb-2 mb-4">
                         <h5 className="mb-3 fs-18">Services</h5>
                         <div className="row">
-                            <div className="col-md-6 col-lg-4">
-                                <div className="d-flex align-items-center mb-3">
-                                    <span className="avatar avatar-md bg-primary-transparent rounded-circle me-2">
-										<i className="isax isax-verify fs-16"></i>
-									</span>
-                                    <p>Concierge Services</p>
+                            {displayHotel.services.slice(0, 9).map((service) => (
+                                <div className="col-md-6 col-lg-4" key={service}>
+                                    <div className="d-flex align-items-center mb-3">
+                                        <span className="avatar avatar-md bg-primary-transparent rounded-circle me-2">
+                                            <i className="isax isax-verify fs-16"></i>
+                                        </span>
+                                        <p>{service}</p>
+                                    </div>
                                 </div>
-                                <div className="d-flex align-items-center mb-3">
-                                    <span className="avatar avatar-md bg-primary-transparent rounded-circle me-2">
-										<i className="isax isax-verify fs-16"></i>
-									</span>
-                                    <p>Daily Housekeeping</p>
-                                </div>
-                                <div className="d-flex align-items-center mb-3">
-                                    <span className="avatar avatar-md bg-primary-transparent rounded-circle me-2">
-										<i className="isax isax-verify fs-16"></i>
-									</span>
-                                    <p>Front Desk Services</p>
-                                </div>
-                            </div>
-                            <div className="col-md-6 col-lg-4">
-                                <div className="d-flex align-items-center mb-3">
-                                    <span className="avatar avatar-md bg-primary-transparent rounded-circle me-2">
-										<i className="isax isax-verify fs-16"></i>
-									</span>
-                                    <p> Check-In/Check-Out Assistance</p>
-                                </div>
-                                <div className="d-flex align-items-center mb-3">
-                                    <span className="avatar avatar-md bg-primary-transparent rounded-circle me-2">
-										<i className="isax isax-verify fs-16"></i>
-									</span>
-                                    <p>On-Site Restaurants</p>
-                                </div>
-                                <div className="d-flex align-items-center mb-3">
-                                    <span className="avatar avatar-md bg-primary-transparent rounded-circle me-2">
-										<i className="isax isax-verify fs-16"></i>
-									</span>
-                                    <p>In-Room Dining</p>
-                                </div>
-                            </div>
-                            <div className="col-md-6 col-lg-4">
-                                <div className="d-flex align-items-center mb-3">
-                                    <span className="avatar avatar-md bg-primary-transparent rounded-circle me-2">
-										<i className="isax isax-verify fs-16"></i>
-									</span>
-                                    <p>Concierge Services</p>
-                                </div>
-                                <div className="d-flex align-items-center mb-3">
-                                    <span className="avatar avatar-md bg-primary-transparent rounded-circle me-2">
-										<i className="isax isax-verify fs-16"></i>
-									</span>
-                                    <p>Valet Parking</p>
-                                </div>
-                                <div className="d-flex align-items-center mb-3">
-                                    <span className="avatar avatar-md bg-primary-transparent rounded-circle me-2">
-										<i className="isax isax-verify fs-16"></i>
-									</span>
-                                    <p>Baby Sitting</p>
-                                </div>
-                            </div>
+                            ))}
                         </div>
                     </div>
                     {/* /Services */}
@@ -858,81 +869,24 @@ const HotelDetails = () => {
                             open={open}
                             close={() => setOpen(false)}
                             slides={[
-                            { src: "/react/assets/img/hotels/hotel-large-07.jpg" },
-                            { src: "/react/assets/img/hotels/hotel-large-08.jpg" },
-                            { src: "/react/assets/img/hotels/hotel-large-09.jpg" },
-                            { src: "/react/assets/img/hotels/hotel-large-10.jpg" },
-                            { src: "/react/assets/img/hotels/hotel-large-11.jpg" },
-                            { src: "/react/assets/img/hotels/hotel-large-12.jpg" },
-                            { src: "/react/assets/img/hotels/hotel-large-13.jpg" },
-                            { src: "/react/assets/img/hotels/hotel-large-14.jpg" },
-                            { src: "/react/assets/img/hotels/hotel-large-15.jpg" },
-                            { src: "/react/assets/img/hotels/hotel-large-16.jpg" },
-                            { src: "/react/assets/img/hotels/hotel-large-17.jpg" },
-                            { src: "/react/assets/img/hotels/hotel-large-08.jpg" },
+                            ...(displayHotel.gallery.length > 0 ? displayHotel.gallery : [displayHotel.image]).map((src: string) => ({ src })),
                             ]}
                         />
                         <div className="row row-cols-lg-6 row-cols-sm-4 row-cols-2 g-2">
-                            <div className="col">
-                                <Link className="galley-wrap" data-fancybox="gallery" to="#" onClick={() => setOpen(true)}>
-                                    <ImageWithBasePath src="assets/img/hotels/hotel-gallery-01.jpg" alt="img"/>
-                                </Link>
-                            </div>
-                            <div className="col">
-                                <Link className="galley-wrap" data-fancybox="gallery" to="#" onClick={() => setOpen(true)}>
-                                    <ImageWithBasePath src="assets/img/hotels/hotel-gallery-02.jpg" alt="img"/>
-                                </Link>
-                            </div>
-                            <div className="col">
-                                <Link className="galley-wrap" data-fancybox="gallery" to="#" onClick={() => setOpen(true)}>
-                                    <ImageWithBasePath src="assets/img/hotels/hotel-gallery-03.jpg" alt="img"/>
-                                </Link>
-                            </div>
-                            <div className="col">
-                                <Link className="galley-wrap" data-fancybox="gallery" to="#" onClick={() => setOpen(true)}>
-                                    <ImageWithBasePath src="assets/img/hotels/hotel-gallery-04.jpg" alt="img"/>
-                                </Link>
-                            </div>
-                            <div className="col">
-                                <Link className="galley-wrap" data-fancybox="gallery" to="#" onClick={() => setOpen(true)}>
-                                    <ImageWithBasePath src="assets/img/hotels/hotel-gallery-05.jpg" alt="img"/>
-                                </Link>
-                            </div>
-                            <div className="col">
-                                <Link className="galley-wrap" data-fancybox="gallery" to="#" onClick={() => setOpen(true)}>
-                                    <ImageWithBasePath src="assets/img/hotels/hotel-gallery-06.jpg" alt="img"/>
-                                </Link>
-                            </div>
-                            <div className="col">
-                                <Link className="galley-wrap" data-fancybox="gallery" to="#" onClick={() => setOpen(true)}>
-                                    <ImageWithBasePath src="assets/img/hotels/hotel-gallery-07.jpg" alt="img"/>
-                                </Link>
-                            </div>
-                            <div className="col">
-                                <Link className="galley-wrap" data-fancybox="gallery" to="#" onClick={() => setOpen(true)}>
-                                    <ImageWithBasePath src="assets/img/hotels/hotel-gallery-08.jpg" alt="img"/>
-                                </Link>
-                            </div>
-                            <div className="col">
-                                <Link className="galley-wrap" data-fancybox="gallery" to="#" onClick={() => setOpen(true)}>
-                                    <ImageWithBasePath src="assets/img/hotels/hotel-gallery-09.jpg" alt="img"/>
-                                </Link>
-                            </div>
-                            <div className="col">
-                                <Link className="galley-wrap" data-fancybox="gallery" to="#" onClick={() => setOpen(true)}>
-                                    <ImageWithBasePath src="assets/img/hotels/hotel-gallery-10.jpg" alt="img"/>
-                                </Link>
-                            </div>
-                            <div className="col">
-                                <Link className="galley-wrap" data-fancybox="gallery" to="#" onClick={() => setOpen(true)}>
-                                    <ImageWithBasePath src="assets/img/hotels/hotel-gallery-11.jpg" alt="img"/>
-                                </Link>
-                            </div>
-                            <div className="col">
-                                <div className="galley-wrap more-gallery d-flex align-items-center justify-content-center">
-                                    <Link data-fancybox="gallery" to="#" onClick={() => setOpen(true)} className="btn btn-white btn-xs"><i className="isax isax-image5 me-1"></i>See All</Link>
+                            {(displayHotel.gallery.length > 0 ? displayHotel.gallery : [displayHotel.image]).slice(0, 11).map((src: string) => (
+                                <div className="col" key={src}>
+                                    <Link className="galley-wrap" data-fancybox="gallery" to="#" onClick={() => setOpen(true)}>
+                                        <ImageWithBasePath src={src} alt="img"/>
+                                    </Link>
                                 </div>
-                            </div>
+                            ))}
+                            {(displayHotel.gallery.length > 0 ? displayHotel.gallery : [displayHotel.image]).length > 1 && (
+                                <div className="col">
+                                    <div className="galley-wrap more-gallery d-flex align-items-center justify-content-center">
+                                        <Link data-fancybox="gallery" to="#" onClick={() => setOpen(true)} className="btn btn-white btn-xs"><i className="isax isax-image5 me-1"></i>See All</Link>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                         
                     </div>
