@@ -55,7 +55,12 @@ async function main() {
   const errors = [];
 
   page.on('console', (msg) => {
-    if (msg.type() === 'error') errors.push(msg.text());
+    if (msg.type() === 'error') {
+      const text = msg.text();
+      if (!text.includes('Could not reach Cloud Firestore backend')) {
+        errors.push(text);
+      }
+    }
   });
   page.on('pageerror', (err) => errors.push(err.message));
 

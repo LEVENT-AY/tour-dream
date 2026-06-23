@@ -56,6 +56,8 @@ const DynamicFeaturedSections = () => {
   const getFeatured = (all: Record<string, any>[], ids: string[]) =>
     (ids?.map((id) => all.find((item) => item.id === id)).filter((item): item is Record<string, any> => !!item) || []);
 
+  const buildHotelDetailsLink = (hotelId: string) => `${routes.hotelDetails}?id=${hotelId}`;
+
   const renderTourCard = (tour: Record<string, any>) => (
     <div className="col-xl-4 col-md-6 d-flex" key={tour.id}>
       <div className="place-item common-grid-slider mb-4 flex-fill">
@@ -113,7 +115,7 @@ const DynamicFeaturedSections = () => {
     <div className="col-xl-4 col-md-6 d-flex" key={hotel.id}>
       <div className="place-item mb-4 flex-fill">
         <div className="place-img">
-          <Link to={routes.hotelDetails}>
+          <Link to={buildHotelDetailsLink(hotel.id)}>
             <ImageWithBasePath src={hotel.image} className="img-fluid" alt={hotel.title || "Hotel image"} fallbackSrc={getCategoryFallbackSrc("hotels")} />
           </Link>
           {hotel.badge && (
@@ -127,7 +129,7 @@ const DynamicFeaturedSections = () => {
             <span className="badge badge-warning badge-xs text-gray-9 fs-13 fw-medium me-2">{hotel.rating}</span>
             <p className="fs-14">({hotel.reviewsCount} Reviews)</p>
           </div>
-          <h5 className="mb-1 text-truncate"><Link to={routes.hotelDetails}>{hotel.title}</Link></h5>
+          <h5 className="mb-1 text-truncate"><Link to={buildHotelDetailsLink(hotel.id)}>{hotel.title}</Link></h5>
           <p className="d-flex align-items-center mb-2"><i className="isax isax-location5 me-2" />{hotel.location}</p>
           <div className="border-top pt-2 mb-2">
             <h6 className="d-flex align-items-center">Facillities :<i className="isax isax-home-wifi ms-2 me-2 text-primary"></i><i className="isax isax-scissor me-2 text-primary"></i><i className="isax isax-profile-2user me-2 text-primary"></i><i className="isax isax-wind-2 me-2 text-primary"></i><Link to="#" className="fs-14 fw-normal text-default d-inline-block">+2</Link></h6>
