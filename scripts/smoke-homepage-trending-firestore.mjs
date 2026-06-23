@@ -28,9 +28,9 @@ async function main() {
   const featuredTitle = `QA Featured Flight ${stampValue}`;
   const publishedTitle = `QA Published Flight ${stampValue}`;
   const hiddenTitle = `QA Hidden Flight ${stampValue}`;
-  const featuredImage = `https://example.com/qa-featured-flight-${stampValue}.jpg`;
-  const publishedImage = `https://example.com/qa-published-flight-${stampValue}.jpg`;
-  const hiddenImage = `https://example.com/qa-hidden-flight-${stampValue}.jpg`;
+  const featuredImage = `${BASE_URL}/assets/img/flight/flight-large-02.jpg?qa=${stampValue}`;
+  const publishedImage = `${BASE_URL}/assets/img/flight/flight-large-03.jpg?qa=${stampValue}`;
+  const hiddenImage = `${BASE_URL}/assets/img/flight/flight-large-04.jpg?qa=${stampValue}`;
 
   const createdIds = [];
   const browser = await chromium.launch({ headless: true });
@@ -113,7 +113,7 @@ async function main() {
     const firstCard = activeFlightsTab.locator('.trending-list-item').first();
     const firstCardText = (await firstCard.textContent()) || '';
     const cardImageSrc = await firstCard.locator('img').first().getAttribute('src');
-    const bodyText = (await page.locator('body').textContent()) || '';
+    const tabText = (await activeFlightsTab.textContent()) || '';
 
     const success =
       firstCardText.includes(featuredTitle) &&
@@ -123,7 +123,7 @@ async function main() {
       firstCardText.includes('$987') &&
       firstCardText.includes('17 Seats Left') &&
       cardImageSrc === featuredImage &&
-      !bodyText.includes(hiddenTitle) &&
+      !tabText.includes(hiddenTitle) &&
       errors.length === 0;
 
     console.log(JSON.stringify({

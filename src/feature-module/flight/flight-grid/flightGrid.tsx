@@ -158,6 +158,12 @@ const FlightGrid = () => {
                                 ) : (
                                     flights.map((flight, index) => (
                                         <div className="col-xxl-4 col-md-6 d-flex" key={flight.id || index}>
+                                            {(() => {
+                                                const flightDetailsLink = flight.id
+                                                    ? `${routes.flightDetails}?id=${encodeURIComponent(String(flight.id))}`
+                                                    : routes.flightDetails;
+
+                                                return (
                                             <div className={`place-item mb-4 flex-fill ${flight.gallery && flight.gallery.length > 1 ? 'common-grid-slider' : ''}`}>
                                                 <div className="place-img">
                                                     {flight.gallery && flight.gallery.length > 1 ? (
@@ -165,7 +171,7 @@ const FlightGrid = () => {
                                                             <Slider {...imgslideroption}>
                                                                 {flight.gallery.map((img: string, i: number) => (
                                                                     <div className="slide-images" key={i}>
-                                                                        <Link to={routes.flightDetails}>
+                                                                        <Link to={flightDetailsLink}>
                                                                             <ImageWithBasePath src={img} className="img-fluid" alt={flight.title || "Flight image"} fallbackSrc={getCategoryFallbackSrc("flights")} />
                                                                         </Link>
                                                                     </div>
@@ -173,7 +179,7 @@ const FlightGrid = () => {
                                                             </Slider>
                                                         </div>
                                                     ) : (
-                                                        <Link to={routes.flightDetails}>
+                                                        <Link to={flightDetailsLink}>
                                                             <ImageWithBasePath src={flight.image || flight.gallery?.[0]} className="img-fluid" alt={flight.title || "Flight image"} fallbackSrc={getCategoryFallbackSrc("flights")} />
                                                         </Link>
                                                     )}
@@ -193,7 +199,7 @@ const FlightGrid = () => {
                                                         <Link to="#" className="arrow-icon flex-shrink-0"><i className="isax isax-arrow-2"></i></Link>
                                                         <span className="loc-name d-inline-flex align-items-center"><i className="isax isax-airplane rotate-135 me-2"></i>{flight.arrivalCity}</span>
                                                     </div>
-                                                    <h5 className="text-truncate mb-1"><Link to={routes.flightDetails}>{flight.title}</Link></h5>
+                                                    <h5 className="text-truncate mb-1"><Link to={flightDetailsLink}>{flight.title}</Link></h5>
                                                     <div className="d-flex align-items-center mb-2">
                                                         <span className="avatar avatar-sm me-2">
                                                             <ImageWithBasePath src="assets/img/icons/airindia.svg" className="rounded-circle" alt="icon" />
@@ -215,6 +221,8 @@ const FlightGrid = () => {
                                                     </div>
                                                 </div>
                                             </div>
+                                                );
+                                            })()}
                                         </div>
                                     ))
                                 )}

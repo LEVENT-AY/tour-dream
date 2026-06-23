@@ -135,6 +135,9 @@ const resolveFeatured = (data: Record<string, any>) => data.featured === true;
 
 const resolvePublished = (data: Record<string, any>) => data.published !== false && data.status !== "draft";
 
+const buildFlightDetailsRoute = (itemId?: string) =>
+  itemId ? `${all_routes.flightDetails}?id=${encodeURIComponent(itemId)}` : all_routes.flightDetails;
+
 const sortTrendingItems = (items: Record<string, any>[]) =>
   [...items].sort((left, right) => {
     const leftFeatured = resolveFeatured(left) ? 1 : 0;
@@ -159,7 +162,7 @@ const mapFlightCard = (data: Record<string, any>, index: number): TrendingFlight
   id: toStringValue(data.id, `flight-${index}`),
   title: toStringValue(data.title || data.flightName || data.airlineName || data.flightNumber, `Flight ${index + 1}`),
   image: resolveImage(data, "flights"),
-  route: all_routes.flightDetails,
+  route: buildFlightDetailsRoute(toStringValue(data.id, "")),
   badge: toStringValue(data.badge || (data.featured ? "Trending" : ""), data.featured ? "Trending" : ""),
   featured: resolveFeatured(data),
   published: resolvePublished(data),

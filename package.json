@@ -31,6 +31,7 @@
     "smoke:active-home-template": "node scripts/smoke-active-home-template.mjs",
     "smoke:home-header-variant": "node scripts/smoke-home-header-variant.mjs",
     "smoke:homepage-trending-firestore": "node scripts/smoke-homepage-trending-firestore.mjs",
+    "smoke:flight-details-firestore": "node scripts/smoke-flight-details-firestore.mjs",
     "smoke:public-header-flat-menu": "node scripts/smoke-public-header-flat-menu.mjs",
     "smoke:role-permissions-upload": "node scripts/smoke-role-permissions-upload.mjs",
     "demo:assign-agent": "node scripts/assign-listings-to-demo-agent.mjs",

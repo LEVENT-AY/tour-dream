@@ -241,6 +241,8 @@ export const fetchFlights = async (): Promise<DocumentData[]> => {
       };
     });
 };
+export const fetchFlightById = async (flightId: string): Promise<DocumentData | null> =>
+  getCatalogItem("flights", flightId);
 export const fetchActivities = async (): Promise<DocumentData[]> => {
   const q = query(collection(db, "activities"), where("published", "==", true));
   const snapshot = await getDocs(q);

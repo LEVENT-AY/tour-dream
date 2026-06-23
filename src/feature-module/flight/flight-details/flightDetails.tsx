@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react'
 import Breadcrumb from '../../../core/common/Breadcrumb/breadcrumb';
 import { all_routes } from '../../router/all_routes';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import ImageWithBasePath from '../../../core/common/imageWithBasePath';
 import Slider from 'react-slick';
 import "slick-carousel/slick/slick.css";
@@ -13,12 +13,142 @@ import dayjs from 'dayjs';
 import { DatePicker } from 'antd';
 import Lightbox from "yet-another-react-lightbox";
 import Reviews from '../../../core/common/reviews/reviews';
+import { fetchFlightById, fetchFlights } from '../../../core/services/firebaseServices';
+
+type FlightDetailsView = {
+    id: string;
+    title: string;
+    badge: string;
+    airline: string;
+    stopInfo: string;
+    departureCity: string;
+    arrivalCity: string;
+    location: string;
+    rating: string;
+    reviewsLabel: string;
+    seatsLabel: string;
+    priceLabel: string;
+    description: string;
+    image: string;
+    gallery: string[];
+    published: boolean;
+    featured: boolean;
+};
+
+const fallbackFlightDetails: FlightDetailsView = {
+    id: "fallback-flight-details",
+    title: "Antonov An-32",
+    badge: "Cheapest",
+    airline: "Air India",
+    stopInfo: "1-stop at Dubai",
+    departureCity: "Newyork",
+    arrivalCity: "Sydney",
+    location: "15,Adri Street,Ciutat Vella,Barcelona",
+    rating: "5.0",
+    reviewsLabel: "(400 Reviews)",
+    seatsLabel: "40 Seats Left",
+    priceLabel: "$300",
+    description:
+        'Experience top-notch service, in-flight amenities, and smooth takeoffs for a stress-free journey.',
+    image: "assets/img/flight/flight-large-01.jpg",
+    gallery: [
+        "assets/img/flight/flight-large-01.jpg",
+        "assets/img/flight/flight-large-02.jpg",
+        "assets/img/flight/flight-large-03.jpg",
+        "assets/img/flight/flight-large-04.jpg",
+        "assets/img/flight/flight-large-05.jpg",
+        "assets/img/flight/flight-large-06.jpg",
+    ],
+    published: true,
+    featured: true,
+};
+
+const normalizeFlightDetails = (data?: Record<string, any> | null): FlightDetailsView => {
+    const departureCity = typeof data?.departureCity === "string" && data.departureCity.trim()
+        ? data.departureCity
+        : typeof data?.city === "string" && data.city.trim()
+            ? data.city
+            : typeof data?.address === "string" && data.address.trim()
+                ? data.address
+                : fallbackFlightDetails.departureCity;
+    const arrivalCity = typeof data?.arrivalCity === "string" && data.arrivalCity.trim()
+        ? data.arrivalCity
+        : typeof data?.country === "string" && data.country.trim()
+            ? data.country
+            : fallbackFlightDetails.arrivalCity;
+    const gallery = Array.isArray(data?.gallery) && data.gallery.length > 0
+        ? data.gallery.filter((src): src is string => typeof src === "string" && Boolean(src.trim()))
+        : [];
+    const image = typeof data?.image === "string" && data.image.trim()
+        ? data.image
+        : typeof data?.mainImage === "string" && data.mainImage.trim()
+            ? data.mainImage
+            : typeof data?.thumbnail === "string" && data.thumbnail.trim()
+                ? data.thumbnail
+                : gallery[0] || fallbackFlightDetails.image;
+    const title = typeof data?.title === "string" && data.title.trim()
+        ? data.title
+        : typeof data?.flightName === "string" && data.flightName.trim()
+            ? data.flightName
+            : typeof data?.airlineName === "string" && data.airlineName.trim()
+                ? data.airlineName
+                : typeof data?.flightNumber === "string" && data.flightNumber.trim()
+                    ? data.flightNumber
+                    : fallbackFlightDetails.title;
+
+    return {
+        id: typeof data?.id === "string" && data.id.trim() ? data.id : fallbackFlightDetails.id,
+        title,
+        badge: typeof data?.badge === "string" && data.badge.trim()
+            ? data.badge
+            : data?.featured === true
+                ? "Trending"
+                : fallbackFlightDetails.badge,
+        airline: typeof data?.airline === "string" && data.airline.trim()
+            ? data.airline
+            : typeof data?.airlineName === "string" && data.airlineName.trim()
+                ? data.airlineName
+                : fallbackFlightDetails.airline,
+        stopInfo: typeof data?.stopInfo === "string" && data.stopInfo.trim()
+            ? data.stopInfo
+            : typeof data?.flightNumber === "string" && data.flightNumber.trim()
+                ? data.flightNumber
+                : typeof data?.make === "string" && data.make.trim()
+                    ? data.make
+                    : fallbackFlightDetails.stopInfo,
+        departureCity,
+        arrivalCity,
+        location: typeof data?.location === "string" && data.location.trim()
+            ? data.location
+            : [departureCity, arrivalCity].filter(Boolean).join(" - ") || fallbackFlightDetails.location,
+        rating: typeof data?.rating === "number"
+            ? String(data.rating)
+            : typeof data?.rating === "string" && data.rating.trim()
+                ? data.rating
+                : fallbackFlightDetails.rating,
+        reviewsLabel: `(${typeof data?.reviewsCount === "number" ? data.reviewsCount : Number(data?.reviewsCount) || 0} Reviews)`,
+        seatsLabel: `${typeof data?.seatsLeft === "number" ? data.seatsLeft : Number(data?.seatsLeft ?? data?.staffs) || 0} Seats Left`,
+        priceLabel: `$${typeof data?.price === "number" ? data.price : Number(data?.price) || 0}`,
+        description: typeof data?.description === "string" && data.description.trim()
+            ? data.description
+            : typeof data?.details === "string" && data.details.trim()
+                ? data.details
+                : fallbackFlightDetails.description,
+        image,
+        gallery: (gallery.length > 0 ? gallery : [image]).slice(0, 6),
+        published: data?.published !== false,
+        featured: data?.featured === true,
+    };
+};
 
 const FlightDetails = () => {
 
     const routes = all_routes
+    const [searchParams] = useSearchParams();
+    const flightId = searchParams.get('id');
 
     const [gallery, setGallery] = React.useState(false);
+    const [flightData, setFlightData] = useState<Record<string, any> | null>(null);
 
     const [flightRadio, setFlightRadio] = useState<string>('oneway');
 
@@ -41,6 +171,7 @@ const FlightDetails = () => {
             active: true,
         },
     ];
+    const flightDetailsUrl = flightId ? `${routes.flightDetails}?id=${encodeURIComponent(flightId)}` : routes.flightDetails;
 
     const sliderForRef = useRef<any>(null);
     const sliderNavRef = useRef<any>(null);
@@ -67,6 +198,54 @@ const FlightDetails = () => {
             sliderNav: sliderForRef.current,
         });
     }, []);
+
+    useEffect(() => {
+        let active = true;
+
+        const loadFlight = async () => {
+            if (!flightId) {
+                if (active) {
+                    setFlightData(null);
+                }
+                return;
+            }
+
+            try {
+                const data = await fetchFlightById(flightId);
+                if (active) {
+                    if (data) {
+                        setFlightData(data);
+                        return;
+                    }
+                }
+            } catch (error) {
+                console.error("Error loading direct flight details:", error);
+            }
+
+            try {
+                const flights = await fetchFlights();
+                const matchedFlight = flights.find((flight) => flight.id === flightId);
+                if (active) {
+                    setFlightData(matchedFlight || null);
+                }
+            } catch (error) {
+                console.error("Error loading flight list fallback:", error);
+                if (active) {
+                    setFlightData(null);
+                }
+            }
+        };
+
+        void loadFlight();
+
+        return () => {
+            active = false;
+        };
+    }, [flightId]);
+
+    const displayFlight = normalizeFlightDetails(flightData);
+    const galleryImages = displayFlight.gallery.length > 0 ? displayFlight.gallery : fallbackFlightDetails.gallery;
+    const lightboxSlides = galleryImages.map((src) => ({ src }));
 
 
     const largeImage = {
@@ -192,14 +371,16 @@ const FlightDetails = () => {
                                         <div className="d-flex align-items-center justify-content-between flex-wrap mb-2">
                                             <div className="mb-2">
                                                 <h4 className="mb-1 d-flex align-items-center flex-wrap">
-                                                    Antonov An-32
+                                                    {displayFlight.title}
                                                     <span className="badge badge-xs bg-success rounded-pill ms-2">
                                                         <i className="isax isax-ticket-star5 me-1" />
-                                                        Verified
+                                                        {displayFlight.featured ? "Featured" : "Verified"}
                                                     </span>
-                                                    <span className="badge badge-xs bg-indigo rounded-pill ms-2">
-                                                        Cheapest
-                                                    </span>
+                                                    {displayFlight.badge ? (
+                                                        <span className="badge badge-xs bg-indigo rounded-pill ms-2">
+                                                            {displayFlight.badge}
+                                                        </span>
+                                                    ) : null}
                                                 </h4>
                                                 <div className="d-flex align-items-center flex-wrap">
                                                     <p className="fs-14 mb-2 me-3 pe-3 border-end d-flex align-items-center">
@@ -208,13 +389,12 @@ const FlightDetails = () => {
                                                             className="me-2"
                                                             alt="Img"
                                                         />{" "}
-                                                        Air India
-                                                        <span className="bg-primary divide-point mx-2" /> 1-stop
-                                                        at Dubai
+                                                        {displayFlight.airline}
+                                                        <span className="bg-primary divide-point mx-2" /> {displayFlight.stopInfo}
                                                     </p>
                                                     <p className="fs-14 mb-2 me-3 pe-3 border-end">
                                                         <i className="isax isax-location5 me-2" />
-                                                        Ciutat Vella, Barcelona
+                                                        {displayFlight.location}
                                                         <Link
                                                             to="#location"
                                                             className="link-primary text-decoration-underline fw-medium ms-2"
@@ -224,10 +404,10 @@ const FlightDetails = () => {
                                                     </p>
                                                     <div className="d-flex align-items-center mb-2">
                                                         <span className="badge badge-warning badge-xs text-gray-9 fs-13 fw-medium me-2">
-                                                            5.0
+                                                            {displayFlight.rating}
                                                         </span>
                                                         <p className="fs-14">
-                                                            <Link to="#reviews">(400 Reviews)</Link>
+                                                            <Link to="#reviews">{displayFlight.reviewsLabel}</Link>
                                                         </p>
                                                     </div>
                                                 </div>
@@ -255,62 +435,22 @@ const FlightDetails = () => {
                                                     id="large-img"
                                                 >
                                                     <Slider {...largeImage} ref={sliderForRef}>
-                                                        <div className="service-img">
-                                                            <ImageWithBasePath
-                                                                src="assets/img/flight/flight-large-01.jpg"
-                                                                className="img-fluid"
-                                                                alt="Slider Img"
-                                                            />
-                                                        </div>
-                                                        <div className="service-img">
-                                                            <ImageWithBasePath
-                                                                src="assets/img/flight/flight-large-02.jpg"
-                                                                className="img-fluid"
-                                                                alt="Slider Img"
-                                                            />
-                                                        </div>
-                                                        <div className="service-img">
-                                                            <ImageWithBasePath
-                                                                src="assets/img/flight/flight-large-03.jpg"
-                                                                className="img-fluid"
-                                                                alt="Slider Img"
-                                                            />
-                                                        </div>
-                                                        <div className="service-img">
-                                                            <ImageWithBasePath
-                                                                src="assets/img/flight/flight-large-04.jpg"
-                                                                className="img-fluid"
-                                                                alt="Slider Img"
-                                                            />
-                                                        </div>
-                                                        <div className="service-img">
-                                                            <ImageWithBasePath
-                                                                src="assets/img/flight/flight-large-05.jpg"
-                                                                className="img-fluid"
-                                                                alt="Slider Img"
-                                                            />
-                                                        </div>
-                                                        <div className="service-img">
-                                                            <ImageWithBasePath
-                                                                src="assets/img/flight/flight-large-06.jpg"
-                                                                className="img-fluid"
-                                                                alt="Slider Img"
-                                                            />
-                                                        </div>
+                                                        {galleryImages.map((src, index) => (
+                                                            <div className="service-img" key={`${src}-${index}`}>
+                                                                <ImageWithBasePath
+                                                                    src={src}
+                                                                    className="img-fluid"
+                                                                    alt={`${displayFlight.title} image ${index + 1}`}
+                                                                />
+                                                            </div>
+                                                        ))}
                                                     </Slider>
 
                                                 </div>
                                                 <Lightbox
                                                     open={gallery}
                                                     close={() => setGallery(false)}
-                                                    slides={[
-                                                        { src: "assets/img/flight/flight-large-01.jpg" },
-                                                        { src: "assets/img/flight/flight-large-02.jpg" },
-                                                        { src: "assets/img/flight/flight-large-03.jpg" },
-                                                        { src: "assets/img/flight/flight-large-04.jpg" },
-                                                        { src: "assets/img/flight/flight-large-05.jpg" },
-                                                        { src: "assets/img/flight/flight-large-06.jpg" },
-                                                    ]}
+                                                    slides={lightboxSlides}
                                                 />
                                                 <Link
                                                     data-fancybox="gallery"
@@ -326,48 +466,15 @@ const FlightDetails = () => {
                                                 id="small-img"
                                             >
                                                 <Slider {...smallImage} ref={sliderNavRef}>
-                                                    <div>
-                                                        <ImageWithBasePath
-                                                            src="assets/img/flight/flight-thumb-01.jpg"
-                                                            className="img-fluid"
-                                                            alt="Slider Img"
-                                                        />
-                                                    </div>
-                                                    <div>
-                                                        <ImageWithBasePath
-                                                            src="assets/img/flight/flight-thumb-02.jpg"
-                                                            className="img-fluid"
-                                                            alt="Slider Img"
-                                                        />
-                                                    </div>
-                                                    <div>
-                                                        <ImageWithBasePath
-                                                            src="assets/img/flight/flight-thumb-03.jpg"
-                                                            className="img-fluid"
-                                                            alt="Slider Img"
-                                                        />
-                                                    </div>
-                                                    <div>
-                                                        <ImageWithBasePath
-                                                            src="assets/img/flight/flight-thumb-04.jpg"
-                                                            className="img-fluid"
-                                                            alt="Slider Img"
-                                                        />
-                                                    </div>
-                                                    <div>
-                                                        <ImageWithBasePath
-                                                            src="assets/img/flight/flight-thumb-05.jpg"
-                                                            className="img-fluid"
-                                                            alt="Slider Img"
-                                                        />
-                                                    </div>
-                                                    <div>
-                                                        <ImageWithBasePath
-                                                            src="assets/img/flight/flight-thumb-06.jpg"
-                                                            className="img-fluid"
-                                                            alt="Slider Img"
-                                                        />
-                                                    </div>
+                                                    {galleryImages.map((src, index) => (
+                                                        <div key={`thumb-${src}-${index}`}>
+                                                            <ImageWithBasePath
+                                                                src={src}
+                                                                className="img-fluid"
+                                                                alt={`${displayFlight.title} thumbnail ${index + 1}`}
+                                                            />
+                                                        </div>
+                                                    ))}
                                                 </Slider>
 
                                             </div>
@@ -448,17 +555,12 @@ const FlightDetails = () => {
                                         >
                                             <div className="accordion-body pt-0">
                                                 <p className="mb-2">
-                                                    Kicking off on April 1, 2025, the "DreamsTour" will take
-                                                    Luna to major cities across North America and Europe,
-                                                    including Los Angeles, New York, Chicago, Toronto, and
-                                                    London.
+                                                    {displayFlight.description}
                                                 </p>
                                                 <div className="read-more">
                                                     <div className="more-text">
                                                         <p>
-                                                            Each concert will showcase her unique blend of pop and
-                                                            ethereal soundscapes, bringing her music to life in a
-                                                            way you've never seen before.
+                                                            {displayFlight.airline} continues with the selected flight details and booking summary from Firestore.
                                                         </p>
                                                     </div>
                                                     <Link
@@ -698,7 +800,7 @@ const FlightDetails = () => {
                                                                             <input
                                                                                 type="text"
                                                                                 className="form-control"
-                                                                                defaultValue="Newyork"
+                                                                                defaultValue={displayFlight.departureCity}
                                                                             />
                                                                             <p className="fs-12 mb-0">
                                                                                 Ken International Airport
@@ -1065,7 +1167,7 @@ const FlightDetails = () => {
                                                                             <input
                                                                                 type="text"
                                                                                 className="form-control"
-                                                                                defaultValue="Newyork"
+                                                                    defaultValue={displayFlight.departureCity}
                                                                             />
                                                                             <p className="fs-12 mb-0">
                                                                                 Ken International Airport
@@ -1266,7 +1368,7 @@ const FlightDetails = () => {
                                                             <div className="img-slider owl-carousel nav-center">
                                                                 <Slider {...imgslideroption}>
                                                                     <div className="slide-images">
-                                                                        <Link to={routes.flightDetails}>
+                                                                        <Link to={flightDetailsUrl}>
                                                                             <ImageWithBasePath
                                                                                 src="assets/img/flight/flight-01.jpg"
                                                                                 className="img-fluid"
@@ -1275,7 +1377,7 @@ const FlightDetails = () => {
                                                                         </Link>
                                                                     </div>
                                                                     <div className="slide-images">
-                                                                        <Link to={routes.flightDetails}>
+                                                                        <Link to={flightDetailsUrl}>
                                                                             <ImageWithBasePath
                                                                                 src="assets/img/flight/flight-02.jpg"
                                                                                 className="img-fluid"
@@ -1297,7 +1399,7 @@ const FlightDetails = () => {
                                                             <div className="d-flex align-items-center justify-content-between flex-wrap">
                                                                 <div className="overflow-hidden">
                                                                     <h5 className="mb-2 d-inline-flex align-items-center text-truncate">
-                                                                        <Link to={routes.flightDetails}>Economy Class</Link>
+                                                                        <Link to={flightDetailsUrl}>Economy Class</Link>
                                                                     </h5>
                                                                 </div>
                                                                 <div className="d-flex align-items-center text-nowrap mb-2">
@@ -1366,7 +1468,7 @@ const FlightDetails = () => {
                                                             <div className="img-slider owl-carousel nav-center">
                                                                 <Slider {...imgslideroption}>
                                                                     <div className="slide-images">
-                                                                        <Link to={routes.flightDetails}>
+                                                                        <Link to={flightDetailsUrl}>
                                                                             <ImageWithBasePath
                                                                                 src="assets/img/flight/flight-03.jpg"
                                                                                 className="img-fluid"
@@ -1375,7 +1477,7 @@ const FlightDetails = () => {
                                                                         </Link>
                                                                     </div>
                                                                     <div className="slide-images">
-                                                                        <Link to={routes.flightDetails}>
+                                                                        <Link to={flightDetailsUrl}>
                                                                             <ImageWithBasePath
                                                                                 src="assets/img/flight/flight-04.jpg"
                                                                                 className="img-fluid"
@@ -1396,7 +1498,7 @@ const FlightDetails = () => {
                                                             <div className="d-flex align-items-center justify-content-between flex-wrap">
                                                                 <div className="overflow-hidden">
                                                                     <h5 className="mb-2 d-inline-flex align-items-center text-truncate">
-                                                                        <Link to={routes.flightDetails}>Business Class</Link>
+                                                                        <Link to={flightDetailsUrl}>Business Class</Link>
                                                                     </h5>
                                                                 </div>
                                                                 <div className="d-flex align-items-center text-nowrap mb-2">
@@ -1464,7 +1566,7 @@ const FlightDetails = () => {
                                                             <div className="img-slider owl-carousel nav-center">
                                                                 <Slider {...imgslideroption}>
                                                                     <div className="slide-images">
-                                                                        <Link to={routes.flightDetails}>
+                                                                        <Link to={flightDetailsUrl}>
                                                                             <ImageWithBasePath
                                                                                 src="assets/img/flight/flight-13.jpg"
                                                                                 className="img-fluid"
@@ -1473,7 +1575,7 @@ const FlightDetails = () => {
                                                                         </Link>
                                                                     </div>
                                                                     <div className="slide-images">
-                                                                        <Link to={routes.flightDetails}>
+                                                                        <Link to={flightDetailsUrl}>
                                                                             <ImageWithBasePath
                                                                                 src="assets/img/flight/flight-12.jpg"
                                                                                 className="img-fluid"
@@ -1493,7 +1595,7 @@ const FlightDetails = () => {
                                                             <div className="d-flex align-items-center justify-content-between flex-wrap">
                                                                 <div className="overflow-hidden">
                                                                     <h5 className="mb-2 d-inline-flex align-items-center text-truncate">
-                                                                        <Link to={routes.flightDetails}>Regular</Link>
+                                                                        <Link to={flightDetailsUrl}>Regular</Link>
                                                                     </h5>
                                                                 </div>
                                                                 <div className="d-flex align-items-center text-nowrap mb-2">
@@ -1582,73 +1684,28 @@ const FlightDetails = () => {
                                         >
                                             <div className="accordion-body pt-0">
                                                 <div className="row row-cols-lg-6 row-cols-sm-4 row-cols-2 g-2">
-                                                    <div className="col">
-                                                        <Link
-                                                            className="galley-wrap"
-                                                            data-fancybox="gallery"
-
-                                                            onClick={() => setGallery(true)} to="#" title="Demo 01"
-                                                        >
-                                                            <ImageWithBasePath
-                                                                src="assets/img/flight/flight-thumb-01.jpg"
-                                                                alt="img"
-                                                            />
-                                                        </Link>
-                                                    </div>
-                                                    <div className="col">
-                                                        <Link
-                                                            className="galley-wrap"
-                                                            data-fancybox="gallery"
-
-                                                            onClick={() => setGallery(true)} to="#" title="Demo 01"
-                                                        >
-                                                            <ImageWithBasePath
-                                                                src="assets/img/flight/flight-thumb-02.jpg"
-                                                                alt="img"
-                                                            />
-                                                        </Link>
-                                                    </div>
-                                                    <div className="col">
-                                                        <Link
-                                                            className="galley-wrap"
-                                                            data-fancybox="gallery"
-                                                            onClick={() => setGallery(true)} to="#" title="Demo 01"
-                                                        >
-                                                            <ImageWithBasePath
-                                                                src="assets/img/flight/flight-thumb-03.jpg"
-                                                                alt="img"
-                                                            />
-                                                        </Link>
-                                                    </div>
-                                                    <div className="col">
-                                                        <Link
-                                                            className="galley-wrap"
-                                                            data-fancybox="gallery"
-                                                            onClick={() => setGallery(true)} to="#" title="Demo 01"
-                                                        >
-                                                            <ImageWithBasePath
-                                                                src="assets/img/flight/flight-thumb-04.jpg"
-                                                                alt="img"
-                                                            />
-                                                        </Link>
-                                                    </div>
-                                                    <div className="col">
-                                                        <Link
-                                                            className="galley-wrap"
-                                                            data-fancybox="gallery"
-                                                            onClick={() => setGallery(true)} to="#" title="Demo 01"
-                                                        >
-                                                            <ImageWithBasePath
-                                                                src="assets/img/flight/flight-thumb-05.jpg"
-                                                                alt="img"
-                                                            />
-                                                        </Link>
-                                                    </div>
+                                                    {galleryImages.slice(0, 5).map((src, index) => (
+                                                        <div className="col" key={`gallery-thumb-${src}-${index}`}>
+                                                            <Link
+                                                                className="galley-wrap"
+                                                                data-fancybox="gallery"
+                                                                onClick={() => setGallery(true)}
+                                                                to="#"
+                                                                title={displayFlight.title}
+                                                            >
+                                                                <ImageWithBasePath
+                                                                    src={src}
+                                                                    alt={`${displayFlight.title} thumbnail ${index + 1}`}
+                                                                />
+                                                            </Link>
+                                                        </div>
+                                                    ))}
                                                     <div className="col">
                                                         <div className="galley-wrap more-gallery d-flex align-items-center justify-content-center">
                                                             <Link
                                                                 data-fancybox="gallery"
-                                                                onClick={() => setGallery(true)} to="#" title="Demo 01"
+                                                                onClick={() => setGallery(true)} to="#"
+                                                                title={displayFlight.title}
                                                                 className="btn btn-white btn-xs"
                                                             >
                                                                 <i className="isax isax-image5 me-1" />
@@ -1833,7 +1890,7 @@ const FlightDetails = () => {
                                                     <span className="icon-rotate-up me-2">
                                                         <i className="isax isax-airplane" />
                                                     </span>
-                                                    Newyork
+                                                    {displayFlight.departureCity}
                                                 </span>
                                                 <Link
                                                     to="#"
@@ -1845,13 +1902,13 @@ const FlightDetails = () => {
                                                     <span className="icon-rotate-down me-2">
                                                         <i className="isax isax-airplane" />
                                                     </span>
-                                                    Sydney
+                                                    {displayFlight.arrivalCity}
                                                 </span>
                                             </div>
                                             <div className="d-flex align-items-center justify-content-between bg-light-200 rounded p-3 mb-3">
                                                 <p className="fs-13 fw-medium mb-0">Starts From</p>
                                                 <h5 className="text-primary">
-                                                    $500{" "}
+                                                    {displayFlight.priceLabel}{" "}
                                                     <span className="fs-14 text-default fw-normal">/ Person</span>
                                                 </h5>
                                             </div>
@@ -1875,7 +1932,7 @@ const FlightDetails = () => {
                                                                 <input
                                                                     type="text"
                                                                     className="form-control"
-                                                                    defaultValue="Newyork"
+                                                                    defaultValue={displayFlight.departureCity}
                                                                 />
                                                                 <p className="fs-12 mb-0">Ken International Airport</p>
                                                             </div>
@@ -2086,7 +2143,7 @@ const FlightDetails = () => {
                                                     </button>
                                                     <div className="d-flex align-items-center justify-content-between mt-1">
                                                         <h6 className="fs-14 fw-medium text-success">
-                                                            40 Seats Available on your Search
+                                                            {displayFlight.seatsLabel} on your Search
                                                         </h6>
                                                     </div>
                                                 </form>
@@ -2097,7 +2154,7 @@ const FlightDetails = () => {
                                     <div className="card shadow-none" id="location">
                                         <div className="d-flex">
                                             <iframe
-                                                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d6509170.989457427!2d-123.80081967108484!3d37.192957227641294!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x808fb9fe5f285e3d%3A0x8b5109a227086f55!2sCalifornia%2C%20USA!5e0!3m2!1sen!2sin!4v1669181581381!5m2!1sen!2sin"
+                                                src={`https://www.google.com/maps?q=${encodeURIComponent(displayFlight.location)}&output=embed`}
                                                 allowFullScreen
                                                 loading="lazy"
                                                 referrerPolicy="no-referrer-when-downgrade"
@@ -2108,7 +2165,7 @@ const FlightDetails = () => {
                                             <div className="d-flex align-items-center justify-content-between flex-wrap row-gap-2">
                                                 <p className="d-flex align-items-center mb-0">
                                                     <i className="isax isax-location5 me-2" />
-                                                    15,Adri Street,Ciutat Vella,Barcelona
+                                                    {displayFlight.location}
                                                 </p>
                                             </div>
                                         </div>
@@ -2117,7 +2174,7 @@ const FlightDetails = () => {
                                     {/* Enquiry */}
                                     <div className="card shadow-none">
                                         <div className="card-body">
-                                            <form action={routes.flightDetails}>
+                                            <form action={flightDetailsUrl}>
                                                 <h5 className="mb-3 fs-18">Enquire Us</h5>
                                                 <div className="py-1">
                                                     <div className="mb-3">
