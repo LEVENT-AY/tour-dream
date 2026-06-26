@@ -3,11 +3,127 @@ import Breadcrumb from '../../../core/common/Breadcrumb/breadcrumb';
 import ActivitySearch from '../activitySearch';
 import ActivityFilter from '../activityFilter';
 import ImageWithBasePath from '../../../core/common/imageWithBasePath';
+import { getCategoryFallbackSrc } from '../../../core/services/firebaseStorage';
+import { fetchActivities } from '../../../core/services/firebaseServices';
 import { Link } from 'react-router-dom';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+
+type ActivityRecord = Record<string, any>;
 
 const ActivityList = () => {
   const routes = all_routes;
+  const [activities, setActivities] = useState<ActivityRecord[]>([]);
+  const [loadingActivities, setLoadingActivities] = useState(true);
+
+  useEffect(() => {
+    const getActivities = async () => {
+      try {
+        const data = await fetchActivities();
+        setActivities(data);
+      } catch (error) {
+        console.error('Error loading activities:', error);
+      } finally {
+        setLoadingActivities(false);
+      }
+    };
+    getActivities();
+  }, []);
+
+  const buildActivityDetailsLink = (activityId: string) => `${routes.activityDetails}?id=${activityId}`;
+
+  const getActivityImages = (activity: ActivityRecord) => {
+    const gallery = Array.isArray(activity.gallery) ? activity.gallery.filter(Boolean) : [];
+    const primary = activity.image || gallery[0];
+    return gallery.length > 0 ? gallery : primary ? [primary] : [];
+  };
+
+  const renderActivityCard = (activity: ActivityRecord, index: number) => {
+    const activityImages = getActivityImages(activity);
+    const activityLink = buildActivityDetailsLink(activity.id);
+    const activityDescription =
+      activity.description ||
+      activity.details ||
+      'Explore this admin-managed activity listing with up-to-date pricing, images, and location details.';
+    const activityDuration = activity.duration || '';
+
+    return (
+      <div className="place-item mb-4" key={activity.id || index}>
+        <div className="place-img activity-img">
+          <Link to={activityLink}>
+            <ImageWithBasePath
+              src={activityImages[0] || activity.image}
+              className="img-fluid"
+              alt={activity.title || 'Activity image'}
+              fallbackSrc={getCategoryFallbackSrc('activities')}
+            />
+          </Link>
+          <div className="fav-item">
+            <span className="badge bg-info d-inline-flex align-items-center">
+              <i className="isax isax-ranking me-1" />
+              Trending
+            </span>
+            <button className={`fav-icon border-0 ${fav[index] ? '' : 'selected'}`} onClick={() => handlefav(index)}>
+              <i className="isax isax-heart5" />
+            </button>
+          </div>
+        </div>
+        <div className="place-content pb-1">
+          <div className="d-flex align-items-center justify-content-between flex-wrap mb-2">
+            <div>
+              <h5 className="mb-1 text-truncate">
+                <Link to={activityLink}>{activity.title}</Link>
+              </h5>
+              <p className="d-flex align-items-center mb-2">
+                <i className="isax isax-location5 me-1" />
+                {activity.location}
+              </p>
+            </div>
+            <div className="d-flex align-items-center mb-2">
+              <div className="d-flex align-items-center text-nowrap">
+                <span className="badge badge-warning badge-xs text-gray-9 fs-13 fw-medium me-2">
+                  {activity.rating}
+                </span>
+                <p className="fs-14">({activity.reviewsCount || 0} Reviews)</p>
+              </div>
+            </div>
+          </div>
+          <p className="line-ellipsis fs-14">{activityDescription}</p>
+          <div className="d-flex align-items-center justify-content-between flex-wrap border-top pt-3">
+            <p className="d-flex align-items-center mb-3">
+              <i className="isax isax-clock4 me-2" /> {activityDuration}
+            </p>
+            <div className="d-flex align-items-center mb-2">
+              <div className="d-flex align-items-center text-nowrap border-end pe-2 me-2">
+                <h5 className="text-primary text-nowrap d-flex align-items-center gap-1">
+                  <span className="fs-14 fw-normal text-gray-6">
+                    Starts From
+                  </span>
+                  ${activity.price}{" "}
+                  {activity.oldPrice && (
+                    <span className="text-gray-3 text-decoration-line-through">
+                      ${activity.oldPrice}
+                    </span>
+                  )}
+                </h5>
+              </div>
+              <Link
+                to="#"
+                className="d-flex align-items-center overflow-hidden"
+              >
+                <span className="avatar avatar-md flex-shrink-0">
+                  <ImageWithBasePath
+                    src="assets/img/users/user-01.jpg"
+                    className="rounded-circle"
+                    alt="img"
+                  />
+                </span>
+              </Link>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   //Breadcrumb Data
   const breadcrumbs = [
@@ -164,7 +280,7 @@ const ActivityList = () => {
             <div className="col-xl-9 col-lg-8">
               <div className="d-flex align-items-center justify-content-between flex-wrap">
                 <h6 className="mb-3">
-                  1920 Activities{" "}
+                  {loadingActivities ? 'Loading activities...' : `${activities.length} Activities `}
                   <span className="fw-normal">Found on Your Search</span>
                 </h6>
                 <div className="d-flex align-items-center flex-wrap">
@@ -305,398 +421,20 @@ const ActivityList = () => {
               <div className="hotel-list">
                 <div className="row justify-content-center">
                   <div className="col-md-12">
-                    {/* Activity List */}
-                    <div className="place-item mb-4">
-                      <div className="place-img activity-img">
-                        <Link to={routes.activityDetails}>
-                          <ImageWithBasePath
-                            src="assets/img/activities/activity-01.jpg"
-                            className="img-fluid"
-                            alt="img"
-                          />
-                        </Link>
-                        <div className="fav-item">
-                          <span className="badge bg-info d-inline-flex align-items-center">
-                            <i className="isax isax-ranking me-1" />
-                            Trending
-                          </span>
-                          <button className={`fav-icon border-0 ${fav[0] ? '' : 'selected'}`} onClick={() => handlefav(0)}>
-                            <i className="isax isax-heart5" />
-                          </button>
+                    {loadingActivities ? (
+                      <div className="text-center py-5">
+                        <div className="spinner-border text-primary" role="status">
+                          <span className="visually-hidden">Loading...</span>
                         </div>
+                        <p className="mt-2 text-muted">Loading activities from database...</p>
                       </div>
-                      <div className="place-content pb-1">
-                        <div className="d-flex align-items-center justify-content-between flex-wrap mb-2">
-                          <div>
-                            <h5 className="mb-1 text-truncate">
-                              <Link to={routes.activityDetails}>Snorkeling Tour</Link>
-                            </h5>
-                            <p className="d-flex align-items-center mb-2">
-                              <i className="isax isax-location5 me-1" />
-                              Phuket, Thailand
-                            </p>
-                          </div>
-                          <div className="d-flex align-items-center mb-2">
-                            <div className="d-flex align-items-center text-nowrap">
-                              <span className="badge badge-warning badge-xs text-gray-9 fs-13 fw-medium me-2">
-                                4.9
-                              </span>
-                              <p className="fs-14">(672 Reviews)</p>
-                            </div>
-                          </div>
-                        </div>
-                        <p className="line-ellipsis fs-14">
-                          Discover colorful coral reefs and exotic marine life in
-                          crystal-clear waters with a guided snorkeling experience.
-                        </p>
-                        <div className="d-flex align-items-center justify-content-between flex-wrap border-top pt-3">
-                          <p className="d-flex align-items-center mb-3">
-                            <i className="isax isax-clock4 me-2" /> 4 Hrs
-                          </p>
-                          <div className="d-flex align-items-center mb-2">
-                            <div className="d-flex align-items-center text-nowrap border-end pe-2 me-2">
-                              <h5 className="text-primary text-nowrap d-flex align-items-center gap-1">
-                                <span className="fs-14 fw-normal text-gray-6">
-                                  Starts From
-                                </span>
-                                $400{" "}
-                                <span className="text-gray-3 text-decoration-line-through">
-                                  $480
-                                </span>
-                              </h5>
-                            </div>
-                            <Link
-                              to="#"
-                              className="d-flex align-items-center overflow-hidden"
-                            >
-                              <span className="avatar avatar-md flex-shrink-0">
-                                <ImageWithBasePath
-                                  src="assets/img/users/user-01.jpg"
-                                  className="rounded-circle"
-                                  alt="img"
-                                />
-                              </span>
-                            </Link>
-                          </div>
-                        </div>
+                    ) : activities.length === 0 ? (
+                      <div className="text-center py-5">
+                        <p className="text-muted">No activities found in database.</p>
                       </div>
-                    </div>
-                    {/* /Activity List */}
-                    {/* Activity List */}
-                    <div className="place-item mb-4">
-                      <div className="place-img activity-img">
-                        <Link to={routes.activityDetails}>
-                          <ImageWithBasePath
-                            src="assets/img/activities/activity-02.jpg"
-                            className="img-fluid"
-                            alt="img"
-                          />
-                        </Link>
-                        <div className="fav-item">
-                          <span className="badge bg-info d-inline-flex align-items-center">
-                            <i className="isax isax-ranking me-1" />
-                            Trending
-                          </span>
-                          <button className={`fav-icon border-0 ${fav[1] ? '' : 'selected'}`} onClick={() => handlefav(1)}>
-                            <i className="isax isax-heart5" />
-                          </button>
-                        </div>
-                      </div>
-                      <div className="place-content pb-1">
-                        <div className="d-flex align-items-center justify-content-between flex-wrap mb-2">
-                          <div>
-                            <h5 className="mb-1 text-truncate">
-                              <Link to={routes.activityDetails}>
-                                Alpine Snowboarding
-                              </Link>
-                            </h5>
-                            <p className="d-flex align-items-center mb-2">
-                              <i className="isax isax-location5 me-1" />
-                              Zermatt, Switzerland
-                            </p>
-                          </div>
-                          <div className="d-flex align-items-center mb-2">
-                            <div className="d-flex align-items-center text-nowrap">
-                              <span className="badge badge-warning badge-xs text-gray-9 fs-13 fw-medium me-2">
-                                4.6
-                              </span>
-                              <p className="fs-14">(450 Reviews)</p>
-                            </div>
-                          </div>
-                        </div>
-                        <p className="line-ellipsis fs-14">
-                          Ride through breathtaking alpine slopes and enjoy an
-                          adrenaline-filled snowboarding experience in pristine
-                          mountain terrain.
-                        </p>
-                        <div className="d-flex align-items-center justify-content-between flex-wrap border-top pt-3">
-                          <p className="d-flex align-items-center mb-3">
-                            <i className="isax isax-clock4 me-2" /> 4 Hrs
-                          </p>
-                          <div className="d-flex align-items-center mb-2">
-                            <div className="d-flex align-items-center text-nowrap border-end pe-2 me-2">
-                              <h5 className="text-primary text-nowrap d-flex align-items-center gap-1">
-                                <span className="fs-14 fw-normal text-gray-6">
-                                  Starts From
-                                </span>
-                                $150{" "}
-                                <span className="text-gray-3 text-decoration-line-through">
-                                  $200
-                                </span>
-                              </h5>
-                            </div>
-                            <Link
-                              to="#"
-                              className="d-flex align-items-center overflow-hidden"
-                            >
-                              <span className="avatar avatar-md flex-shrink-0">
-                                <ImageWithBasePath
-                                  src="assets/img/users/user-02.jpg"
-                                  className="rounded-circle"
-                                  alt="img"
-                                />
-                              </span>
-                            </Link>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                    {/* /Activity List */}
-                    {/* Activity List */}
-                    <div className="place-item mb-4">
-                      <div className="place-img activity-img">
-                        <Link to={routes.activityDetails}>
-                          <ImageWithBasePath
-                            src="assets/img/activities/activity-03.jpg"
-                            className="img-fluid"
-                            alt="img"
-                          />
-                        </Link>
-                        <div className="fav-item">
-                          <span className="badge bg-info d-inline-flex align-items-center">
-                            <i className="isax isax-ranking me-1" />
-                            Trending
-                          </span>
-                          <button className={`fav-icon border-0 ${fav[2] ? 'selected' : ''}`} onClick={() => handlefav(2)}>
-                            <i className="isax isax-heart5" />
-                          </button>
-                        </div>
-                      </div>
-                      <div className="place-content pb-1">
-                        <div className="d-flex align-items-center justify-content-between flex-wrap mb-2">
-                          <div>
-                            <h5 className="mb-1 text-truncate">
-                              <Link to={routes.activityDetails}>
-                                White Water Rafting
-                              </Link>
-                            </h5>
-                            <p className="d-flex align-items-center mb-2">
-                              <i className="isax isax-location5 me-1" />
-                              Rotorua, New Zealand
-                            </p>
-                          </div>
-                          <div className="d-flex align-items-center mb-2">
-                            <div className="d-flex align-items-center text-nowrap">
-                              <span className="badge badge-warning badge-xs text-gray-9 fs-13 fw-medium me-2">
-                                4.6
-                              </span>
-                              <p className="fs-14">(320 Reviews)</p>
-                            </div>
-                          </div>
-                        </div>
-                        <p className="line-ellipsis fs-14">
-                          Conquer exciting rapids and explore stunning natural
-                          surroundings during a safe and guided rafting experience.
-                        </p>
-                        <div className="d-flex align-items-center justify-content-between flex-wrap border-top pt-3">
-                          <p className="d-flex align-items-center mb-3">
-                            <i className="isax isax-clock4 me-2" /> 5 Hrs
-                          </p>
-                          <div className="d-flex align-items-center mb-2">
-                            <div className="d-flex align-items-center text-nowrap border-end pe-2 me-2">
-                              <h5 className="text-primary text-nowrap d-flex align-items-center gap-1">
-                                <span className="fs-14 fw-normal text-gray-6">
-                                  Starts From
-                                </span>
-                                $650{" "}
-                                <span className="text-gray-3 text-decoration-line-through">
-                                  $700
-                                </span>
-                              </h5>
-                            </div>
-                            <Link
-                              to="#"
-                              className="d-flex align-items-center overflow-hidden"
-                            >
-                              <span className="avatar avatar-md flex-shrink-0">
-                                <ImageWithBasePath
-                                  src="assets/img/users/user-03.jpg"
-                                  className="rounded-circle"
-                                  alt="img"
-                                />
-                              </span>
-                            </Link>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                    {/* /Activity List */}
-                    {/* Activity List */}
-                    <div className="place-item mb-4">
-                      <div className="place-img activity-img">
-                        <Link to={routes.activityDetails}>
-                          <ImageWithBasePath
-                            src="assets/img/activities/activity-04.jpg"
-                            className="img-fluid"
-                            alt="img"
-                          />
-                        </Link>
-                        <div className="fav-item">
-                          <span className="badge bg-info d-inline-flex align-items-center">
-                            <i className="isax isax-ranking me-1" />
-                            Trending
-                          </span>
-                          <button className={`fav-icon border-0 ${fav[3] ? 'selected' : ''}`} onClick={() => handlefav(3)}>
-                            <i className="isax isax-heart5" />
-                          </button>
-                        </div>
-                      </div>
-                      <div className="place-content pb-1">
-                        <div className="d-flex align-items-center justify-content-between flex-wrap mb-2">
-                          <div>
-                            <h5 className="mb-1 text-truncate">
-                              <Link to={routes.activityDetails}>
-                                Cliffside Paragliding
-                              </Link>
-                            </h5>
-                            <p className="d-flex align-items-center mb-2">
-                              <i className="isax isax-location5 me-1" />
-                              Dubai, UAE
-                            </p>
-                          </div>
-                          <div className="d-flex align-items-center mb-2">
-                            <div className="d-flex align-items-center text-nowrap">
-                              <span className="badge badge-warning badge-xs text-gray-9 fs-13 fw-medium me-2">
-                                4.7
-                              </span>
-                              <p className="fs-14">(730 Reviews)</p>
-                            </div>
-                          </div>
-                        </div>
-                        <p className="line-ellipsis fs-14">
-                          Discover colorful coral reefs and exotic marine life in
-                          crystal-clear waters with a guided snorkeling experience.
-                        </p>
-                        <div className="d-flex align-items-center justify-content-between flex-wrap border-top pt-3">
-                          <p className="d-flex align-items-center mb-3">
-                            <i className="isax isax-clock4 me-2" /> 3 Hrs
-                          </p>
-                          <div className="d-flex align-items-center mb-2">
-                            <div className="d-flex align-items-center text-nowrap border-end pe-2 me-2">
-                              <h5 className="text-primary text-nowrap d-flex align-items-center gap-1">
-                                <span className="fs-14 fw-normal text-gray-6">
-                                  Starts From
-                                </span>
-                                $650{" "}
-                                <span className="text-gray-3 text-decoration-line-through">
-                                  $750
-                                </span>
-                              </h5>
-                            </div>
-                            <Link
-                              to="#"
-                              className="d-flex align-items-center overflow-hidden"
-                            >
-                              <span className="avatar avatar-md flex-shrink-0">
-                                <ImageWithBasePath
-                                  src="assets/img/users/user-05.jpg"
-                                  className="rounded-circle"
-                                  alt="img"
-                                />
-                              </span>
-                            </Link>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                    {/* /Activity List */}
-                    {/* Activity List */}
-                    <div className="place-item mb-4">
-                      <div className="place-img activity-img">
-                        <Link to={routes.activityDetails}>
-                          <ImageWithBasePath
-                            src="assets/img/activities/activity-05.jpg"
-                            className="img-fluid"
-                            alt="img"
-                          />
-                        </Link>
-                        <div className="fav-item">
-                          <span className="badge bg-info d-inline-flex align-items-center">
-                            <i className="isax isax-ranking me-1" />
-                            Trending
-                          </span>
-                          <button className={`fav-icon border-0 ${fav[4] ? 'selected' : ''}`} onClick={() => handlefav(4)}>
-                            <i className="isax isax-heart5" />
-                          </button>
-                        </div>
-                      </div>
-                      <div className="place-content pb-1">
-                        <div className="d-flex align-items-center justify-content-between flex-wrap mb-2">
-                          <div>
-                            <h5 className="mb-1 text-truncate">
-                              <Link to={routes.activityDetails}>Dessert Adventure</Link>
-                            </h5>
-                            <p className="d-flex align-items-center mb-2">
-                              <i className="isax isax-location5 me-1" />
-                              Annecy, France
-                            </p>
-                          </div>
-                          <div className="d-flex align-items-center mb-2">
-                            <div className="d-flex align-items-center text-nowrap">
-                              <span className="badge badge-warning badge-xs text-gray-9 fs-13 fw-medium me-2">
-                                4.2
-                              </span>
-                              <p className="fs-14">(280 Reviews)</p>
-                            </div>
-                          </div>
-                        </div>
-                        <p className="line-ellipsis fs-14">
-                          Glide smoothly along stunning cliff edges and enjoy
-                          panoramic ocean and mountain views from above.
-                        </p>
-                        <div className="d-flex align-items-center justify-content-between flex-wrap border-top pt-3">
-                          <p className="d-flex align-items-center mb-3">
-                            <i className="isax isax-clock4 me-2" /> 3 Hrs
-                          </p>
-                          <div className="d-flex align-items-center mb-2">
-                            <div className="d-flex align-items-center text-nowrap border-end pe-2 me-2">
-                              <h5 className="text-primary text-nowrap d-flex align-items-center gap-1">
-                                <span className="fs-14 fw-normal text-gray-6">
-                                  Starts From
-                                </span>
-                                $370{" "}
-                                <span className="text-gray-3 text-decoration-line-through">
-                                  $400
-                                </span>
-                              </h5>
-                            </div>
-                            <Link
-                              to="#"
-                              className="d-flex align-items-center overflow-hidden"
-                            >
-                              <span className="avatar avatar-md flex-shrink-0">
-                                <ImageWithBasePath
-                                  src="assets/img/users/user-04.jpg"
-                                  className="rounded-circle"
-                                  alt="img"
-                                />
-                              </span>
-                            </Link>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                    {/* /Activity List */}
+                    ) : (
+                      activities.map(renderActivityCard)
+                    )}
                   </div>
                 </div>
               </div>
