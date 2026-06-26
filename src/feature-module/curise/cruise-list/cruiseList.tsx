@@ -6,6 +6,7 @@ import ImageWithBasePath from '../../../core/common/imageWithBasePath';
 import Slider from 'react-slick';
 import { all_routes } from '../../router/all_routes';
 import CruiseSearch from '../cruiseSearch';
+import FirestoreCruiseList from './FirestoreCruiseList';
 
 const CruiseList = () => {
     const routes = all_routes
@@ -153,6 +154,7 @@ const CruiseList = () => {
                                     <Link to={routes.login} className="btn btn-white btn-sm mb-2">Sign In</Link>
                                 </div>
                             </div>
+                            <FirestoreCruiseList />
                             <div className="hotel-list list-full">
                                 <div className="row justify-content-center">
                                     <div className="col-md-12">
