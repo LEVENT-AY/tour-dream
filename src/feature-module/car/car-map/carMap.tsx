@@ -1,101 +1,100 @@
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react';
 import {
     GoogleMap,
     Marker,
     InfoWindow,
     useLoadScript,
-} from "@react-google-maps/api";
+} from '@react-google-maps/api';
 import Breadcrumb from '../../../core/common/Breadcrumb/breadcrumb';
 import { Link } from 'react-router-dom';
 import Slider from 'react-slick';
-import "slick-carousel/slick/slick.css";
-import "slick-carousel/slick/slick-theme.css";
+import 'slick-carousel/slick/slick.css';
+import 'slick-carousel/slick/slick-theme.css';
 import ImageWithBasePath from '../../../core/common/imageWithBasePath';
+import { getCategoryFallbackSrc } from '../../../core/services/firebaseStorage';
 import { all_routes } from '../../router/all_routes';
 import CarSearch from '../carSearch';
 import CarFilterModal from '../../../core/common/modal/carFilterModal';
+import { fetchCars } from '../../../core/services/firebaseServices';
 
-const containerStyle = {
-    width: "100%",
-    height: "100%",
+type CarRecord = Record<string, any>;
+
+type CarMapMarker = CarRecord & {
+    lat: number;
+    lng: number;
 };
 
-const center = {
+const containerStyle = {
+    width: '100%',
+    height: '100%',
+};
+
+const defaultCenter = {
     lat: 53.470692,
     lng: -2.220328,
 };
 
-// Define the type for location data
-interface Location {
-    id: number;
-    lat: number;
-    lng: number;
-    grid_name: string;
-    grid_address: string;
-    grid_day: string;
-    grid_rate: string;
-    image: string;
-    grid_star: string;
-}
-
-const locations: Location[] = [
-    {
-        id: 1,
-        lat: 53.470692,
-        lng: -2.220328,
-        grid_name: "Toyota Camry SE 400",
-        grid_address: "Ciutat Vella, Barcelona",
-        grid_day: "/Day",
-        grid_rate: "$500",
-        image: "assets/img/cars/car-06.jpg",
-        grid_star: "5.0",
-    },
-    {
-        id: 2,
-        lat: 53.469189,
-        lng: -2.199262,
-        grid_name: "Ford Mustang 4.0 AT",
-        grid_address: "Oxford Street, London",
-        grid_day: "/Day",
-        grid_rate: "$600",
-        image: "assets/img/cars/car-07.jpg",
-        grid_star: "5.0",
-    },
-    {
-        id: 3,
-        lat: 53.468665,
-        lng: -2.189269,
-        grid_name: "Ferrari 458 MM Special",
-        grid_address: "Princes Street, Edinburgh",
-        grid_day: "/Day",
-        grid_rate: "$700",
-        image: "assets/img/cars/car-08.jpg",
-        grid_star: "5.0",
-    },
+const markerOffsets = [
+    { lat: 0, lng: 0 },
+    { lat: -0.0021, lng: 0.0042 },
+    { lat: -0.0042, lng: 0.0104 },
+    { lat: 0.0035, lng: -0.0063 },
+    { lat: 0.0056, lng: 0.0074 },
+    { lat: -0.0068, lng: -0.0041 },
 ];
+
 const CarMap = () => {
-    const routes = all_routes
+    const routes = all_routes;
+    const [cars, setCars] = useState<CarRecord[]>([]);
+    const [loadingCars, setLoadingCars] = useState(true);
+    const [selectedItems, setSelectedItems] = useState<boolean[]>([]);
+    const [selectedMarker, setSelectedMarker] = useState<CarMapMarker | null>(null);
+
+    const handleItemClick = (index: number) => {
+        setSelectedItems((prevSelectedItems) => {
+            const updatedSelectedItems = [...prevSelectedItems];
+            updatedSelectedItems[index] = !updatedSelectedItems[index];
+            return updatedSelectedItems;
+        });
+    };
+
+    useEffect(() => {
+        const getCars = async () => {
+            try {
+                const data = await fetchCars();
+                setCars(data.filter((car) => car.published !== false));
+            } catch (error) {
+                console.error('Error loading cars:', error);
+            } finally {
+                setLoadingCars(false);
+            }
+        };
+        getCars();
+    }, []);
+
+    const carMarkers = useMemo<CarMapMarker[]>(
+        () =>
+            cars.map((car, index) => {
+                const fallbackOffset = markerOffsets[index % markerOffsets.length];
+                return {
+                    ...car,
+                    lat: Number(car.lat ?? car.latitude ?? defaultCenter.lat + fallbackOffset.lat),
+                    lng: Number(car.lng ?? car.longitude ?? defaultCenter.lng + fallbackOffset.lng),
+                };
+            }),
+        [cars],
+    );
+
+    useEffect(() => {
+        if (!selectedMarker && carMarkers.length > 0) {
+            setSelectedMarker(carMarkers[0]);
+        }
+    }, [carMarkers, selectedMarker]);
+
     const { isLoaded } = useLoadScript({
-        googleMapsApiKey: "AIzaSyD6adZVdzTvBpE2yBRK8cDfsss8QXChK0I", // Replace with your API key
+        googleMapsApiKey: 'AIzaSyD6adZVdzTvBpE2yBRK8cDfsss8QXChK0I',
     });
 
-    const [selectedMarker, setSelectedMarker] = useState<Location | null>(locations[0]);
-    // const [current, setCurrent] = useState<number>(0);
-
-    //   useEffect(() => {
-    //     const slider = setInterval(() => {
-    //       const next = (current + 1) % locations.length;
-    //       setSelectedMarker(locations[next]);
-    //       console.log(locations[next],22);
-
-    //       setCurrent(next);
-    //     }, 3000);
-
-    //     return () => clearInterval(slider);
-    //   }, [current]);
-
-    if (!isLoaded) return <div>Loading Map...</div>;
-    //Breadcrumb Data
     const breadcrumbs = [
         {
             label: 'Car',
@@ -107,12 +106,11 @@ const CarMap = () => {
             active: false,
         },
         {
-            label: 'Car List',
+            label: 'Car Map',
             active: true,
         },
     ];
 
-    //ImageSlider
     const imgslideroption = {
         dots: true,
         arrows: true,
@@ -123,38 +121,125 @@ const CarMap = () => {
         slidesToShow: 1,
         slidesToScroll: 1,
         responsive: [
-            {
-                breakpoint: 1400,
-                settings: {
-                    slidesToShow: 1,
-                },
-            },
-            {
-                breakpoint: 1300,
-                settings: {
-                    slidesToShow: 1,
-                },
-            },
-            {
-                breakpoint: 992,
-                settings: {
-                    slidesToShow: 1,
-                },
-            },
-            {
-                breakpoint: 576,
-                settings: {
-                    slidesToShow: 1,
-                },
-            },
-            {
-                breakpoint: 0,
-                settings: {
-                    slidesToShow: 1,
-                },
-            },
+            { breakpoint: 1400, settings: { slidesToShow: 1 } },
+            { breakpoint: 1300, settings: { slidesToShow: 1 } },
+            { breakpoint: 992, settings: { slidesToShow: 1 } },
+            { breakpoint: 576, settings: { slidesToShow: 1 } },
+            { breakpoint: 0, settings: { slidesToShow: 1 } },
         ],
     };
+
+    const buildCarDetailsLink = (carId: string) => `${routes.carDetails}?id=${carId}`;
+
+    const getCarImages = (car: CarRecord) => {
+        const gallery = Array.isArray(car.gallery) ? car.gallery.filter(Boolean) : [];
+        const primary = car.image || gallery[0];
+        return gallery.length > 0 ? gallery : primary ? [primary] : [];
+    };
+
+    const renderCarCard = (car: CarMapMarker, index: number) => {
+        const carImages = getCarImages(car);
+        const carLink = buildCarDetailsLink(car.id);
+        const carDescription =
+            car.description ||
+            car.details ||
+            'Explore this admin-managed car listing with up-to-date pricing, images, and location details.';
+
+        return (
+            <div className="place-item mb-4" key={car.id || index}>
+                <div className="place-img">
+                    {carImages.length > 1 ? (
+                        <div className="img-slider image-slide owl-carousel nav-center">
+                            <Slider {...imgslideroption}>
+                                {carImages.map((image: string, imageIndex: number) => (
+                                    <div className="slide-images" key={`${car.id || index}-${imageIndex}`}>
+                                        <Link to={carLink}>
+                                            <ImageWithBasePath
+                                                src={image}
+                                                className="img-fluid"
+                                                alt={car.title || 'Car image'}
+                                                fallbackSrc={getCategoryFallbackSrc('cars')}
+                                            />
+                                        </Link>
+                                    </div>
+                                ))}
+                            </Slider>
+                        </div>
+                    ) : (
+                        <Link to={carLink}>
+                            <ImageWithBasePath
+                                src={carImages[0] || car.image}
+                                className="img-fluid"
+                                alt={car.title || 'Car image'}
+                                fallbackSrc={getCategoryFallbackSrc('cars')}
+                            />
+                        </Link>
+                    )}
+                    <div className="fav-item" onClick={() => handleItemClick(index)}>
+                        {car.badge && (
+                            <span className="badge bg-info d-inline-flex align-items-center">
+                                <i className="isax isax-ranking me-1"></i>
+                                {car.badge}
+                            </span>
+                        )}
+                        <Link to="#" className={`fav-icon ${selectedItems[index] ? 'selected' : ''}`}>
+                            <i className="isax isax-heart5"></i>
+                        </Link>
+                    </div>
+                </div>
+                <div className="place-content">
+                    <div className="d-flex justify-content-between align-items-center flex-wrap row-gap-2 mb-3">
+                        <div className="">
+                            <div className="d-flex align-items-center mb-1">
+                                <h5 className="text-truncate border-end pe-2 me-2"><Link to={carLink}>{car.title}</Link></h5>
+                                <span className="badge badge-secondary badge-sm d-flex align-items-center">{car.type || 'Sedan'}</span>
+                            </div>
+                            <p className="d-flex align-items-center"><i className="isax isax-location5 me-2"></i>{car.location}</p>
+                        </div>
+                        <div className="d-flex align-items-center">
+                            <Link to="#" className="avatar avatar-sm flex-shrink-0">
+                                <ImageWithBasePath src="assets/img/users/user-08.jpg" className="rounded-circle" alt="img" />
+                            </Link>
+                            <div className="d-flex align-items-center border-start ps-2 ms-2">
+                                <span className="badge badge-warning badge-xs text-gray-9 fs-13 fw-medium me-1">{car.rating}</span>
+                                <p className="fs-14">({car.reviewsCount || 0} Reviews)</p>
+                            </div>
+                        </div>
+                    </div>
+                    <p className="fs-14 mb-3">{carDescription}</p>
+                    <div className="d-flex align-items-center justify-content-between flex-wrap row-gap-2 me-1">
+                        <div className="p-2 border rounded d-inline-flex align-items-center">
+                            <div className="d-flex flex-wrap border-end pe-2 me-2">
+                                <span className="fs-14 d-flex align-items-center text-gray-6 fw-normal text-nowrap me-1">
+                                    <i className="isax isax-gas-station me-1"></i>
+                                    Fuel :
+                                </span>
+                                <p className="fs-14 fw-medium">{car.fuel || 'Not provided'}</p>
+                            </div>
+                            <div className="d-flex flex-wrap border-end pe-2 me-2">
+                                <span className="fs-14 d-flex align-items-center text-gray-6 fw-normal text-nowrap me-1">
+                                    <i className="isax isax-kanban me-1"></i>
+                                    Gear :
+                                </span>
+                                <p className="fs-14 fw-medium">{car.gear || 'Not provided'}</p>
+                            </div>
+                            <div className="d-flex flex-wrap">
+                                <span className="fs-14 d-flex align-items-center text-gray-6 fw-normal text-nowrap me-1">
+                                    <i className="isax isax-routing-2 me-1"></i>
+                                    Travelled :
+                                </span>
+                                <p className="fs-14 fw-medium">{car.travelled || 'Not provided'}</p>
+                            </div>
+                        </div>
+                        <h5 className="text-primary text-md-end text-nowrap">${car.price} <span className="fs-14 text-gray-6 fw-normal">/ {car.priceUnit || 'day'}</span></h5>
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
+    if (!isLoaded) return <div>Loading Map...</div>;
+
     return (
         <>
             <Breadcrumb title="Car" breadcrumbs={breadcrumbs} backgroundClass="breadcrumb-bg-03" />
@@ -379,7 +464,7 @@ const CarMap = () => {
                     <div className="col-xl-8">
                         <div className="map-lists-widget border-top">
                             <div className="d-flex align-items-center justify-content-between flex-wrap">
-                                <h6 className="mb-4">1920 Cars Found on Your Search</h6>
+                                <h6 className="mb-4">{loadingCars ? 'Loading cars...' : `${carMarkers.length} Cars Found on Your Search`}</h6>
                                 <div className="list-item d-flex align-items-center shadow-md bg-white rounded-3 p-2 mb-4">
                                     <Link to={routes.carGrid} className="list-icon me-2"><i className="isax isax-grid-1"></i></Link>
                                     <Link to={routes.carList} className="list-icon active"><i className="isax isax-firstline"></i></Link>
@@ -389,428 +474,20 @@ const CarMap = () => {
                                 <div className="row justify-content-center">
 
                                     <div className="col-md-12">
-
-                                        {/* Car List */}
-                                        <div className="place-item mb-4">
-                                            <div className="place-img">
-                                                <div className="img-slider image-slide owl-carousel nav-center">
-                                                    <Slider {...imgslideroption}>
-                                                        <div className="slide-images">
-                                                            <Link to={routes.carDetails}>
-                                                                <ImageWithBasePath src="assets/img/cars/car-06.jpg" className="img-fluid" alt="img" />
-                                                            </Link>
-                                                        </div>
-                                                        <div className="slide-images">
-                                                            <Link to={routes.carDetails}>
-                                                                <ImageWithBasePath src="assets/img/cars/car-07.jpg" className="img-fluid" alt="img" />
-                                                            </Link>
-                                                        </div>
-                                                        <div className="slide-images">
-                                                            <Link to={routes.carDetails}>
-                                                                <ImageWithBasePath src="assets/img/cars/car-08.jpg" className="img-fluid" alt="img" />
-                                                            </Link>
-                                                        </div>
-                                                        <div className="slide-images">
-                                                            <Link to={routes.carDetails}>
-                                                                <ImageWithBasePath src="assets/img/cars/car-11.jpg" className="img-fluid" alt="img" />
-                                                            </Link>
-                                                        </div>
-                                                    </Slider>
+                                        {loadingCars ? (
+                                            <div className="text-center py-5">
+                                                <div className="spinner-border text-primary" role="status">
+                                                    <span className="visually-hidden">Loading...</span>
                                                 </div>
-                                                <div className="fav-item">
-                                                    <Link to="#" className="fav-icon selected">
-                                                        <i className="isax isax-heart5"></i>
-                                                    </Link>
-                                                    <span className="badge bg-info d-inline-flex align-items-center"><i className="isax isax-ranking me-1"></i>Trending</span>
-                                                </div>
-
+                                                <p className="mt-2 text-muted">Loading cars from database...</p>
                                             </div>
-                                            <div className="place-content">
-                                                <div className="d-flex justify-content-between align-items-center flex-wrap row-gap-2 mb-3">
-                                                    <div className="">
-                                                        <div className="d-flex align-items-center mb-1">
-                                                            <h5 className="text-truncate border-end pe-2 me-2"><Link to={routes.carDetails}>Toyota Camry SE 400</Link></h5>
-                                                            <span className="badge badge-secondary badge-sm d-flex align-items-center">Sedan</span>
-                                                        </div>
-                                                        <p className="d-flex align-items-center"><i className="isax isax-location5 me-2"></i>Ciutat Vella, Barcelona</p>
-                                                    </div>
-                                                    <div className="d-flex align-items-center">
-                                                        <Link to="#" className="avatar avatar-sm flex-shrink-0">
-                                                            <ImageWithBasePath src="assets/img/users/user-08.jpg" className="rounded-circle" alt="img" />
-                                                        </Link>
-                                                        <div className="d-flex align-items-center border-start ps-2 ms-2">
-                                                            <span className="badge badge-warning badge-xs text-gray-9 fs-13 fw-medium me-1">5.0</span>
-                                                            <p className="fs-14">(400 Reviews)</p>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <p className="fs-14 mb-3">Enjoy modern comfort, cutting-edge technology, and exceptional handling for every journey, from city streets to off-road adventures.</p>
-                                                <div className="d-flex align-items-center justify-content-between flex-wrap row-gap-2 me-1">
-                                                    <div className="p-2 border rounded d-inline-flex align-items-center">
-                                                        <div className="d-flex flex-wrap border-end pe-2 me-2">
-                                                            <span className="fs-14 d-flex align-items-center text-gray-6 fw-normal text-nowrap me-1">
-                                                                <i className="isax isax-gas-station me-1"></i>
-                                                                Fuel :
-                                                            </span>
-                                                            <p className="fs-14 fw-medium">Hybrid</p>
-                                                        </div>
-                                                        <div className="d-flex flex-wrap border-end pe-2 me-2">
-                                                            <span className="fs-14 d-flex align-items-center text-gray-6 fw-normal text-nowrap me-1">
-                                                                <i className="isax isax-kanban me-1"></i>
-                                                                Gear :
-                                                            </span>
-                                                            <p className="fs-14 fw-medium">Manual</p>
-                                                        </div>
-                                                        <div className="d-flex flex-wrap">
-                                                            <span className="fs-14 d-flex align-items-center text-gray-6 fw-normal text-nowrap me-1">
-                                                                <i className="isax isax-routing-2 me-1"></i>
-                                                                Travelled :
-                                                            </span>
-                                                            <p className="fs-14 fw-medium">14,000 KM</p>
-                                                        </div>
-                                                    </div>
-                                                    <h5 className="text-primary text-md-end text-nowrap">$500 <span className="fs-14 text-gray-6 fw-normal">/ day</span></h5>
-                                                </div>
+                                        ) : carMarkers.length === 0 ? (
+                                            <div className="text-center py-5">
+                                                <p className="text-muted">No cars found in database.</p>
                                             </div>
-                                        </div>
-                                        {/* /Car List */}
-
-                                        {/* Car List */}
-                                        <div className="place-item mb-4">
-                                            <div className="place-img">
-                                                <div className="img-slider image-slide owl-carousel nav-center">
-                                                    <Slider {...imgslideroption}>
-                                                        <div className="slide-images">
-                                                            <Link to={routes.carDetails}>
-                                                                <ImageWithBasePath src="assets/img/cars/car-07.jpg" className="img-fluid" alt="img" />
-                                                            </Link>
-                                                        </div>
-                                                        <div className="slide-images">
-                                                            <Link to={routes.carDetails}>
-                                                                <ImageWithBasePath src="assets/img/cars/car-09.jpg" className="img-fluid" alt="img" />
-                                                            </Link>
-                                                        </div>
-                                                        <div className="slide-images">
-                                                            <Link to={routes.carDetails}>
-                                                                <ImageWithBasePath src="assets/img/cars/car-08.jpg" className="img-fluid" alt="img" />
-                                                            </Link>
-                                                        </div>
-                                                        <div className="slide-images">
-                                                            <Link to={routes.carDetails}>
-                                                                <ImageWithBasePath src="assets/img/cars/car-11.jpg" className="img-fluid" alt="img" />
-                                                            </Link>
-                                                        </div>
-                                                    </Slider>
-                                                </div>
-                                                <div className="fav-item">
-                                                    <Link to="#" className="fav-icon selected">
-                                                        <i className="isax isax-heart5"></i>
-                                                    </Link>
-                                                    <span className="badge bg-info d-inline-flex align-items-center"><i className="isax isax-ranking me-1"></i>Trending</span>
-                                                </div>
-
-                                            </div>
-                                            <div className="place-content">
-                                                <div className="d-flex justify-content-between align-items-center flex-wrap row-gap-2 mb-3">
-                                                    <div className="">
-                                                        <div className="d-flex align-items-center mb-1">
-                                                            <h5 className="text-truncate border-end pe-2 me-2"><Link to={routes.carDetails}>Ford Mustang 4.0 AT</Link></h5>
-                                                            <span className="badge badge-secondary badge-sm d-flex align-items-center">Sedan</span>
-                                                        </div>
-                                                        <p className="d-flex align-items-center"><i className="isax isax-location5 me-2"></i>Oxford Street, London</p>
-                                                    </div>
-                                                    <div className="d-flex align-items-center">
-                                                        <Link to="#" className="avatar avatar-sm flex-shrink-0">
-                                                            <ImageWithBasePath src="assets/img/users/user-09.jpg" className="rounded-circle" alt="img" />
-                                                        </Link>
-                                                        <div className="d-flex align-items-center border-start ps-2 ms-2">
-                                                            <span className="badge badge-warning badge-xs text-gray-9 fs-13 fw-medium me-1">5.0</span>
-                                                            <p className="fs-14">(300 Reviews)</p>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <p className="fs-14 mb-3">A powerful and dynamic vehicle, built for those who crave adventure with a smooth ride and impressive handling.</p>
-                                                <div className="d-flex align-items-center justify-content-between flex-wrap row-gap-2 me-1">
-                                                    <div className="p-2 border rounded d-inline-flex align-items-center">
-                                                        <div className="d-flex flex-wrap border-end pe-2 me-2">
-                                                            <span className="fs-14 d-flex align-items-center text-gray-6 fw-normal text-nowrap me-1">
-                                                                <i className="isax isax-gas-station me-1"></i>
-                                                                Fuel :
-                                                            </span>
-                                                            <p className="fs-14 fw-medium">Hybrid</p>
-                                                        </div>
-                                                        <div className="d-flex flex-wrap border-end pe-2 me-2">
-                                                            <span className="fs-14 d-flex align-items-center text-gray-6 fw-normal text-nowrap me-1">
-                                                                <i className="isax isax-kanban me-1"></i>
-                                                                Gear :
-                                                            </span>
-                                                            <p className="fs-14 fw-medium">Auto</p>
-                                                        </div>
-                                                        <div className="d-flex flex-wrap">
-                                                            <span className="fs-14 d-flex align-items-center text-gray-6 fw-normal text-nowrap me-1">
-                                                                <i className="isax isax-routing-2 me-1"></i>
-                                                                Travelled :
-                                                            </span>
-                                                            <p className="fs-14 fw-medium">12,000 KM</p>
-                                                        </div>
-                                                    </div>
-                                                    <h5 className="text-primary text-md-end text-nowrap">$600 <span className="fs-14 text-gray-6 fw-normal">/ day</span></h5>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        {/* /Car List */}
-
-                                        {/* Car List */}
-                                        <div className="place-item mb-4">
-                                            <div className="place-img">
-                                                <div className="img-slider image-slide owl-carousel nav-center">
-                                                    <Slider {...imgslideroption}>
-                                                        <div className="slide-images">
-                                                            <Link to={routes.carDetails}>
-                                                                <ImageWithBasePath src="assets/img/cars/car-08.jpg" className="img-fluid" alt="img" />
-                                                            </Link>
-                                                        </div>
-                                                        <div className="slide-images">
-                                                            <Link to={routes.carDetails}>
-                                                                <ImageWithBasePath src="assets/img/cars/car-06.jpg" className="img-fluid" alt="img" />
-                                                            </Link>
-                                                        </div>
-                                                        <div className="slide-images">
-                                                            <Link to={routes.carDetails}>
-                                                                <ImageWithBasePath src="assets/img/cars/car-09.jpg" className="img-fluid" alt="img" />
-                                                            </Link>
-                                                        </div>
-                                                        <div className="slide-images">
-                                                            <Link to={routes.carDetails}>
-                                                                <ImageWithBasePath src="assets/img/cars/car-12.jpg" className="img-fluid" alt="img" />
-                                                            </Link>
-                                                        </div>
-                                                    </Slider>
-                                                </div>
-                                                <div className="fav-item">
-                                                    <Link to="#" className="fav-icon">
-                                                        <i className="isax isax-heart5"></i>
-                                                    </Link>
-                                                    <span className="badge bg-info d-inline-flex align-items-center"><i className="isax isax-ranking me-1"></i>Trending</span>
-                                                </div>
-                                            </div>
-                                            <div className="place-content">
-                                                <div className="d-flex justify-content-between align-items-center flex-wrap row-gap-2 mb-3">
-                                                    <div className="">
-                                                        <div className="d-flex align-items-center mb-1">
-                                                            <h5 className="text-truncate border-end pe-2 me-2"><Link to={routes.carDetails}>Ferrari 458 MM Special</Link></h5>
-                                                            <span className="badge badge-secondary badge-sm d-flex align-items-center">Sedan</span>
-                                                        </div>
-                                                        <p className="d-flex align-items-center"><i className="isax isax-location5 me-2"></i>Princes Street, Edinburgh</p>
-                                                    </div>
-                                                    <div className="d-flex align-items-center">
-                                                        <Link to="#" className="avatar avatar-sm flex-shrink-0">
-                                                            <ImageWithBasePath src="assets/img/users/user-10.jpg" className="rounded-circle" alt="img" />
-                                                        </Link>
-                                                        <div className="d-flex align-items-center border-start ps-2 ms-2">
-                                                            <span className="badge badge-warning badge-xs text-gray-9 fs-13 fw-medium me-1">4.0</span>
-                                                            <p className="fs-14">(320 Reviews)</p>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <p className="fs-14 mb-3">Modern and elegant, this car combines innovative features with a sleek design, offering a premium driving experience.</p>
-                                                <div className="d-flex align-items-center justify-content-between flex-wrap row-gap-2 me-1">
-                                                    <div className="p-2 border rounded d-inline-flex align-items-center">
-                                                        <div className="d-flex flex-wrap border-end pe-2 me-2">
-                                                            <span className="fs-14 d-flex align-items-center text-gray-6 fw-normal text-nowrap me-1">
-                                                                <i className="isax isax-gas-station me-1"></i>
-                                                                Fuel :
-                                                            </span>
-                                                            <p className="fs-14 fw-medium">Hybrid</p>
-                                                        </div>
-                                                        <div className="d-flex flex-wrap border-end pe-2 me-2">
-                                                            <span className="fs-14 d-flex align-items-center text-gray-6 fw-normal text-nowrap me-1">
-                                                                <i className="isax isax-kanban me-1"></i>
-                                                                Gear :
-                                                            </span>
-                                                            <p className="fs-14 fw-medium">Manual</p>
-                                                        </div>
-                                                        <div className="d-flex flex-wrap">
-                                                            <span className="fs-14 d-flex align-items-center text-gray-6 fw-normal text-nowrap me-1">
-                                                                <i className="isax isax-routing-2 me-1"></i>
-                                                                Travelled :
-                                                            </span>
-                                                            <p className="fs-14 fw-medium">13,000 KM</p>
-                                                        </div>
-                                                    </div>
-                                                    <h5 className="text-primary text-md-end text-nowrap">$300 <span className="fs-14 text-gray-6 fw-normal">/ day</span></h5>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        {/* /Car List */}
-
-                                        {/* Car List */}
-                                        <div className="place-item mb-4">
-                                            <div className="place-img">
-                                                <div className="img-slider image-slide owl-carousel nav-center">
-                                                    <Slider {...imgslideroption}>
-                                                        <div className="slide-images">
-                                                            <Link to={routes.carDetails}>
-                                                                <ImageWithBasePath src="assets/img/cars/car-09.jpg" className="img-fluid" alt="img" />
-                                                            </Link>
-                                                        </div>
-                                                        <div className="slide-images">
-                                                            <Link to={routes.carDetails}>
-                                                                <ImageWithBasePath src="assets/img/cars/car-06.jpg" className="img-fluid" alt="img" />
-                                                            </Link>
-                                                        </div>
-                                                        <div className="slide-images">
-                                                            <Link to={routes.carDetails}>
-                                                                <ImageWithBasePath src="assets/img/cars/car-12.jpg" className="img-fluid" alt="img" />
-                                                            </Link>
-                                                        </div>
-                                                        <div className="slide-images">
-                                                            <Link to={routes.carDetails}>
-                                                                <ImageWithBasePath src="assets/img/cars/car-07.jpg" className="img-fluid" alt="img" />
-                                                            </Link>
-                                                        </div>
-                                                    </Slider>
-                                                </div>
-                                                <div className="fav-item">
-                                                    <Link to="#" className="fav-icon">
-                                                        <i className="isax isax-heart5"></i>
-                                                    </Link>
-                                                    <span className="badge bg-info d-inline-flex align-items-center"><i className="isax isax-ranking me-1"></i>Trending</span>
-                                                </div>
-                                            </div>
-                                            <div className="place-content">
-                                                <div className="d-flex justify-content-between align-items-center flex-wrap row-gap-2 mb-3">
-                                                    <div className="">
-                                                        <div className="d-flex align-items-center mb-1">
-                                                            <h5 className="text-truncate border-end pe-2 me-2"><Link to={routes.carDetails}>Mercedes-benz Convertible</Link></h5>
-                                                            <span className="badge badge-secondary badge-sm d-flex align-items-center">Sedan</span>
-                                                        </div>
-                                                        <p className="d-flex align-items-center"><i className="isax isax-location5 me-2"></i>Princes Street, Edinburgh</p>
-                                                    </div>
-                                                    <div className="d-flex align-items-center">
-                                                        <Link to="#" className="avatar avatar-sm flex-shrink-0">
-                                                            <ImageWithBasePath src="assets/img/users/user-11.jpg" className="rounded-circle" alt="img" />
-                                                        </Link>
-                                                        <div className="d-flex align-items-center border-start ps-2 ms-2">
-                                                            <span className="badge badge-warning badge-xs text-gray-9 fs-13 fw-medium me-1">4.0</span>
-                                                            <p className="fs-14">(380 Reviews)</p>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <p className="fs-14 mb-3">Sleek and stylish, this car offers a blend of performance and luxury, with cutting-edge technology and a comfortable interior</p>
-                                                <div className="d-flex align-items-center justify-content-between flex-wrap row-gap-2 me-1">
-                                                    <div className="p-2 border rounded d-inline-flex align-items-center">
-                                                        <div className="d-flex flex-wrap border-end pe-2 me-2">
-                                                            <span className="fs-14 d-flex align-items-center text-gray-6 fw-normal text-nowrap me-1">
-                                                                <i className="isax isax-gas-station me-1"></i>
-                                                                Fuel :
-                                                            </span>
-                                                            <p className="fs-14 fw-medium">Petrol</p>
-                                                        </div>
-                                                        <div className="d-flex flex-wrap border-end pe-2 me-2">
-                                                            <span className="fs-14 d-flex align-items-center text-gray-6 fw-normal text-nowrap me-1">
-                                                                <i className="isax isax-kanban me-1"></i>
-                                                                Gear :
-                                                            </span>
-                                                            <p className="fs-14 fw-medium">Auto</p>
-                                                        </div>
-                                                        <div className="d-flex flex-wrap">
-                                                            <span className="fs-14 d-flex align-items-center text-gray-6 fw-normal text-nowrap me-1">
-                                                                <i className="isax isax-routing-2 me-1"></i>
-                                                                Travelled :
-                                                            </span>
-                                                            <p className="fs-14 fw-medium">10,000 KM</p>
-                                                        </div>
-                                                    </div>
-                                                    <h5 className="text-primary text-md-end text-nowrap">$400 <span className="fs-14 text-gray-6 fw-normal">/ day</span></h5>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        {/* /Car List */}
-
-                                        {/* Car List */}
-                                        <div className="place-item mb-4">
-                                            <div className="place-img">
-                                                <div className="img-slider image-slide owl-carousel nav-center">
-                                                    <Slider {...imgslideroption}>
-                                                        <div className="slide-images">
-                                                            <Link to={routes.carDetails}>
-                                                                <ImageWithBasePath src="assets/img/cars/car-10.jpg" className="img-fluid" alt="img" />
-                                                            </Link>
-                                                        </div>
-                                                        <div className="slide-images">
-                                                            <Link to={routes.carDetails}>
-                                                                <ImageWithBasePath src="assets/img/cars/car-12.jpg" className="img-fluid" alt="img" />
-                                                            </Link>
-                                                        </div>
-                                                        <div className="slide-images">
-                                                            <Link to={routes.carDetails}>
-                                                                <ImageWithBasePath src="assets/img/cars/car-13.jpg" className="img-fluid" alt="img" />
-                                                            </Link>
-                                                        </div>
-                                                        <div className="slide-images">
-                                                            <Link to={routes.carDetails}>
-                                                                <ImageWithBasePath src="assets/img/cars/car-14.jpg" className="img-fluid" alt="img" />
-                                                            </Link>
-                                                        </div>
-                                                    </Slider>
-                                                </div>
-                                                <div className="fav-item">
-                                                    <Link to="#" className="fav-icon">
-                                                        <i className="isax isax-heart5"></i>
-                                                    </Link>
-                                                    <span className="badge bg-info d-inline-flex align-items-center"><i className="isax isax-ranking me-1"></i>Trending</span>
-                                                </div>
-                                            </div>
-                                            <div className="place-content">
-                                                <div className="d-flex justify-content-between align-items-center flex-wrap row-gap-2 mb-3">
-                                                    <div className="">
-                                                        <div className="d-flex align-items-center mb-1">
-                                                            <h5 className="text-truncate border-end pe-2 me-2"><Link to={routes.carDetails}>BMW 3.0 Gran Turismo</Link></h5>
-                                                            <span className="badge badge-secondary badge-sm d-flex align-items-center">Sedan</span>
-                                                        </div>
-                                                        <p className="d-flex align-items-center"><i className="isax isax-location5 me-2"></i>King’s Road, Chelsea</p>
-                                                    </div>
-                                                    <div className="d-flex align-items-center">
-                                                        <Link to="#" className="avatar avatar-sm flex-shrink-0">
-                                                            <ImageWithBasePath src="assets/img/users/user-12.jpg" className="rounded-circle" alt="img" />
-                                                        </Link>
-                                                        <div className="d-flex align-items-center border-start ps-2 ms-2">
-                                                            <span className="badge badge-warning badge-xs text-gray-9 fs-13 fw-medium me-1">4.3</span>
-                                                            <p className="fs-14">(300 Reviews)</p>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <p className="fs-14 mb-3">Reliable and fuel-efficient, perfect for daily commutes or long drives, this car is designed for both convenience and economy.</p>
-                                                <div className="d-flex align-items-center justify-content-between flex-wrap row-gap-2 me-1">
-                                                    <div className="p-2 border rounded d-inline-flex align-items-center">
-                                                        <div className="d-flex flex-wrap border-end pe-2 me-2">
-                                                            <span className="fs-14 d-flex align-items-center text-gray-6 fw-normal text-nowrap me-1">
-                                                                <i className="isax isax-gas-station me-1"></i>
-                                                                Fuel :
-                                                            </span>
-                                                            <p className="fs-14 fw-medium">Petrol</p>
-                                                        </div>
-                                                        <div className="d-flex flex-wrap border-end pe-2 me-2">
-                                                            <span className="fs-14 d-flex align-items-center text-gray-6 fw-normal text-nowrap me-1">
-                                                                <i className="isax isax-kanban me-1"></i>
-                                                                Gear :
-                                                            </span>
-                                                            <p className="fs-14 fw-medium">Manual</p>
-                                                        </div>
-                                                        <div className="d-flex flex-wrap">
-                                                            <span className="fs-14 d-flex align-items-center text-gray-6 fw-normal text-nowrap me-1">
-                                                                <i className="isax isax-routing-2 me-1"></i>
-                                                                Travelled :
-                                                            </span>
-                                                            <p className="fs-14 fw-medium">12,800 KM</p>
-                                                        </div>
-                                                    </div>
-                                                    <h5 className="text-primary text-md-end text-nowrap">$500 <span className="fs-14 text-gray-6 fw-normal">/ day</span></h5>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        {/* /Car List */}
+                                        ) : (
+                                            carMarkers.map(renderCarCard)
+                                        )}
                                     </div>
 
                                 </div>
@@ -826,18 +503,18 @@ const CarMap = () => {
                         <div id="map" className="map-listing">
                             <GoogleMap
                                 mapContainerStyle={containerStyle}
-                                center={center}
+                                center={selectedMarker ? { lat: selectedMarker.lat, lng: selectedMarker.lng } : defaultCenter}
                                 zoom={14}
                                 options={{
                                     scrollwheel: false,
-                                    mapTypeId: "roadmap",
+                                    mapTypeId: 'roadmap',
                                 }}
                             >
-                                {locations.map((location) => (
+                                {carMarkers.map((car) => (
                                     <Marker
-                                        key={location.id}
-                                        position={{ lat: location.lat, lng: location.lng }}
-                                        onClick={() => setSelectedMarker(location)}
+                                        key={car.id}
+                                        position={{ lat: car.lat, lng: car.lng }}
+                                        onClick={() => setSelectedMarker(car)}
                                     />
                                 ))}
 
@@ -849,33 +526,34 @@ const CarMap = () => {
                                         <div>
                                             <div className="card">
                                                 <div className="card-img">
-                                                    <Link to="#" className="property-img">
+                                                    <Link to={buildCarDetailsLink(selectedMarker.id)} className="property-img">
                                                         <ImageWithBasePath
                                                             className="img-fluid w-100"
-                                                            alt="img"
-                                                            src={selectedMarker.image}
+                                                            alt={selectedMarker.title || 'Car image'}
+                                                            src={selectedMarker.image || getCarImages(selectedMarker)[0]}
+                                                            fallbackSrc={getCategoryFallbackSrc('cars')}
                                                         />
                                                     </Link>
                                                 </div>
                                                 <div className="card-body">
                                                     <h5 className="title mb-2">
-                                                        <Link to="#" tabIndex={-1}>
-                                                            {selectedMarker.grid_name}
+                                                        <Link to={buildCarDetailsLink(selectedMarker.id)} tabIndex={-1}>
+                                                            {selectedMarker.title}
                                                         </Link>
                                                     </h5>
                                                     <p className="mb-3">
-                                                        <i className="isax isax-location"></i>{" "}
-                                                        {selectedMarker.grid_address}
+                                                        <i className="isax isax-location"></i>{' '}
+                                                        {selectedMarker.location}
                                                     </p>
                                                     <div className="d-flex align-items-center justify-content-between">
                                                         <div className="d-flex align-items-center">
-                                                            <h4 className="text-primary me-1">
-                                                                {selectedMarker.grid_rate}
+                                                            <h4 className="text-primary border-end pe-2 me-2">
+                                                                ${selectedMarker.price}
                                                             </h4>
-                                                            <p>{selectedMarker.grid_day}</p>
+                                                            <p>/ day</p>
                                                         </div>
                                                         <span className="badge badge-warning text-dark">
-                                                            {selectedMarker.grid_star}
+                                                            {selectedMarker.rating}
                                                         </span>
                                                     </div>
                                                 </div>
@@ -896,4 +574,4 @@ const CarMap = () => {
     )
 }
 
-export default CarMap
+export default CarMap;
