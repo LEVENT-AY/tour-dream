@@ -120,6 +120,7 @@ export const all_routes = {
     adminActivities: "/admin/activities",
     adminFlights: "/admin/flights",
     adminCars: "/admin/cars",
+    adminCruises: "/admin/cruises",
     adminAgents: "/admin/agents",
     adminCustomers: "/admin/customers",
     adminReviews: "/admin/reviews",

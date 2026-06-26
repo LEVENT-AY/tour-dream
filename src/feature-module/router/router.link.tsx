@@ -6,6 +6,7 @@ import AdminBookingsPending from "../admin-dashboard/pages/bookingsPending";
 import AdminBookingsConfirmed from "../admin-dashboard/pages/bookingsConfirmed";
 import AdminBookingsCancelled from "../admin-dashboard/pages/bookingsCancelled";
 import AdminTours from "../admin-dashboard/pages/tours";
+import AdminCruises from "../admin-dashboard/pages/cruises";
 import AdminHotels from "../admin-dashboard/pages/hotels";
 import AdminResorts from "../admin-dashboard/pages/resorts";
 import AdminChalets from "../admin-dashboard/pages/chalets";
@@ -199,6 +200,7 @@ export const adminRoutes = [
   { path: routes.adminBookingsConfirmed, element: <AdminBookingsConfirmed />, route: Route },
   { path: routes.adminBookingsCancelled, element: <AdminBookingsCancelled />, route: Route },
   { path: routes.adminTours, element: <AdminTours />, route: Route },
+  { path: routes.adminCruises, element: <AdminCruises />, route: Route },
   { path: routes.adminHotels, element: <AdminHotels />, route: Route },
   { path: routes.adminResorts, element: <AdminResorts />, route: Route },
   { path: routes.adminChalets, element: <AdminChalets />, route: Route },
