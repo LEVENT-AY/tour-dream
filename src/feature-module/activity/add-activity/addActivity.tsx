@@ -320,7 +320,7 @@ const disabledDate = (current: any) => {
                       {/* Pricing */}
                       <div className="col-md-4">
                         <div className="mb-3">
-                          <label className="form-label">Pricing (USD)</label>
+                          <label className="form-label">Pricing (TND)</label>
                           <input
                             type="text"
                             className="form-control"
@@ -332,7 +332,7 @@ const disabledDate = (current: any) => {
                       <div className="col-md-4">
                         <div className="mb-3">
                           <label className="form-label">
-                            Offer Price (USD)
+                            Offer Price (TND)
                           </label>
                           <input
                             type="text"
@@ -691,7 +691,7 @@ const disabledDate = (current: any) => {
                         <div className="col-xl-4 col-md-6">
                           <div className="mb-3">
                             <label className="form-label">
-                              Offer Price (USD)
+                              Offer Price (TND)
                             </label>
                             <input type="text" className="form-control" />
                           </div>
@@ -718,7 +718,7 @@ const disabledDate = (current: any) => {
                           <div className="col-xl-4 col-md-6">
                             <div className="mb-3">
                               <label className="form-label">
-                                Offer Price (USD)
+                                Offer Price (TND)
                               </label>
                               <div className="d-flex align-items-center">
                                 <input type="text" className="form-control" />

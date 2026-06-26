@@ -187,13 +187,13 @@ const AddTour = () => {
                                             </div>
                                             <div className="col-lg-4 col-md-6">
                                                 <div className="mb-3">
-                                                    <label className="form-label">Pricing (USD)</label>
+                                                    <label className="form-label">Pricing (TND)</label>
                                                     <input type="text" className="form-control" />
                                                 </div>
                                             </div>
                                             <div className="col-lg-4 col-md-6">
                                                 <div className="mb-3">
-                                                    <label className="form-label">Offer Price (USD)</label>
+                                                    <label className="form-label">Offer Price (TND)</label>
                                                     <input type="text" className="form-control" />
                                                 </div>
                                             </div>
