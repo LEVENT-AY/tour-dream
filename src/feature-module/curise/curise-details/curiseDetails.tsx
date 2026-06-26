@@ -9,6 +9,7 @@ import Lightbox from "yet-another-react-lightbox";
 import "yet-another-react-lightbox/styles.css";
 import Reviews from '../../../core/common/reviews/reviews';
 import VideoModal from '../../home-Two/videoModal';
+import FirestoreCruiseDetails from './FirestoreCruiseDetails';
 
 const CruiseDetails = () => {
     const routes = all_routes
@@ -130,6 +131,7 @@ const CruiseDetails = () => {
             />
             <div className="content">
                 <div className="container">
+                    <FirestoreCruiseDetails />
 
                     <div className="row">
 
