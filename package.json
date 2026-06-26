@@ -33,6 +33,7 @@
     "smoke:homepage-trending-firestore": "node scripts/smoke-homepage-trending-firestore.mjs",
     "smoke:hotel-item-specific-details": "node scripts/smoke-hotel-item-specific-details.mjs",
     "smoke:car-item-specific-details": "node scripts/smoke-car-item-specific-details.mjs",
+    "smoke:tour-item-specific-details": "node scripts/smoke-tour-item-specific-details.mjs",
     "smoke:hotel-details-firestore": "node scripts/smoke-hotel-details-firestore.mjs",
     "smoke:flight-details-firestore": "node scripts/smoke-flight-details-firestore.mjs",
     "smoke:listing-details-firestore": "node scripts/smoke-listing-details-firestore.mjs",

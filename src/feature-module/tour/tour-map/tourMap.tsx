@@ -1,18 +1,45 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Breadcrumb from '../../../core/common/Breadcrumb/breadcrumb';
 import { Link } from 'react-router-dom';
 import ImageWithBasePath from '../../../core/common/imageWithBasePath';
+import { getCategoryFallbackSrc } from '../../../core/services/firebaseStorage';
 import Slider from 'react-slick';
 import TourGoogleMap from './tourGoogleMap';
 import TourFilterModel from './tourFilterModel';
 import { all_routes } from '../../router/all_routes';
 import TourSearch from '../tourSearch';
+import { fetchTours } from '../../../core/services/firebaseServices';
+
+type TourRecord = Record<string, any>;
 
 const TourMap = () => {
+  const routes = all_routes;
+  const [tours, setTours] = useState<TourRecord[]>([]);
+  const [loadingTours, setLoadingTours] = useState(true);
+  const [selectedItems, setSelectedItems] = useState<boolean[]>([]);
 
-  const routes = all_routes
+  useEffect(() => {
+    const getTours = async () => {
+      try {
+        const data = await fetchTours();
+        setTours(data.filter((tour) => tour.published !== false));
+      } catch (error) {
+        console.error('Error loading tours:', error);
+      } finally {
+        setLoadingTours(false);
+      }
+    };
+    getTours();
+  }, []);
 
-  //Breadcrumb Data
+  const handleItemClick = (index: number) => {
+    setSelectedItems((prevSelectedItems) => {
+      const updatedSelectedItems = [...prevSelectedItems];
+      updatedSelectedItems[index] = !updatedSelectedItems[index];
+      return updatedSelectedItems;
+    });
+  };
+
   const breadcrumbs = [
     {
       label: 'Tours',
@@ -29,7 +56,6 @@ const TourMap = () => {
     },
   ];
 
-  //ImageSlider
   const imgslideroption = {
     dots: true,
     arrows: true,
@@ -40,48 +66,136 @@ const TourMap = () => {
     slidesToShow: 1,
     slidesToScroll: 1,
     responsive: [
-      {
-        breakpoint: 1400,
-        settings: {
-          slidesToShow: 1,
-        },
-      },
-      {
-        breakpoint: 1300,
-        settings: {
-          slidesToShow: 1,
-        },
-      },
-      {
-        breakpoint: 992,
-        settings: {
-          slidesToShow: 1,
-        },
-      },
-      {
-        breakpoint: 576,
-        settings: {
-          slidesToShow: 1,
-        },
-      },
-      {
-        breakpoint: 0,
-        settings: {
-          slidesToShow: 1,
-        },
-      },
+      { breakpoint: 1400, settings: { slidesToShow: 1 } },
+      { breakpoint: 1300, settings: { slidesToShow: 1 } },
+      { breakpoint: 992, settings: { slidesToShow: 1 } },
+      { breakpoint: 576, settings: { slidesToShow: 1 } },
+      { breakpoint: 0, settings: { slidesToShow: 1 } },
     ],
   };
 
-  const [selectedItems, setSelectedItems] = useState(Array(10).fill(false));
-  const handleItemClick = (index: number) => {
-    setSelectedItems((prevSelectedItems) => {
-      const updatedSelectedItems = [...prevSelectedItems];
-      updatedSelectedItems[index] = !updatedSelectedItems[index];
-      return updatedSelectedItems;
-    });
+  const buildTourDetailsLink = (tourId: string) => `${routes.tourDetails}?id=${tourId}`;
+
+  const getTourImages = (tour: TourRecord) => {
+    const gallery = Array.isArray(tour.gallery) ? tour.gallery.filter(Boolean) : [];
+    const primary = tour.image || gallery[0];
+    return gallery.length > 0 ? gallery : primary ? [primary] : [];
   };
 
+  const renderTourCard = (tour: TourRecord, index: number) => {
+    const tourImages = getTourImages(tour);
+    const tourLink = buildTourDetailsLink(tour.id);
+    const tourDescription =
+      tour.description ||
+      tour.details ||
+      'Explore this admin-managed tour listing with up-to-date pricing, images, and location details.';
+    const tourType = tour.type || tour.category || tour.listingCategory || 'Tour';
+    const tourDuration = tour.duration || '';
+    const guests = tour.guests || tour.groupSize || '';
+
+    return (
+      <div className="place-item list-full mb-4" key={tour.id || index}>
+        <div className="place-img">
+          {tourImages.length > 1 ? (
+            <div className="img-slider tour-img tour-img owl-carousel nav-center h-100">
+              <Slider {...imgslideroption}>
+                {tourImages.map((image: string, imageIndex: number) => (
+                  <div className="slide-images" key={`${tour.id || index}-${imageIndex}`}>
+                    <Link to={tourLink}>
+                      <ImageWithBasePath
+                        src={image}
+                        className="img-fluid h-100"
+                        alt={tour.title || 'Tour image'}
+                        fallbackSrc={getCategoryFallbackSrc('tours')}
+                      />
+                    </Link>
+                  </div>
+                ))}
+              </Slider>
+            </div>
+          ) : (
+            <Link to={tourLink}>
+              <ImageWithBasePath
+                src={tourImages[0] || tour.image}
+                className="img-fluid h-100"
+                alt={tour.title || 'Tour image'}
+                fallbackSrc={getCategoryFallbackSrc('tours')}
+              />
+            </Link>
+          )}
+          <div className="fav-item" onClick={() => handleItemClick(index)}>
+            <Link to="#" className={`fav-icon ${selectedItems[index] ? 'selected' : ''}`}>
+              <i className="isax isax-heart5" />
+            </Link>
+            <span className="badge bg-info d-inline-flex align-items-center">
+              <i className="isax isax-ranking me-1" />
+              Trending
+            </span>
+          </div>
+        </div>
+        <div className="place-content">
+          <div className="d-flex align-items-center justify-content-between flex-wrap row-gap-2 mb-3">
+            <div>
+              <h5 className="mb-1 text-truncate">
+                <Link to={tourLink}>{tour.title}</Link>
+              </h5>
+              <p className="fs-14 d-flex align-items-center">
+                <i className="isax isax-location5 me-2" />
+                {tour.location}
+              </p>
+            </div>
+            <div className="d-flex align-items-center">
+              <p className="fs-14 text-gray-9 border-end pe-2 me-2 mb-0">
+                <span className="me-1">
+                  <i className="ti ti-receipt text-primary" />
+                </span>
+                {tourType}
+              </p>
+              <span className="badge badge-warning badge-xs text-gray-9 fs-13 fw-medium me-1">
+                {tour.rating}
+              </span>
+              <p className="fs-14">({tour.reviewsCount || 0} Reviews)</p>
+            </div>
+          </div>
+          <p className="fs-14 border-bottom pb-3 mb-3">{tourDescription}</p>
+          <div className="d-flex align-items-center justify-content-between">
+            <div className="d-flex flex-wrap align-items-center">
+              {tourDuration && (
+                <>
+                  <span className="me-2">
+                    <i className="isax isax-calendar-tick text-gray-6" />
+                  </span>
+                  <p className="fs-14 text-gray-9 border-end pe-2 me-2 mb-0">{tourDuration}</p>
+                </>
+              )}
+              {guests && (
+                <p className="fs-14 text-gray-9 mb-0 text-truncate d-flex align-items-center">
+                  <i className="isax isax-profile-2user me-1" />
+                  {guests} Guests
+                </p>
+              )}
+            </div>
+            <div className="d-flex align-items-center flex-wrap">
+              <h6 className="d-flex align-items-center flex-wrap text-gray-6 fs-14 fw-normal border-end pe-2 me-2">
+                Starts From
+                <span className="ms-1 fs-18 fw-semibold text-primary">${tour.price}</span>
+                {tour.oldPrice && (
+                  <span className="ms-1 fs-18 fw-semibold text-gray-3 text-decoration-line-through">${tour.oldPrice}</span>
+                )}
+              </h6>
+              <Link to="#" className="avatar avatar-sm flex-shrink-0">
+                <ImageWithBasePath
+                  src="assets/img/users/user-09.jpg"
+                  className="rounded-circle"
+                  alt="img"
+                />
+              </Link>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <>
@@ -504,7 +618,7 @@ const TourMap = () => {
           <div className="col-xl-8">
             <div className="map-lists-widget border-top">
               <div className="d-flex align-items-center justify-content-between flex-wrap">
-                <h6 className="mb-4">1920 Tours Found on Your Search</h6>
+                <h6 className="mb-4">{loadingTours ? 'Loading tours...' : `${tours.length} Tours Found on Your Search`}</h6>
                 <div className="list-item d-flex align-items-center shadow-md bg-white rounded-3 p-2 mb-4">
                   <Link to={routes.tourGrid} className="list-icon me-2">
                     <i className="isax isax-grid-1" />
@@ -517,622 +631,20 @@ const TourMap = () => {
               <div className="hotel-list">
                 <div className="row justify-content-center">
                   <div className="col-md-12">
-                    {/* Tour Grid */}
-                    <div className="place-item list-full mb-4">
-                      <div className="place-img">
-                        <div className="img-slider tour-img tour-img owl-carousel nav-center h-100">
-                          <Slider {...imgslideroption}>
-                            <div className="slide-images">
-                              <Link to={routes.tourDetails}>
-                                <ImageWithBasePath
-                                  src="assets/img/tours/tours-07.jpg"
-                                  className="img-fluid h-100"
-                                  alt="img"
-                                />
-                              </Link>
-                            </div>
-                            <div className="slide-images">
-                              <Link to={routes.tourDetails}>
-                                <ImageWithBasePath
-                                  src="assets/img/tours/tours-08.jpg"
-                                  className="img-fluid h-100"
-                                  alt="img"
-                                />
-                              </Link>
-                            </div>
-                            <div className="slide-images">
-                              <Link to={routes.tourDetails}>
-                                <ImageWithBasePath
-                                  src="assets/img/tours/tours-09.jpg"
-                                  className="img-fluid h-100"
-                                  alt="img"
-                                />
-                              </Link>
-                            </div>
-                            <div className="slide-images">
-                              <Link to={routes.tourDetails}>
-                                <ImageWithBasePath
-                                  src="assets/img/tours/tours-11.jpg"
-                                  className="img-fluid h-100"
-                                  alt="img"
-                                />
-                              </Link>
-                            </div>
-                          </Slider>
-
+                    {loadingTours ? (
+                      <div className="text-center py-5">
+                        <div className="spinner-border text-primary" role="status">
+                          <span className="visually-hidden">Loading...</span>
                         </div>
-                        <div className="fav-item" key={1} onClick={() => handleItemClick(1)}>
-                          <Link
-                            to="#"
-                            className={`fav-icon ${selectedItems[1] ? 'selected' : ''}`}
-                          >
-                            <i className="isax isax-heart5" />
-                          </Link>
-                          <span className="badge bg-info d-inline-flex align-items-center">
-                            <i className="isax isax-ranking me-1" />
-                            Trending
-                          </span>
-                        </div>
+                        <p className="mt-2 text-muted">Loading tours from database...</p>
                       </div>
-                      <div className="place-content">
-                        <div className="d-flex align-items-center justify-content-between flex-wrap row-gap-2 mb-3">
-                          <div>
-                            <h5 className="mb-1 text-truncate">
-                              <Link to={routes.tourDetails}>Rainbow Mountain Valley</Link>
-                            </h5>
-                            <p className="fs-14 d-flex align-items-center">
-                              <i className="isax isax-location5 me-2" />
-                              Ciutat Vella, Barcelona
-                            </p>
-                          </div>
-                          <div className="d-flex align-items-center">
-                            <p className="fs-14 text-gray-9  border-end pe-2 me-2 mb-0">
-                              <span className="me-1">
-                                <i className="ti ti-receipt text-primary" />
-                              </span>
-                              Ecotourism
-                            </p>
-                            <span className="badge badge-warning badge-xs text-gray-9 fs-13 fw-medium me-1">
-                              5.0
-                            </span>
-                            <p className="fs-14">(105 Reviews)</p>
-                          </div>
-                        </div>
-                        <p className="fs-14 border-bottom pb-3 mb-3">
-                          Journey through majestic peaks and serene valleys, where nature’s beauty surrounds you at every turn.
-                        </p>
-                        <div className="d-flex align-items-center justify-content-between">
-                          <div className="d-flex flex-wrap align-items-center">
-                            <span className="me-2">
-                              <i className="isax isax-calendar-tick text-gray-6" />
-                            </span>
-                            <p className="fs-14 text-gray-9  border-end pe-2 me-2 mb-0">
-                              4 Day,3 Night
-                            </p>
-                            <p className="fs-14 text-gray-9 mb-0 text-truncate d-flex align-items-center">
-                              <i className="isax isax-profile-2user me-1" />
-                              14 Guests
-                            </p>
-                          </div>
-                          <div className="d-flex align-items-center flex-wrap">
-                            <h6 className="d-flex align-items-center flex-wrap text-gray-6 fs-14 fw-normal border-end pe-2 me-2">
-                              Starts From
-                              <span className="ms-1 fs-18 fw-semibold text-primary">
-                                $500
-                              </span>
-                              <span className="ms-1 fs-18 fw-semibold text-gray-3 text-decoration-line-through">
-                                $789
-                              </span>
-                            </h6>
-                            <Link
-                              to="#"
-                              className="avatar avatar-sm flex-shrink-0"
-                            >
-                              <ImageWithBasePath
-                                src="assets/img/users/user-09.jpg"
-                                className="rounded-circle"
-                                alt="img"
-                              />
-                            </Link>
-                          </div>
-                        </div>
+                    ) : tours.length === 0 ? (
+                      <div className="text-center py-5">
+                        <p className="text-muted">No tours found in database.</p>
                       </div>
-                    </div>
-                    {/* /Tour Grid */}
-                    {/* Tour Grid */}
-                    <div className="place-item mb-4">
-                      <div className="place-img">
-                        <div className="img-slider tour-img tour-img owl-carousel nav-center h-100">
-                          <Slider {...imgslideroption}>
-                            <div className="slide-images">
-                              <Link to={routes.tourDetails}>
-                                <ImageWithBasePath
-                                  src="assets/img/tours/tours-08.jpg"
-                                  className="img-fluid h-100"
-                                  alt="img"
-                                />
-                              </Link>
-                            </div>
-                            <div className="slide-images">
-                              <Link to={routes.tourDetails}>
-                                <ImageWithBasePath
-                                  src="assets/img/tours/tours-09.jpg"
-                                  className="img-fluid h-100"
-                                  alt="img"
-                                />
-                              </Link>
-                            </div>
-                            <div className="slide-images">
-                              <Link to={routes.tourDetails}>
-                                <ImageWithBasePath
-                                  src="assets/img/tours/tours-10.jpg"
-                                  className="img-fluid h-100"
-                                  alt="img"
-                                />
-                              </Link>
-                            </div>
-                            <div className="slide-images">
-                              <Link to={routes.tourDetails}>
-                                <ImageWithBasePath
-                                  src="assets/img/tours/tours-11.jpg"
-                                  className="img-fluid h-100"
-                                  alt="img"
-                                />
-                              </Link>
-                            </div>
-                          </Slider>
-
-                        </div>
-                        <div className="fav-item" key={2} onClick={() => handleItemClick(2)}>
-                          <Link
-                            to="#"
-                            className={`fav-icon ${selectedItems[2] ? 'selected' : ''}`}
-                          >
-                            <i className="isax isax-heart5" />
-                          </Link>
-                          <span className="badge bg-info d-inline-flex align-items-center">
-                            <i className="isax isax-ranking me-1" />
-                            Trending
-                          </span>
-                        </div>
-                      </div>
-                      <div className="place-content">
-                        <div className="d-flex align-items-center justify-content-between flex-wrap row-gap-2 mb-3">
-                          <div>
-                            <h5 className="mb-1 text-truncate">
-                              <Link to={routes.tourDetails}>Mystic Falls</Link>
-                            </h5>
-                            <p className="fs-14 d-flex align-items-center">
-                              <i className="isax isax-location5 me-2" />
-                              Oxford Street, London
-                            </p>
-                          </div>
-                          <div className="d-flex align-items-center">
-                            <p className="fs-14 text-gray-9  border-end pe-2 me-2 mb-0">
-                              <span className="me-1">
-                                <i className="ti ti-receipt text-primary" />
-                              </span>
-                              Adventure Tour
-                            </p>
-                            <span className="badge badge-warning badge-xs text-gray-9 fs-13 fw-medium me-1">
-                              4.5
-                            </span>
-                            <p className="fs-14">(110 Reviews)</p>
-                          </div>
-                        </div>
-                        <p className="fs-14 border-bottom pb-3 mb-3">
-                          Experience the breathtaking beauty of nature on a tour to
-                          majestic waterfalls, where cascading waters meet lush
-                          greenery.
-                        </p>
-                        <div className="d-flex align-items-center justify-content-between">
-                          <div className="d-flex flex-wrap align-items-center">
-                            <span className="me-2">
-                              <i className="isax isax-calendar-tick text-gray-6" />
-                            </span>
-                            <p className="fs-14 text-gray-9  border-end pe-2 me-2 mb-0">
-                              3 Day,2 Night
-                            </p>
-                            <p className="fs-14 text-gray-9 mb-0 text-truncate d-flex align-items-center">
-                              <i className="isax isax-profile-2user me-1" />
-                              12 Guests
-                            </p>
-                          </div>
-                          <div className="d-flex align-items-center flex-wrap">
-                            <h6 className="d-flex align-items-center flex-wrap text-gray-6 fs-14 fw-normal border-end pe-2 me-2">
-                              Starts From
-                              <span className="ms-1 fs-18 fw-semibold text-primary">
-                                $600
-                              </span>
-                              <span className="ms-1 fs-18 fw-semibold text-gray-3 text-decoration-line-through">
-                                $700
-                              </span>
-                            </h6>
-                            <Link
-                              to="#"
-                              className="avatar avatar-sm flex-shrink-0"
-                            >
-                              <ImageWithBasePath
-                                src="assets/img/users/user-09.jpg"
-                                className="rounded-circle"
-                                alt="img"
-                              />
-                            </Link>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                    {/* /Tour Grid */}
-                    {/* Tour Grid */}
-                    <div className="place-item mb-4">
-                      <div className="place-img">
-                        <div className="img-slider tour-img tour-img owl-carousel nav-center h-100">
-                          <Slider {...imgslideroption}>
-                            <div className="slide-images">
-                              <Link to={routes.tourDetails}>
-                                <ImageWithBasePath
-                                  src="assets/img/tours/tours-09.jpg"
-                                  className="img-fluid h-100"
-                                  alt="img"
-                                />
-                              </Link>
-                            </div>
-                            <div className="slide-images">
-                              <Link to={routes.tourDetails}>
-                                <ImageWithBasePath
-                                  src="assets/img/tours/tours-10.jpg"
-                                  className="img-fluid h-100"
-                                  alt="img"
-                                />
-                              </Link>
-                            </div>
-                            <div className="slide-images">
-                              <Link to={routes.tourDetails}>
-                                <ImageWithBasePath
-                                  src="assets/img/tours/tours-11.jpg"
-                                  className="img-fluid h-100"
-                                  alt="img"
-                                />
-                              </Link>
-                            </div>
-                            <div className="slide-images">
-                              <Link to={routes.tourDetails}>
-                                <ImageWithBasePath
-                                  src="assets/img/tours/tours-12.jpg"
-                                  className="img-fluid h-100"
-                                  alt="img"
-                                />
-                              </Link>
-                            </div>
-                          </Slider>
-
-                        </div>
-                        <div className="fav-item" key={3} onClick={() => handleItemClick(3)}>
-                          <Link
-                            to="#"
-                            className={`fav-icon ${selectedItems[3] ? 'selected' : ''}`}
-                          >
-                            <i className="isax isax-heart5" />
-                          </Link>
-                          <span className="badge bg-info d-inline-flex align-items-center">
-                            <i className="isax isax-ranking me-1" />
-                            Trending
-                          </span>
-                        </div>
-                      </div>
-                      <div className="place-content">
-                        <div className="d-flex align-items-center justify-content-between flex-wrap row-gap-2 mb-3">
-                          <div>
-                            <h5 className="mb-1 text-truncate">
-                              <Link to={routes.tourDetails}>Crystal Lake</Link>
-                            </h5>
-                            <p className="fs-14 d-flex align-items-center">
-                              <i className="isax isax-location5 me-2" />
-                              Deansgate, Manchester
-                            </p>
-                          </div>
-                          <div className="d-flex align-items-center">
-                            <p className="fs-14 text-gray-9  border-end pe-2 me-2 mb-0">
-                              <span className="me-1">
-                                <i className="ti ti-receipt text-primary" />
-                              </span>{" "}
-                              Summer Trip
-                            </p>
-                            <span className="badge badge-warning badge-xs text-gray-9 fs-13 fw-medium me-1">
-                              4.9
-                            </span>
-                            <p className="fs-14">(180 Reviews)</p>
-                          </div>
-                        </div>
-                        <p className="fs-14 border-bottom pb-3 mb-3">
-                          Enjoy the calm waters and scenic views, making your lake
-                          tour a refreshing escape into nature's beauty.
-                        </p>
-                        <div className="d-flex align-items-center justify-content-between">
-                          <div className="d-flex flex-wrap align-items-center">
-                            <span className="me-2">
-                              <i className="isax isax-calendar-tick text-gray-6" />
-                            </span>
-                            <p className="fs-14 text-gray-9  border-end pe-2 me-2 mb-0">
-                              5 Day,4 Night
-                            </p>
-                            <p className="fs-14 text-gray-9 mb-0 text-truncate d-flex align-items-center">
-                              <i className="isax isax-profile-2user me-1" />
-                              16 Guests
-                            </p>
-                          </div>
-                          <div className="d-flex align-items-center flex-wrap">
-                            <h6 className="d-flex align-items-center flex-wrap text-gray-6 fs-14 fw-normal border-end pe-2 me-2">
-                              Starts From
-                              <span className="ms-1 fs-18 fw-semibold text-primary">
-                                $300
-                              </span>
-                              <span className="ms-1 fs-18 fw-semibold text-gray-3 text-decoration-line-through">
-                                $500
-                              </span>
-                            </h6>
-                            <Link
-                              to="#"
-                              className="avatar avatar-sm flex-shrink-0"
-                            >
-                              <ImageWithBasePath
-                                src="assets/img/users/user-10.jpg"
-                                className="rounded-circle"
-                                alt="img"
-                              />
-                            </Link>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                    {/* /Tour Grid */}
-                    {/* Tour Grid */}
-                    <div className="place-item mb-4">
-                      <div className="place-img">
-                        <div className="img-slider tour-img tour-img owl-carousel nav-center h-100">
-                          <Slider {...imgslideroption}>
-                            <div className="slide-images">
-                              <Link to={routes.tourDetails}>
-                                <ImageWithBasePath
-                                  src="assets/img/tours/tours-10.jpg"
-                                  className="img-fluid h-100"
-                                  alt="img"
-                                />
-                              </Link>
-                            </div>
-                            <div className="slide-images">
-                              <Link to={routes.tourDetails}>
-                                <ImageWithBasePath
-                                  src="assets/img/tours/tours-11.jpg"
-                                  className="img-fluid h-100"
-                                  alt="img"
-                                />
-                              </Link>
-                            </div>
-                            <div className="slide-images">
-                              <Link to={routes.tourDetails}>
-                                <ImageWithBasePath
-                                  src="assets/img/tours/tours-12.jpg"
-                                  className="img-fluid h-100"
-                                  alt="img"
-                                />
-                              </Link>
-                            </div>
-                            <div className="slide-images">
-                              <Link to={routes.tourDetails}>
-                                <ImageWithBasePath
-                                  src="assets/img/tours/tours-13.jpg"
-                                  className="img-fluid h-100"
-                                  alt="img"
-                                />
-                              </Link>
-                            </div>
-                          </Slider>
-
-                        </div>
-                        <div className="fav-item" key={4} onClick={() => handleItemClick(4)}>
-                          <Link
-                            to="#"
-                            className={`fav-icon ${selectedItems[4] ? 'selected' : ''}`}
-                          >
-                            <i className="isax isax-heart5" />
-                          </Link>
-                          <span className="badge bg-info d-inline-flex align-items-center">
-                            <i className="isax isax-ranking me-1" />
-                            Trending
-                          </span>
-                        </div>
-                      </div>
-                      <div className="place-content">
-                        <div className="d-flex align-items-center justify-content-between flex-wrap row-gap-2 mb-3">
-                          <div>
-                            <h5 className="mb-1 text-truncate">
-                              <Link to={routes.tourDetails}>Majestic Peaks</Link>
-                            </h5>
-                            <p className="fs-14 d-flex align-items-center">
-                              <i className="isax isax-location5 me-2" />
-                              King’s Road, Chelsea
-                            </p>
-                          </div>
-                          <div className="d-flex align-items-center">
-                            <p className="fs-14 text-gray-9  border-end pe-2 me-2 mb-0">
-                              <span className="me-1">
-                                <i className="ti ti-receipt text-primary" />
-                              </span>{" "}
-                              Adventure Tour
-                            </p>
-                            <span className="badge badge-warning badge-xs text-gray-9 fs-13 fw-medium me-1">
-                              4.3
-                            </span>
-                            <p className="fs-14">(300 Reviews)</p>
-                          </div>
-                        </div>
-                        <p className="fs-14 border-bottom pb-3 mb-3">
-                          Conquer towering peaks and enjoy panoramic views on a
-                          thrilling mountain tour, perfect for adventure seekers.
-                        </p>
-                        <div className="d-flex align-items-center justify-content-between">
-                          <div className="d-flex flex-wrap align-items-center">
-                            <span className="me-2">
-                              <i className="isax isax-calendar-tick text-gray-6" />
-                            </span>
-                            <p className="fs-14 text-gray-9  border-end pe-2 me-2 mb-0">
-                              3 Day,2 Night
-                            </p>
-                            <p className="fs-14 text-gray-9 mb-0 text-truncate d-flex align-items-center">
-                              <i className="isax isax-profile-2user me-1" />
-                              10 Guests
-                            </p>
-                          </div>
-                          <div className="d-flex align-items-center flex-wrap">
-                            <h6 className="d-flex align-items-center flex-wrap text-gray-6 fs-14 fw-normal border-end pe-2 me-2">
-                              Starts From
-                              <span className="ms-1 fs-18 fw-semibold text-primary">
-                                $400
-                              </span>
-                              <span className="ms-1 fs-18 fw-semibold text-gray-3 text-decoration-line-through">
-                                $480
-                              </span>
-                            </h6>
-                            <Link
-                              to="#"
-                              className="avatar avatar-sm flex-shrink-0"
-                            >
-                              <ImageWithBasePath
-                                src="assets/img/users/user-11.jpg"
-                                className="rounded-circle"
-                                alt="img"
-                              />
-                            </Link>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                    {/* /Tour Grid */}
-                    {/* Tour Grid */}
-                    <div className="place-item mb-4">
-                      <div className="place-img">
-                        <div className="img-slider tour-img tour-img owl-carousel nav-center h-100">
-                          <Slider {...imgslideroption}>
-                            <div className="slide-images">
-                              <Link to={routes.tourDetails}>
-                                <ImageWithBasePath
-                                  src="assets/img/tours/tours-11.jpg"
-                                  className="img-fluid h-100"
-                                  alt="img"
-                                />
-                              </Link>
-                            </div>
-                            <div className="slide-images">
-                              <Link to={routes.tourDetails}>
-                                <ImageWithBasePath
-                                  src="assets/img/tours/tours-12.jpg"
-                                  className="img-fluid h-100"
-                                  alt="img"
-                                />
-                              </Link>
-                            </div>
-                            <div className="slide-images">
-                              <Link to={routes.tourDetails}>
-                                <ImageWithBasePath
-                                  src="assets/img/tours/tours-13.jpg"
-                                  className="img-fluid h-100"
-                                  alt="img"
-                                />
-                              </Link>
-                            </div>
-                            <div className="slide-images">
-                              <Link to={routes.tourDetails}>
-                                <ImageWithBasePath
-                                  src="assets/img/tours/tours-14.jpg"
-                                  className="img-fluid h-100"
-                                  alt="img"
-                                />
-                              </Link>
-                            </div>
-                          </Slider>
-
-                        </div>
-                        <div className="fav-item" key={5} onClick={() => handleItemClick(5)}>
-                          <Link
-                            to="#"
-                            className={`fav-icon ${selectedItems[5] ? 'selected' : ''}`}
-                          >
-                            <i className="isax isax-heart5" />
-                          </Link>
-                          <span className="badge bg-info d-inline-flex align-items-center">
-                            <i className="isax isax-ranking me-1" />
-                            Trending
-                          </span>
-                        </div>
-                      </div>
-                      <div className="place-content">
-                        <div className="d-flex align-items-center justify-content-between flex-wrap row-gap-2 mb-3">
-                          <div>
-                            <h5 className="mb-1 text-truncate">
-                              <Link to={routes.tourDetails}>Enchanted Forest</Link>
-                            </h5>
-                            <p className="fs-14 d-flex align-items-center">
-                              <i className="isax isax-location5 me-2" />
-                              Bold Street, Liverpool
-                            </p>
-                          </div>
-                          <div className="d-flex align-items-center">
-                            <p className="fs-14 text-gray-9  border-end pe-2 me-2 mb-0">
-                              <span className="me-1">
-                                <i className="ti ti-receipt text-primary" />
-                              </span>{" "}
-                              Group Tours
-                            </p>
-                            <span className="badge badge-warning badge-xs text-gray-9 fs-13 fw-medium me-1">
-                              4.1
-                            </span>
-                            <p className="fs-14">(250 Reviews)</p>
-                          </div>
-                        </div>
-                        <p className="fs-14 border-bottom pb-3 mb-3">
-                          Immerse yourself in the enchanting beauty of a forest
-                          tour, where towering trees and diverse wildlife create a
-                          serene escape.
-                        </p>
-                        <div className="d-flex align-items-center justify-content-between">
-                          <div className="d-flex flex-wrap align-items-center">
-                            <span className="me-2">
-                              <i className="isax isax-calendar-tick text-gray-6" />
-                            </span>
-                            <p className="fs-14 text-gray-9 border-end pe-2 me-2 mb-0">
-                              2 Day,1 Night
-                            </p>
-                            <p className="fs-14 text-gray-9 mb-0 text-truncate d-flex align-items-center">
-                              <i className="isax isax-profile-2user me-1" />
-                              17 Guests
-                            </p>
-                          </div>
-                          <div className="d-flex align-items-center flex-wrap">
-                            <h6 className="d-flex align-items-center flex-wrap text-gray-6 fs-14 fw-normal border-end pe-2 me-2">
-                              Starts From
-                              <span className="ms-1 fs-18 fw-semibold text-primary">
-                                $550
-                              </span>
-                              <span className="ms-1 fs-18 fw-semibold text-gray-3 text-decoration-line-through">
-                                $600
-                              </span>
-                            </h6>
-                            <Link
-                              to="#"
-                              className="avatar avatar-sm flex-shrink-0"
-                            >
-                              <ImageWithBasePath
-                                src="assets/img/users/user-12.jpg"
-                                className="rounded-circle"
-                                alt="img"
-                              />
-                            </Link>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                    {/* /Hotel Grid */}
+                    ) : (
+                      tours.map(renderTourCard)
+                    )}
                   </div>
                 </div>
               </div>
@@ -1159,4 +671,4 @@ const TourMap = () => {
   )
 }
 
-export default TourMap
+export default TourMap;
