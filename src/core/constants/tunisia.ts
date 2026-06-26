@@ -1,0 +1,28 @@
+export const DEFAULT_CURRENCY = "TND";
+
+export const TUNISIAN_REGIONS = [
+  "Ariana",
+  "Béja",
+  "Ben Arous",
+  "Bizerte",
+  "Gabès",
+  "Gafsa",
+  "Jendouba",
+  "Kairouan",
+  "Kasserine",
+  "Kebili",
+  "Kef",
+  "Mahdia",
+  "Manouba",
+  "Medenine",
+  "Monastir",
+  "Nabeul",
+  "Sfax",
+  "Sidi Bouzid",
+  "Siliana",
+  "Sousse",
+  "Tataouine",
+  "Tozeur",
+  "Tunis",
+  "Zaghouan",
+];

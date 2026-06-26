@@ -1,4 +1,5 @@
 type AnyListing = Record<string, any>;
+import { DEFAULT_CURRENCY } from '../constants/tunisia';
 
 const asString = (value: unknown, fallback = ""): string => {
   if (typeof value === "string" && value.trim()) return value.trim();
@@ -66,7 +67,7 @@ export const normalizeTourDetails = (data: AnyListing) => {
     mainImage: image,
     gallery,
     price: resolvePrice(data.price, 0),
-    currency: asString(data.currency, "USD"),
+    currency: asString(data.currency, DEFAULT_CURRENCY),
     rating: resolvePrice(data.rating, 0),
     reviewsCount: resolveReviews(data.reviewsCount, 0),
     location: asString(data.location || data.city || data.country, ""),
@@ -100,7 +101,7 @@ export const normalizeCarDetails = (data: AnyListing) => {
     mainImage: image,
     gallery,
     price: resolvePrice(data.price, 0),
-    currency: asString(data.currency, "USD"),
+    currency: asString(data.currency, DEFAULT_CURRENCY),
     priceUnit: asString(data.priceUnit || data.billingUnit, "day"),
     rating: resolvePrice(data.rating, 0),
     reviewsCount: resolveReviews(data.reviewsCount, 0),
@@ -136,7 +137,7 @@ export const normalizeActivityDetails = (data: AnyListing) => {
     mainImage: image,
     gallery,
     price: resolvePrice(data.price, 0),
-    currency: asString(data.currency, "USD"),
+    currency: asString(data.currency, DEFAULT_CURRENCY),
     rating: resolvePrice(data.rating, 0),
     reviewsCount: resolveReviews(data.reviewsCount, 0),
     location: asString(data.location || data.city || data.country, ""),
@@ -164,7 +165,7 @@ export const normalizeChaletDetails = (data: AnyListing) => {
     mainImage: image,
     gallery,
     price: resolvePrice(data.price || data.pricePerNight, 0),
-    currency: asString(data.currency, "USD"),
+    currency: asString(data.currency, DEFAULT_CURRENCY),
     rating: resolvePrice(data.rating, 0),
     reviewsCount: resolveReviews(data.reviewsCount, 0),
     location: asString(data.location || data.city || data.country, ""),
@@ -199,7 +200,7 @@ export const normalizeResortDetails = (data: AnyListing) => {
     mainImage: image,
     gallery,
     price: resolvePrice(data.price || data.startingPrice, 0),
-    currency: asString(data.currency, "USD"),
+    currency: asString(data.currency, DEFAULT_CURRENCY),
     rating: resolvePrice(data.rating, 0),
     reviewsCount: resolveReviews(data.reviewsCount, 0),
     location: asString(data.location || data.city || data.country, ""),

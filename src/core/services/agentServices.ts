@@ -12,6 +12,7 @@ import {
   orderBy,
   deleteDoc,
 } from "firebase/firestore";
+import { DEFAULT_CURRENCY } from '../constants/tunisia';
 import {
   EmailAuthProvider,
   reauthenticateWithCredential,
@@ -163,7 +164,7 @@ export const bookingStatusDisplay = (status?: string): { label: string; action: 
   return { label: "Pending", action: "upcoming", badge: "badge-secondary" };
 };
 
-export const formatCurrency = (value: number, currency = "USD") =>
+export const formatCurrency = (value: number, currency = DEFAULT_CURRENCY) =>
   new Intl.NumberFormat(undefined, { style: "currency", currency }).format(value);
 
 const fetchAgentItems = async (agentId: string): Promise<DocumentData[]> => {
@@ -777,6 +778,6 @@ export const calculateAgentEarnings = async (agentId: string): Promise<AgentEarn
     totalEstimated,
     confirmedCount: eligible.filter((b) => b.status === "confirmed").length,
     completedCount: eligible.filter((b) => b.status === "completed").length,
-    currency: eligible[0]?.currency || "USD",
+    currency: eligible[0]?.currency || DEFAULT_CURRENCY,
   };
 };
