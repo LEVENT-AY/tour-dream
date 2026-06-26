@@ -1,3 +1,4 @@
+import { DEFAULT_CURRENCY } from "../../../core/constants/tunisia";
 import React, { useState } from 'react'
 import { all_routes } from '../../router/all_routes';
 import Breadcrumb from '../../../core/common/Breadcrumb/breadcrumb';
@@ -1553,7 +1554,7 @@ const AddHotel = () => {
                                                     </div>
                                                     <div className="col-md-6">
                                                         <div className="mb-3">
-                                                            <label className="form-label">Price Per Night</label>
+                                                            <label className="form-label">Price Per Night ({DEFAULT_CURRENCY})</label>
                                                             <input type="text" className="form-control" />
                                                         </div>
                                                     </div>

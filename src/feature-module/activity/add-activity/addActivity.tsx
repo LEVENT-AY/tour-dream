@@ -3,6 +3,7 @@ import Breadcrumb from "../../../core/common/Breadcrumb/breadcrumb";
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import CustomSelect from "../../../core/common/commonSelect";
+import { DEFAULT_CURRENCY } from "../../../core/constants/tunisia";
 import {
   ActivityBus,
   ActivityCategory,
@@ -320,7 +321,7 @@ const disabledDate = (current: any) => {
                       {/* Pricing */}
                       <div className="col-md-4">
                         <div className="mb-3">
-                          <label className="form-label">Pricing (TND)</label>
+                          <label className="form-label">Pricing ({DEFAULT_CURRENCY})</label>
                           <input
                             type="text"
                             className="form-control"
@@ -332,7 +333,7 @@ const disabledDate = (current: any) => {
                       <div className="col-md-4">
                         <div className="mb-3">
                           <label className="form-label">
-                            Offer Price (TND)
+                            Offer Price ({DEFAULT_CURRENCY})
                           </label>
                           <input
                             type="text"
