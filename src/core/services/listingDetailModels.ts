@@ -1,5 +1,5 @@
 type AnyListing = Record<string, any>;
-import { DEFAULT_CURRENCY } from '../constants/tunisia';
+import { DEFAULT_CURRENCY } from '../constants/tunisia.ts';
 
 const asString = (value: unknown, fallback = ""): string => {
   if (typeof value === "string" && value.trim()) return value.trim();
@@ -152,6 +152,35 @@ export const normalizeActivityDetails = (data: AnyListing) => {
     published: isPublicListing(data),
   };
 };
+
+export const normalizeCruiseDetails = (data: AnyListing) => {
+  const image = resolveMainImage(data);
+  const gallery = normalizeGallery(data.gallery, image);
+
+  return {
+    id: asString(data.id, ""),
+    title: asString(data.title || data.name || "Cruise Details", "Cruise Details"),
+    name: asString(data.name || data.title || "", ""),
+    image,
+    mainImage: image,
+    gallery,
+    price: resolvePrice(data.price, 0),
+    currency: asString(data.currency, DEFAULT_CURRENCY),
+    rating: resolvePrice(data.rating, 0),
+    reviewsCount: resolveReviews(data.reviewsCount, 0),
+    location: asString(data.location || data.city || data.country, ""),
+    duration: asString(data.duration || "", ""),
+    category: asString(data.category || data.type || "cruise", "cruise"),
+    badge: asString(data.badge || (data.featured ? "Trending" : ""), ""),
+    description: asString(data.description, ""),
+    ownerId: resolveOwnerId(data),
+    agentId: asString(data.agentId, ""),
+    createdBy: asString(data.createdBy, ""),
+    featured: data.featured === true,
+    published: isPublicListing(data),
+  };
+};
+
 
 export const normalizeChaletDetails = (data: AnyListing) => {
   const image = resolveMainImage(data);

@@ -267,6 +267,33 @@ export const fetchActivities = async (): Promise<DocumentData[]> => {
     });
 };
 
+export const fetchCruises = async (): Promise<DocumentData[]> => {
+  const q = query(collection(db, "cruises"), where("published", "==", true));
+  const snapshot = await getDocs(q);
+  return snapshot.docs
+    .map((doc) => ({ id: doc.id, ...(doc.data() as DocumentData) }))
+    .filter((cruise) => (cruise as DocumentData).published === true)
+    .map((cruise) => {
+      const data = cruise as DocumentData;
+      return {
+        ...cruise,
+        title: data.title || data.name || '',
+        category: data.category || '',
+        location: data.location || data.city || data.country || '',
+        price: data.price ?? 0,
+        duration: data.duration || '',
+        rating: data.rating ?? 0,
+        reviewsCount: data.reviewsCount ?? 0,
+        image: data.image || (Array.isArray(data.gallery) ? data.gallery[0] : ''),
+        gallery: Array.isArray(data.gallery) ? data.gallery : [],
+        description: data.description || '',
+      };
+    });
+};
+
+export const fetchCruiseById = async (cruiseId: string): Promise<DocumentData | null> =>
+  getCatalogItem("cruises", cruiseId);
+
 export const fetchChalets = async (): Promise<DocumentData[]> => {
   const q = query(collection(db, 'chalets'), where('published', '==', true));
   const snapshot = await getDocs(q);
