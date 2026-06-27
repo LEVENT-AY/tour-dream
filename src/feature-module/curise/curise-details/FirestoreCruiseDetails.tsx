@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import ImageWithBasePath from '../../../core/common/imageWithBasePath';
+import ServiceRequestForm from '../../../core/common/service-request/ServiceRequestForm';
 import { fetchCruiseById } from '../../../core/services/firebaseServices';
 import {
   isPublicListing,
@@ -155,6 +156,11 @@ const FirestoreCruiseDetails = () => {
             <Link to={routes.cruiseList} className="btn btn-light btn-sm me-2">
               Back to Cruises
             </Link>
+            <ServiceRequestForm
+              serviceType="cruise"
+              serviceId={cruise.id}
+              serviceTitle={cruise.title || cruise.name || 'Cruise'}
+            />
           </div>
         </div>
       </div>

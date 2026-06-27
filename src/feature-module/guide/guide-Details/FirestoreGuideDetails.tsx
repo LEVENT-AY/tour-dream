@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import ImageWithBasePath from '../../../core/common/imageWithBasePath';
+import ServiceRequestForm from '../../../core/common/service-request/ServiceRequestForm';
 import { fetchGuideById } from '../../../core/services/firebaseServices';
 import {
   isPublicListing,
@@ -173,6 +174,11 @@ const FirestoreGuideDetails = () => {
               <Link to={routes.guideGrid} className="btn btn-light btn-sm me-2">
                 Back to Guides
               </Link>
+              <ServiceRequestForm
+                serviceType="guide"
+                serviceId={guide.id}
+                serviceTitle={guide.title || guide.name || 'Guide'}
+              />
             </div>
           </div>
         </div>

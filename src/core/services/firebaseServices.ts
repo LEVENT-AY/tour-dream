@@ -646,6 +646,42 @@ export const deleteServiceRequest = async (id: string): Promise<void> => {
   await deleteDoc(doc(db, "serviceRequests", id));
 };
 
+export interface CreateServiceRequestInput {
+  serviceType: ServiceType;
+  serviceId: string;
+  serviceTitle: string;
+  customerName: string;
+  customerEmail?: string;
+  customerPhone?: string;
+  requestedDate?: string;
+  guestsCount?: number;
+  message?: string;
+}
+
+export const createServiceRequest = async (
+  input: CreateServiceRequestInput
+): Promise<string> => {
+  const now = new Date().toISOString();
+  const payload: Record<string, any> = {
+    serviceType: input.serviceType,
+    serviceId: input.serviceId,
+    serviceTitle: input.serviceTitle,
+    customerName: input.customerName,
+    status: 'pending',
+    source: 'public',
+    createdAt: now,
+    updatedAt: now,
+  };
+  if (input.customerEmail) payload.customerEmail = input.customerEmail;
+  if (input.customerPhone) payload.customerPhone = input.customerPhone;
+  if (input.requestedDate) payload.requestedDate = input.requestedDate;
+  if (typeof input.guestsCount === 'number') payload.guestsCount = input.guestsCount;
+  if (input.message) payload.message = input.message;
+
+  const docRef = await addDoc(collection(db, 'serviceRequests'), payload);
+  return docRef.id;
+};
+
 export interface HomepageSettings {
   siteName?: string;
   logo?: string;
