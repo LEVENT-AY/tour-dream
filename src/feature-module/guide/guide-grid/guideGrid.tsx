@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import Breadcrumb from "../../../core/common/Breadcrumb/breadcrumb";
 import ImageWithBasePath from "../../../core/common/imageWithBasePath";
 import { all_routes } from "../../router/all_routes";
+import FirestoreGuideList from "./FirestoreGuideList";
 
 const GuideGrid = () => {
 
@@ -34,6 +35,7 @@ const GuideGrid = () => {
       {/* Page Wrapper */}
       <div className="content">
         <div className="container">
+          <FirestoreGuideList />
           {/* row start */}
           <div className="row">
             <div className="col-md-6 col-lg-3">
