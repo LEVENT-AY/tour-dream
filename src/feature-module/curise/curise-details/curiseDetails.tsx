@@ -3,7 +3,7 @@ import Breadcrumb from '../../../core/common/Breadcrumb/breadcrumb'
 import { all_routes } from '../../router/all_routes';
 import CruiseInfo from './cruise-info';
 import ImageWithBasePath from '../../../core/common/imageWithBasePath';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import Slider from 'react-slick';
 import Lightbox from "yet-another-react-lightbox";
 import "yet-another-react-lightbox/styles.css";
@@ -13,6 +13,8 @@ import FirestoreCruiseDetails from './FirestoreCruiseDetails';
 
 const CruiseDetails = () => {
     const routes = all_routes
+    const [searchParams] = useSearchParams();
+    const cruiseId = searchParams.get('id');
     const [showModal, setShowModal] = useState(false);
     const videoUrl = 'https://www.youtube.com/watch?v=4fMuE_t5YL4';
 
@@ -132,7 +134,7 @@ const CruiseDetails = () => {
             <div className="content">
                 <div className="container">
                     <FirestoreCruiseDetails />
-
+                    {!cruiseId && <>
                     <div className="row">
 
                         <div className="col-xl-8">
@@ -825,6 +827,7 @@ const CruiseDetails = () => {
                         {/* /Sidebar Details */}
 
                     </div>
+                    </>}
                 </div>
             </div>
         </>
