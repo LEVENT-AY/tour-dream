@@ -18,6 +18,8 @@ export interface FieldConfig {
   type: FieldType;
   required?: boolean;
   options?: string[];
+  min?: number;
+  max?: number;
 }
 
 interface AdminCatalogManagerProps {
@@ -27,6 +29,8 @@ interface AdminCatalogManagerProps {
   defaultItem: Record<string, any>;
   resortModeration?: boolean;
   chaletModeration?: boolean;
+  normalizeItem?: (item: Record<string, any>) => Record<string, any>;
+  validateItem?: (item: Record<string, any>) => string | null;
 }
 
 const AdminCatalogManager: React.FC<AdminCatalogManagerProps> = ({
@@ -36,6 +40,8 @@ const AdminCatalogManager: React.FC<AdminCatalogManagerProps> = ({
   defaultItem,
   resortModeration = false,
   chaletModeration = false,
+  normalizeItem,
+  validateItem,
 }) => {
   const { currentUser } = useAuth();
   const [items, setItems] = useState<any[]>([]);
@@ -111,10 +117,18 @@ const AdminCatalogManager: React.FC<AdminCatalogManagerProps> = ({
       setFormError('Please fill all required fields.');
       return;
     }
+
+    const normalizedForm = normalizeItem ? normalizeItem(form) : { ...form };
+    const validationError = validateItem ? validateItem(normalizedForm) : null;
+    if (validationError) {
+      setFormError(validationError);
+      return;
+    }
+
     setSaving(true);
     setFormError(null);
     try {
-      const payload = { ...form };
+      const payload = { ...normalizedForm };
       delete payload.id;
       if ((resortModeration || chaletModeration) && payload.published === true) {
         payload.approvalStatus = 'approved';
@@ -328,8 +342,9 @@ const AdminCatalogManager: React.FC<AdminCatalogManagerProps> = ({
       <input
         type={field.type === 'number' ? 'number' : 'text'}
         className="form-control"
-        min={field.type === 'number' ? 0 : undefined}
-        value={value === undefined || value === null ? '' : value}
+        min={field.type === 'number' ? field.min ?? 0 : undefined}
+        max={field.type === 'number' ? field.max : undefined}
+        value={value === undefined || value === null || (typeof value === 'number' && Number.isNaN(value)) ? '' : value}
         onChange={(e) =>
           updateFormField(field.name, field.type === 'number' ? parseFloat(e.target.value) : e.target.value)
         }
@@ -431,9 +446,21 @@ const AdminCatalogManager: React.FC<AdminCatalogManagerProps> = ({
                           <div className="small text-danger">Rejection: {rejectionReason}</div>
                         )}
                       </td>
-                      <td>{item.location || '—'}</td>
+                      <td>
+                        {item.location ||
+                          (item.departureCity && item.arrivalCity
+                            ? `${item.departureCity} → ${item.arrivalCity}`
+                            : item.departureCity || item.arrivalCity || '—')}
+                      </td>
                       <td>{`${item.currency || 'TND'} ${item.price ?? item.startingPrice ?? item.pricePerNight ?? 0}`}</td>
-                      <td>{typeof item.rating === 'number' && item.rating > 0 ? item.rating : '—'}</td>
+                      <td>
+                        {typeof item.rating === 'number' &&
+                        !Number.isNaN(item.rating) &&
+                        item.rating > 0 &&
+                        item.rating <= 5
+                          ? item.rating
+                          : '—'}
+                      </td>
                       <td>
                         <button
                           data-testid={`admin-featured-toggle-${item.id}`}

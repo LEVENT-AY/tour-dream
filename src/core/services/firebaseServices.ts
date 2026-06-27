@@ -299,7 +299,11 @@ export const fetchBuses = async (): Promise<DocumentData[]> => {
   const snapshot = await getDocs(q);
   return snapshot.docs
     .map((doc) => ({ id: doc.id, ...(doc.data() as DocumentData) }))
-    .filter((bus) => (bus as DocumentData).published === true)
+    .filter((bus) => {
+      const data = bus as DocumentData;
+      const approvalStatus = String(data.approvalStatus || data.status || 'approved').toLowerCase();
+      return data.published === true && approvalStatus !== 'rejected' && approvalStatus !== 'suspended';
+    })
     .map((bus) => {
       const data = bus as DocumentData;
       return {
