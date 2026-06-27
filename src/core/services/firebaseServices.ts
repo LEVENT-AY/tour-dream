@@ -581,6 +581,71 @@ export const deleteCatalogItem = async (collectionName: string, itemId: string):
   await deleteDoc(doc(db, collectionName, itemId));
 };
 
+// SERVICE REQUESTS
+
+export type ServiceRequestStatus = "pending" | "contacted" | "confirmed" | "cancelled";
+export type ServiceType = "cruise" | "bus" | "visa" | "guide" | "tour" | "hotel" | "activity" | "other";
+
+export interface ServiceRequest {
+  id?: string;
+  serviceType: ServiceType;
+  serviceId: string;
+  serviceTitle: string;
+  customerName: string;
+  customerEmail: string;
+  customerPhone: string;
+  requestedDate?: string;
+  guestsCount?: number;
+  message?: string;
+  status: ServiceRequestStatus;
+  source: "public";
+  assignedTo?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export const fetchServiceRequests = async (
+  statusFilter?: ServiceRequestStatus
+): Promise<ServiceRequest[]> => {
+  const constraints: any[] = [orderBy("createdAt", "desc")];
+  if (statusFilter) {
+    constraints.push(where("status", "==", statusFilter));
+  }
+  const q = query(collection(db, "serviceRequests"), ...constraints);
+  const snapshot = await getDocs(q);
+  return snapshot.docs.map((docSnap) => {
+    const data = docSnap.data();
+    return {
+      id: docSnap.id,
+      ...data,
+      requestedDate: data.requestedDate || "",
+      guestsCount: data.guestsCount ?? 1,
+      status: data.status || "pending",
+      source: data.source || "public",
+    } as ServiceRequest;
+  });
+};
+
+export const fetchServiceRequestById = async (id: string): Promise<ServiceRequest | null> => {
+  const docSnap = await getDoc(doc(db, "serviceRequests", id));
+  if (!docSnap.exists()) return null;
+  return { id: docSnap.id, ...docSnap.data() } as ServiceRequest;
+};
+
+export const updateServiceRequestStatus = async (
+  id: string,
+  status: ServiceRequestStatus
+): Promise<void> => {
+  await updateDoc(doc(db, "serviceRequests", id), {
+    status,
+    updatedAt: serverTimestamp(),
+  });
+};
+
+export const deleteServiceRequest = async (id: string): Promise<void> => {
+  await deleteDoc(doc(db, "serviceRequests", id));
+};
+
 export interface HomepageSettings {
   siteName?: string;
   logo?: string;
