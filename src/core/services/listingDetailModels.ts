@@ -254,6 +254,50 @@ export const normalizeVisaDetails = (data: AnyListing) => {
   };
 };
 
+export const normalizeGuideDetails = (data: AnyListing) => {
+  const image = resolveMainImage(data);
+  const gallery = normalizeGallery(data.gallery, image);
+  const languages = Array.isArray(data.languages)
+    ? data.languages.map((item) => asString(item, "")).filter(Boolean)
+    : typeof data.languages === "string" && data.languages.trim()
+      ? data.languages.split(",").map((item) => item.trim()).filter(Boolean)
+      : [];
+  const specialties = Array.isArray(data.specialties)
+    ? data.specialties.map((item) => asString(item, "")).filter(Boolean)
+    : typeof data.specialties === "string" && data.specialties.trim()
+      ? data.specialties.split(",").map((item) => item.trim()).filter(Boolean)
+      : [];
+
+  return {
+    id: asString(data.id, ""),
+    title: asString(data.title || data.name || "Guide Details", "Guide Details"),
+    name: asString(data.name || data.title || "", ""),
+    image,
+    mainImage: image,
+    gallery,
+    price: resolvePrice(data.price, 0),
+    currency: asString(data.currency, DEFAULT_CURRENCY),
+    rating: resolvePrice(data.rating, 0),
+    reviewsCount: resolveReviews(data.reviewsCount, 0),
+    location: asString(data.location || data.city || data.region || data.country || "", ""),
+    city: asString(data.city || data.location || "", ""),
+    region: asString(data.region || data.location || "", ""),
+    country: asString(data.country || "", ""),
+    languages,
+    specialties,
+    experienceYears: asNumber(data.experienceYears, 0),
+    availability: asString(data.availability || "", ""),
+    category: asString(data.category || "guide", "guide"),
+    badge: asString(data.badge || (data.featured ? "Trending" : ""), ""),
+    description: asString(data.description, ""),
+    ownerId: resolveOwnerId(data),
+    agentId: asString(data.agentId, ""),
+    createdBy: asString(data.createdBy, ""),
+    featured: data.featured === true,
+    published: isPublicListing(data),
+  };
+};
+
 export const normalizeChaletDetails = (data: AnyListing) => {
   const image = resolveMainImage(data);
   const gallery = normalizeGallery(data.gallery, image);

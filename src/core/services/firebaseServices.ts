@@ -370,6 +370,43 @@ export const fetchVisas = async (): Promise<DocumentData[]> => {
 export const fetchVisaById = async (visaId: string): Promise<DocumentData | null> =>
   getCatalogItem("visas", visaId);
 
+export const fetchGuides = async (): Promise<DocumentData[]> => {
+  const q = query(collection(db, "guides"), where("published", "==", true));
+  const snapshot = await getDocs(q);
+  return snapshot.docs
+    .map((doc) => ({ id: doc.id, ...(doc.data() as DocumentData) }))
+    .filter((guide) => {
+      const data = guide as DocumentData;
+      const approvalStatus = String(data.approvalStatus || data.status || 'approved').toLowerCase();
+      return data.published === true && approvalStatus !== 'rejected' && approvalStatus !== 'suspended';
+    })
+    .map((guide) => {
+      const data = guide as DocumentData;
+      return {
+        ...guide,
+        title: data.title || data.name || '',
+        name: data.name || data.title || '',
+        category: data.category || 'guide',
+        location: data.location || data.city || data.region || data.country || '',
+        city: data.city || data.location || '',
+        region: data.region || data.location || '',
+        country: data.country || '',
+        languages: Array.isArray(data.languages) ? data.languages : [],
+        specialties: Array.isArray(data.specialties) ? data.specialties : [],
+        experienceYears: data.experienceYears ?? 0,
+        price: data.price ?? 0,
+        rating: data.rating ?? 0,
+        reviewsCount: data.reviewsCount ?? 0,
+        image: data.image || (Array.isArray(data.gallery) ? data.gallery[0] : ''),
+        gallery: Array.isArray(data.gallery) ? data.gallery : [],
+        description: data.description || '',
+      };
+    });
+};
+
+export const fetchGuideById = async (guideId: string): Promise<DocumentData | null> =>
+  getCatalogItem("guides", guideId);
+
 export const fetchChalets = async (): Promise<DocumentData[]> => {
   const q = query(collection(db, 'chalets'), where('published', '==', true));
   const snapshot = await getDocs(q);
