@@ -217,6 +217,43 @@ export const normalizeBusDetails = (data: AnyListing) => {
   };
 };
 
+export const normalizeVisaDetails = (data: AnyListing) => {
+  const image = resolveMainImage(data);
+  const gallery = normalizeGallery(data.gallery, image);
+
+  return {
+    id: asString(data.id, ""),
+    title: asString(data.title || data.name || "Visa Details", "Visa Details"),
+    name: asString(data.name || data.title || "", ""),
+    image,
+    mainImage: image,
+    gallery,
+    price: resolvePrice(data.price, 0),
+    currency: asString(data.currency, DEFAULT_CURRENCY),
+    rating: resolvePrice(data.rating, 0),
+    reviewsCount: resolveReviews(data.reviewsCount, 0),
+    location: asString(data.location || data.country || data.destination || "", ""),
+    destination: asString(data.destination || data.country || data.location || "", ""),
+    country: asString(data.country || data.destination || data.location || "", ""),
+    visaType: asString(data.visaType || data.type || "", ""),
+    processingTime: asString(data.processingTime || data.processing || "", ""),
+    requiredDocuments: Array.isArray(data.requiredDocuments)
+      ? data.requiredDocuments.map((item) => asString(item, "")).filter(Boolean)
+      : typeof data.requiredDocuments === "string" && data.requiredDocuments.trim()
+        ? [data.requiredDocuments.trim()]
+        : [],
+    serviceFee: asNumber(data.serviceFee, 0),
+    category: asString(data.category || data.type || "visa", "visa"),
+    badge: asString(data.badge || (data.featured ? "Trending" : ""), ""),
+    description: asString(data.description, ""),
+    ownerId: resolveOwnerId(data),
+    agentId: asString(data.agentId, ""),
+    createdBy: asString(data.createdBy, ""),
+    featured: data.featured === true,
+    published: isPublicListing(data),
+  };
+};
+
 export const normalizeChaletDetails = (data: AnyListing) => {
   const image = resolveMainImage(data);
   const gallery = normalizeGallery(data.gallery, image);

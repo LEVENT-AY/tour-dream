@@ -333,6 +333,43 @@ export const fetchBuses = async (): Promise<DocumentData[]> => {
 export const fetchBusById = async (busId: string): Promise<DocumentData | null> =>
   getCatalogItem("buses", busId);
 
+export const fetchVisas = async (): Promise<DocumentData[]> => {
+  const q = query(collection(db, "visas"), where("published", "==", true));
+  const snapshot = await getDocs(q);
+  return snapshot.docs
+    .map((doc) => ({ id: doc.id, ...(doc.data() as DocumentData) }))
+    .filter((visa) => {
+      const data = visa as DocumentData;
+      const approvalStatus = String(data.approvalStatus || data.status || 'approved').toLowerCase();
+      return data.published === true && approvalStatus !== 'rejected' && approvalStatus !== 'suspended';
+    })
+    .map((visa) => {
+      const data = visa as DocumentData;
+      return {
+        ...visa,
+        title: data.title || data.name || '',
+        name: data.name || data.title || '',
+        category: data.category || 'visa',
+        visaType: data.visaType || data.type || '',
+        destination: data.destination || data.country || data.location || '',
+        country: data.country || data.destination || data.location || '',
+        location: data.location || data.destination || data.country || '',
+        processingTime: data.processingTime || data.processing || '',
+        requiredDocuments: data.requiredDocuments || data.documents || '',
+        serviceFee: data.serviceFee ?? 0,
+        price: data.price ?? 0,
+        rating: data.rating ?? 0,
+        reviewsCount: data.reviewsCount ?? 0,
+        image: data.image || (Array.isArray(data.gallery) ? data.gallery[0] : ''),
+        gallery: Array.isArray(data.gallery) ? data.gallery : [],
+        description: data.description || '',
+      };
+    });
+};
+
+export const fetchVisaById = async (visaId: string): Promise<DocumentData | null> =>
+  getCatalogItem("visas", visaId);
+
 export const fetchChalets = async (): Promise<DocumentData[]> => {
   const q = query(collection(db, 'chalets'), where('published', '==', true));
   const snapshot = await getDocs(q);
