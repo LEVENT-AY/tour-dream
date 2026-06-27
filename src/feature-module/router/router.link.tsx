@@ -13,6 +13,7 @@ import AdminChalets from "../admin-dashboard/pages/chalets";
 import AdminActivities from "../admin-dashboard/pages/activities";
 import AdminFlights from "../admin-dashboard/pages/flights";
 import AdminCars from "../admin-dashboard/pages/cars";
+import AdminBuses from "../admin-dashboard/pages/buses";
 import AdminAgents from "../admin-dashboard/pages/agents";
 import AdminCustomers from "../admin-dashboard/pages/customers";
 import AdminReviews from "../admin-dashboard/pages/reviews";
@@ -207,6 +208,8 @@ export const adminRoutes = [
   { path: routes.adminActivities, element: <AdminActivities />, route: Route },
   { path: routes.adminFlights, element: <AdminFlights />, route: Route },
   { path: routes.adminCars, element: <AdminCars />, route: Route },
+  { path: routes.adminCruises, element: <AdminCruises />, route: Route },
+  { path: routes.adminBuses, element: <AdminBuses />, route: Route },
   { path: routes.adminAgents, element: <AdminAgents />, route: Route },
   { path: routes.adminCustomers, element: <AdminCustomers />, route: Route },
   { path: routes.adminReviews, element: <AdminReviews />, route: Route },

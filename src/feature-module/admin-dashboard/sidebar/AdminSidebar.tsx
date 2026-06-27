@@ -35,6 +35,7 @@ const menuItems: MenuItem[] = [
   { label: 'Flights', route: all_routes.adminFlights, icon: 'isax-airplane' },
   { label: 'Cars', route: all_routes.adminCars, icon: 'isax-car' },
   { label: 'Cruises', route: all_routes.adminCruises, icon: 'isax-ship' },
+  { label: 'Buses', route: all_routes.adminBuses, icon: 'isax-bus' },
   { label: 'Agents / Vendors', route: all_routes.adminAgents, icon: 'isax-user-octagon' },
   { label: 'Customers', route: all_routes.adminCustomers, icon: 'isax-people' },
   { label: 'Reviews', route: all_routes.adminReviews, icon: 'isax-magic-star' },

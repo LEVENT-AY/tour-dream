@@ -182,6 +182,41 @@ export const normalizeCruiseDetails = (data: AnyListing) => {
 };
 
 
+export const normalizeBusDetails = (data: AnyListing) => {
+  const image = resolveMainImage(data);
+  const gallery = normalizeGallery(data.gallery, image);
+
+  return {
+    id: asString(data.id, ""),
+    title: asString(data.title || data.name || "Bus Details", "Bus Details"),
+    name: asString(data.name || data.title || "", ""),
+    image,
+    mainImage: image,
+    gallery,
+    price: resolvePrice(data.price, 0),
+    currency: asString(data.currency, DEFAULT_CURRENCY),
+    rating: resolvePrice(data.rating, 0),
+    reviewsCount: resolveReviews(data.reviewsCount, 0),
+    location: asString(data.location || data.city || data.country, ""),
+    departureCity: asString(data.departureCity || data.startLocation || data.from, ""),
+    arrivalCity: asString(data.arrivalCity || data.endLocation || data.to, ""),
+    departureDate: asString(data.departureDate || data.date || "", ""),
+    departureTime: asString(data.departureTime || data.time || "", ""),
+    arrivalDate: asString(data.arrivalDate || "", ""),
+    arrivalTime: asString(data.arrivalTime || "", ""),
+    seats: asNumber(data.seats || data.capacity, 0),
+    capacity: asNumber(data.capacity || data.seats, 0),
+    category: asString(data.category || data.type || "bus", "bus"),
+    badge: asString(data.badge || (data.featured ? "Trending" : ""), ""),
+    description: asString(data.description, ""),
+    ownerId: resolveOwnerId(data),
+    agentId: asString(data.agentId, ""),
+    createdBy: asString(data.createdBy, ""),
+    featured: data.featured === true,
+    published: isPublicListing(data),
+  };
+};
+
 export const normalizeChaletDetails = (data: AnyListing) => {
   const image = resolveMainImage(data);
   const gallery = normalizeGallery(data.gallery, image);

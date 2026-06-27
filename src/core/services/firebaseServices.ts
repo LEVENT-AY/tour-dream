@@ -294,6 +294,41 @@ export const fetchCruises = async (): Promise<DocumentData[]> => {
 export const fetchCruiseById = async (cruiseId: string): Promise<DocumentData | null> =>
   getCatalogItem("cruises", cruiseId);
 
+export const fetchBuses = async (): Promise<DocumentData[]> => {
+  const q = query(collection(db, "buses"), where("published", "==", true));
+  const snapshot = await getDocs(q);
+  return snapshot.docs
+    .map((doc) => ({ id: doc.id, ...(doc.data() as DocumentData) }))
+    .filter((bus) => (bus as DocumentData).published === true)
+    .map((bus) => {
+      const data = bus as DocumentData;
+      return {
+        ...bus,
+        title: data.title || data.name || '',
+        name: data.name || data.title || '',
+        category: data.category || 'bus',
+        location: data.location || `${data.departureCity || ''} - ${data.arrivalCity || ''}`.replace(/^ - | - $/g, ''),
+        departureCity: data.departureCity || '',
+        arrivalCity: data.arrivalCity || '',
+        departureDate: data.departureDate || '',
+        departureTime: data.departureTime || '',
+        arrivalDate: data.arrivalDate || '',
+        arrivalTime: data.arrivalTime || '',
+        seats: data.seats ?? data.capacity ?? 0,
+        capacity: data.capacity ?? data.seats ?? 0,
+        price: data.price ?? 0,
+        rating: data.rating ?? 0,
+        reviewsCount: data.reviewsCount ?? 0,
+        image: data.image || (Array.isArray(data.gallery) ? data.gallery[0] : ''),
+        gallery: Array.isArray(data.gallery) ? data.gallery : [],
+        description: data.description || '',
+      };
+    });
+};
+
+export const fetchBusById = async (busId: string): Promise<DocumentData | null> =>
+  getCatalogItem("buses", busId);
+
 export const fetchChalets = async (): Promise<DocumentData[]> => {
   const q = query(collection(db, 'chalets'), where('published', '==', true));
   const snapshot = await getDocs(q);
