@@ -123,7 +123,7 @@ const Header = () => {
     { label: "Chalet", url: routes.chaletGrid },
     { label: "Cruise", url: routes.cruiseGrid },
     { label: "Tour", url: routes.tourMap },
-    { label: "Bus", url: routes.busLeftSidebar },
+    { label: "Bus", url: routes.busList },
     { label: "Activity", url: routes.activityMap },
     { label: "Visa", url: routes.visaList },
     { label: "Guide", url: routes.guideGrid },
