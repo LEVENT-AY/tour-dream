@@ -3,10 +3,13 @@ import {
   fetchServiceRequests,
   updateServiceRequestStatus,
   deleteServiceRequest,
+  fetchUsersByRole,
   type ServiceRequest,
   type ServiceRequestStatus,
   type ServiceRequestPriority,
+  type AdminUserView,
 } from '../../../core/services/firebaseServices';
+import { auth } from '../../../firebase';
 
 const STATUS_OPTIONS: ServiceRequestStatus[] = ['pending', 'contacted', 'confirmed', 'cancelled'];
 const PRIORITY_OPTIONS: ServiceRequestPriority[] = ['low', 'normal', 'high', 'urgent'];
@@ -80,6 +83,11 @@ const AdminBookings: React.FC<AdminBookingsProps> = ({ title = 'All Bookings', d
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [copyFeedback, setCopyFeedback] = useState<string | null>(null);
 
+  const [adminUsers, setAdminUsers] = useState<AdminUserView[]>([]);
+  const [assignmentFilter, setAssignmentFilter] = useState<'all' | 'unassigned' | 'assigned' | 'mine'>('all');
+  const [currentAdminEmail, setCurrentAdminEmail] = useState<string | null>(null);
+  const [showCustomAssigned, setShowCustomAssigned] = useState(false);
+
   const [selectedRequest, setSelectedRequest] = useState<ServiceRequest | null>(null);
   const [modalStatus, setModalStatus] = useState<ServiceRequestStatus>('pending');
   const [modalPriority, setModalPriority] = useState<ServiceRequestPriority>('normal');
@@ -103,6 +111,14 @@ const AdminBookings: React.FC<AdminBookingsProps> = ({ title = 'All Bookings', d
 
   useEffect(() => { load(); }, []);
 
+  useEffect(() => {
+    fetchUsersByRole('admin').then(setAdminUsers).catch(() => {});
+    const unsub = auth.onAuthStateChanged((user) => {
+      setCurrentAdminEmail(user?.email ?? null);
+    });
+    return unsub;
+  }, []);
+
   const statusCounts = useMemo(() => {
     const counts: Record<string, number> = { all: allRequests.length };
     STATUS_OPTIONS.forEach((s) => { counts[s] = allRequests.filter((r) => r.status === s).length; });
@@ -118,8 +134,11 @@ const AdminBookings: React.FC<AdminBookingsProps> = ({ title = 'All Bookings', d
         `${r.serviceTitle || ''} ${r.customerName || ''} ${r.customerEmail || ''} ${r.customerPhone || ''} ${r.serviceType || ''} ${r.message || ''} ${r.assignedTo || ''}`.toLowerCase().includes(q)
       );
     }
+    if (assignmentFilter === 'unassigned') result = result.filter((r) => !r.assignedTo);
+    if (assignmentFilter === 'assigned') result = result.filter((r) => !!r.assignedTo);
+    if (assignmentFilter === 'mine') result = result.filter((r) => r.assignedTo === currentAdminEmail);
     return result;
-  }, [allRequests, activeTab, search]);
+  }, [allRequests, activeTab, search, assignmentFilter, currentAdminEmail]);
 
   const changeStatus = async (id: string, status: ServiceRequestStatus) => {
     setUpdatingId(id);
@@ -153,6 +172,8 @@ const AdminBookings: React.FC<AdminBookingsProps> = ({ title = 'All Bookings', d
     setModalAssignedTo(r.assignedTo || '');
     setModalFollowUpDate(r.followUpDate || '');
     setModalInternalNotes(r.internalNotes || '');
+    const adminMatch = r.assignedTo && adminUsers.some(u => u.email === r.assignedTo || u.displayName === r.assignedTo);
+    setShowCustomAssigned(!!r.assignedTo && !adminMatch);
   };
 
   const handleModalSave = async () => {
@@ -250,6 +271,22 @@ const AdminBookings: React.FC<AdminBookingsProps> = ({ title = 'All Bookings', d
         </ul>
       </div>
 
+      <div className="d-flex flex-wrap gap-2 mb-3 align-items-center">
+        <span className="fs-14 text-muted me-1">Assignment:</span>
+        {['all', 'unassigned', 'assigned', 'mine'].map((f) => (
+          <button
+            key={f}
+            className={`btn btn-sm ${assignmentFilter === f ? 'btn-primary' : 'btn-outline-secondary'}`}
+            onClick={() => setAssignmentFilter(f as typeof assignmentFilter)}
+          >
+            {f === 'all' ? 'All' : f === 'unassigned' ? 'Unassigned' : f === 'assigned' ? 'Assigned' : 'My Requests'}
+          </button>
+        ))}
+        {!currentAdminEmail && (
+          <small className="text-muted ms-1">(log in to use "My Requests")</small>
+        )}
+      </div>
+
       <div className="card mb-4">
         <div className="card-body d-flex flex-wrap gap-3 align-items-center">
           <div className="flex-grow-1" style={{ minWidth: '240px' }}>
@@ -280,20 +317,21 @@ const AdminBookings: React.FC<AdminBookingsProps> = ({ title = 'All Bookings', d
                   <th>Message</th>
                   <th>Created</th>
                   <th>Status</th>
+                  <th>Assigned</th>
                   <th className="text-end">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {loading ? (
                   <tr>
-                    <td colSpan={8} className="text-center py-4">
+                    <td colSpan={9} className="text-center py-4">
                       <span className="spinner-border spinner-border-sm text-primary me-2" />
                       Loading...
                     </td>
                   </tr>
                 ) : filtered.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="text-center py-4 text-muted">
+                    <td colSpan={9} className="text-center py-4 text-muted">
                       {emptyMessage()}
                     </td>
                   </tr>
@@ -372,6 +410,13 @@ const AdminBookings: React.FC<AdminBookingsProps> = ({ title = 'All Bookings', d
                               </option>
                             ))}
                           </select>
+                        </td>
+                        <td>
+                          {r.assignedTo ? (
+                            <span className="text-nowrap">{r.assignedTo}</span>
+                          ) : (
+                            <span className="badge bg-light text-muted">Unassigned</span>
+                          )}
                         </td>
                         <td className="text-end text-nowrap">
                           <button
@@ -510,13 +555,36 @@ const AdminBookings: React.FC<AdminBookingsProps> = ({ title = 'All Bookings', d
                   </div>
                   <div className="col-md-4">
                     <label className="form-label fs-14">Assigned To</label>
-                    <input
-                      type="text"
-                      className="form-control"
-                      placeholder="Staff name"
-                      value={modalAssignedTo}
-                      onChange={(e) => setModalAssignedTo(e.target.value)}
-                    />
+                    <select
+                      className="form-select mb-1"
+                      value={adminUsers.some(u => u.email === modalAssignedTo || u.displayName === modalAssignedTo) ? modalAssignedTo : modalAssignedTo ? '__other__' : ''}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        if (v === '__other__') {
+                          setShowCustomAssigned(true);
+                        } else {
+                          setShowCustomAssigned(false);
+                          setModalAssignedTo(v);
+                        }
+                      }}
+                    >
+                      <option value="">-- Unassigned --</option>
+                      {adminUsers.map((u) => (
+                        <option key={u.uid} value={u.email || u.displayName}>
+                          {u.displayName ? `${u.displayName} <${u.email}>` : u.email}
+                        </option>
+                      ))}
+                      <option value="__other__">Custom...</option>
+                    </select>
+                    {showCustomAssigned && (
+                      <input
+                        type="text"
+                        className="form-control"
+                        placeholder="Enter name or email"
+                        value={modalAssignedTo}
+                        onChange={(e) => setModalAssignedTo(e.target.value)}
+                      />
+                    )}
                   </div>
                   <div className="col-md-6">
                     <label className="form-label fs-14">Follow-up Date</label>

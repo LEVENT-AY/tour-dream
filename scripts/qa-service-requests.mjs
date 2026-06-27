@@ -256,6 +256,69 @@ check(
   'adminServiceRequests found in router.link.tsx'
 );
 
+// 8. Assignment workflow
+check(
+  'Admin Bookings imports fetchUsersByRole',
+  /fetchUsersByRole/.test(bookingsContent),
+  'fetchUsersByRole not found in bookings.tsx'
+);
+check(
+  'Admin Bookings has assignment filter UI',
+  /assignmentFilter/.test(bookingsContent),
+  'assignmentFilter not found in bookings.tsx'
+);
+check(
+  'Admin Bookings has My Requests filter',
+  /mine/.test(bookingsContent) && /My Requests/.test(bookingsContent),
+  'My Requests filter not found in bookings.tsx'
+);
+check(
+  'Admin Bookings shows assigned column',
+  /Assigned/.test(bookingsContent),
+  'Assigned column not found in bookings.tsx'
+);
+check(
+  'Admin Bookings modal has dropdown assignment',
+  /select[\s\S]*?Assigned To/.test(bookingsContent),
+  'assignment dropdown not found in bookings.tsx modal'
+);
+
+// 9. Dashboard assignment stats
+const adminDashboardContent = readFile('src/feature-module/admin-dashboard/dashboard/AdminDashboard.tsx');
+check(
+  'Admin Dashboard imports getServiceRequestAssignmentStats',
+  /getServiceRequestAssignmentStats/.test(adminDashboardContent),
+  'getServiceRequestAssignmentStats not found in AdminDashboard.tsx'
+);
+check(
+  'Admin Dashboard shows unassigned count',
+  /unassignedServiceRequests/.test(adminDashboardContent),
+  'unassignedServiceRequests not found in AdminDashboard.tsx'
+);
+check(
+  'Admin Dashboard shows urgent unassigned count',
+  /urgentUnassignedServiceRequests/.test(adminDashboardContent),
+  'urgentUnassignedServiceRequests not found in AdminDashboard.tsx'
+);
+check(
+  'Admin Dashboard shows follow-ups due today',
+  /followUpDueTodayServiceRequests/.test(adminDashboardContent),
+  'followUpDueTodayServiceRequests not found in AdminDashboard.tsx'
+);
+
+// 10. Admin dashboard services exports assignment stats
+const adminDashServicesContent = readFile('src/core/services/adminDashboardServices.ts');
+check(
+  'adminDashboardServices exports getServiceRequestAssignmentStats',
+  /export\s+(const|function)\s+getServiceRequestAssignmentStats/.test(adminDashServicesContent),
+  'getServiceRequestAssignmentStats not exported from adminDashboardServices.ts'
+);
+check(
+  'adminDashboardServices exports ServiceRequestAssignmentStats type',
+  /export\s+(interface|type)\s+ServiceRequestAssignmentStats/.test(adminDashServicesContent),
+  'ServiceRequestAssignmentStats not found in adminDashboardServices.ts'
+);
+
 // Summary
 console.log('\n=== QA: Service Requests Flow ===\n');
 if (ok.length) {

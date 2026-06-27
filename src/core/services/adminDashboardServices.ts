@@ -172,6 +172,48 @@ export const getRecentUsers = async (role: 'customer' | 'agent', max = 5): Promi
   }
 };
 
+export interface ServiceRequestAssignmentStats {
+  unassignedServiceRequests: number;
+  urgentUnassignedServiceRequests: number;
+  followUpDueTodayServiceRequests: number;
+}
+
+export const getServiceRequestAssignmentStats = async (): Promise<ServiceRequestAssignmentStats> => {
+  try {
+    const snapshot = await getDocs(collection(db, 'serviceRequests'));
+    const today = new Date().toISOString().slice(0, 10);
+    let unassigned = 0;
+    let urgentUnassigned = 0;
+    let followUpDueToday = 0;
+    snapshot.docs.forEach((doc) => {
+      const d = doc.data();
+      if (!d.assignedTo) {
+        unassigned++;
+        if (d.priority === 'urgent') urgentUnassigned++;
+      }
+      if (
+        d.followUpDate &&
+        d.followUpDate === today &&
+        d.status !== 'confirmed' &&
+        d.status !== 'cancelled'
+      ) {
+        followUpDueToday++;
+      }
+    });
+    return {
+      unassignedServiceRequests: unassigned,
+      urgentUnassignedServiceRequests: urgentUnassigned,
+      followUpDueTodayServiceRequests: followUpDueToday,
+    };
+  } catch {
+    return {
+      unassignedServiceRequests: 0,
+      urgentUnassignedServiceRequests: 0,
+      followUpDueTodayServiceRequests: 0,
+    };
+  }
+};
+
 export const getRecentListings = async (max = 5): Promise<RecentListing[]> => {
   try {
     const [toursSnap, hotelsSnap, flightsSnap] = await Promise.all([

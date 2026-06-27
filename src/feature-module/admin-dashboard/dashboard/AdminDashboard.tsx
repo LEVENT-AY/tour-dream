@@ -7,9 +7,11 @@ import type {
   RecentBooking,
   RecentListing,
   RecentUser,
+  ServiceRequestAssignmentStats,
 } from '../../../core/services/adminDashboardServices';
 import {
   getAdminStats,
+  getServiceRequestAssignmentStats,
   getRecentBookings,
   getRecentListings,
   getRecentUsers,
@@ -17,6 +19,7 @@ import {
 
 const AdminDashboard: React.FC = () => {
   const [stats, setStats] = useState<AdminStats | null>(null);
+  const [assignmentStats, setAssignmentStats] = useState<ServiceRequestAssignmentStats | null>(null);
   const [recentBookings, setRecentBookings] = useState<RecentBooking[]>([]);
   const [recentCustomers, setRecentCustomers] = useState<RecentUser[]>([]);
   const [recentAgents, setRecentAgents] = useState<RecentUser[]>([]);
@@ -30,8 +33,9 @@ const AdminDashboard: React.FC = () => {
       try {
         setLoading(true);
         setError(null);
-        const [statsData, bookings, customers, agents, listings] = await Promise.all([
+        const [statsData, assignStats, bookings, customers, agents, listings] = await Promise.all([
           getAdminStats(),
+          getServiceRequestAssignmentStats(),
           getRecentBookings(5),
           getRecentUsers('customer', 5),
           getRecentUsers('agent', 5),
@@ -39,6 +43,7 @@ const AdminDashboard: React.FC = () => {
         ]);
         if (!cancelled) {
           setStats(statsData);
+          setAssignmentStats(assignStats);
           setRecentBookings(bookings);
           setRecentCustomers(customers);
           setRecentAgents(agents);
@@ -225,6 +230,34 @@ const AdminDashboard: React.FC = () => {
                 </div>
               </div>
             </div>
+            {assignmentStats && (
+              <>
+                <div className="col-12 col-sm-6 col-xl-2">
+                  <div className="card text-decoration-none h-100 border-secondary">
+                    <div className="card-body text-center py-3">
+                      <h3 className="text-secondary mb-1">{assignmentStats.unassignedServiceRequests}</h3>
+                      <h6 className="text-muted mb-0">Unassigned</h6>
+                    </div>
+                  </div>
+                </div>
+                <div className="col-12 col-sm-6 col-xl-2">
+                  <div className="card text-decoration-none h-100 border-danger">
+                    <div className="card-body text-center py-3">
+                      <h3 className="text-danger mb-1">{assignmentStats.urgentUnassignedServiceRequests}</h3>
+                      <h6 className="text-muted mb-0">Urgent Unassigned</h6>
+                    </div>
+                  </div>
+                </div>
+                <div className="col-12 col-sm-6 col-xl-2">
+                  <div className="card text-decoration-none h-100 border-info">
+                    <div className="card-body text-center py-3">
+                      <h3 className="text-info mb-1">{assignmentStats.followUpDueTodayServiceRequests}</h3>
+                      <h6 className="text-muted mb-0">Follow-ups Due</h6>
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}
