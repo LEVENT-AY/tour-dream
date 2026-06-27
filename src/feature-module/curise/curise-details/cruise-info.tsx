@@ -56,7 +56,7 @@ const CruiseInfo = () => {
                 <h5 className="fs-18 mb-3">Check Availability</h5>
                 <div className="d-flex align-items-center justify-content-between bg-light-200 rounded p-3 mb-3">
                     <p className="fs-13 fw-medium mb-0">Starts From</p>
-                    <h5 className="text-primary">$500 <span className="fs-14 text-default fw-normal">/ Night</span></h5>
+                    <h5 className="text-primary">500 TND <span className="fs-14 text-default fw-normal">/ Night</span></h5>
                 </div>
                 <div className="banner-form">
                     <form className="form-info border-0">
@@ -64,8 +64,8 @@ const CruiseInfo = () => {
                             <div className="form-item dropdown border rounded p-3 mb-3 w-100">
                                 <div data-bs-toggle="dropdown" data-bs-auto-close="outside"  role="menu">
                                     <label className="form-label fs-14 text-default mb-1">Destination</label>
-                                    <input type="text" className="form-control" defaultValue="Newyork"/>
-                                    <p className="fs-12 mb-0">USA</p>
+                                    <input type="text" className="form-control" defaultValue="Hammamet"/>
+                                    <p className="fs-12 mb-0">Tunisia</p>
                                 </div>
                                 <div className="dropdown-menu dropdown-md p-0">
                                     <div className="input-search p-3 border-bottom">
@@ -77,7 +77,7 @@ const CruiseInfo = () => {
                                     <ul>
                                         <li className="border-bottom">
                                             <Link className="dropdown-item" to="#">
-                                                <h6 className="fs-16 fw-medium">Newyork</h6>
+                                                <h6 className="fs-16 fw-medium">Hammamet</h6>
                                                 <p>Ken International Airport</p>
                                             </Link>
                                         </li>
@@ -95,8 +95,8 @@ const CruiseInfo = () => {
                                         </li>
                                         <li className="border-bottom">
                                             <Link className="dropdown-item" to="#">
-                                                <h6 className="fs-16 fw-medium">Los Angeles</h6>
-                                                <p>Los Angeles International Airport</p>
+                                                <h6 className="fs-16 fw-medium">Hammamet</h6>
+                                                <p>Hammamet International Airport</p>
                                             </Link>
                                         </li>
                                         <li className="border-bottom">
@@ -245,7 +245,7 @@ const CruiseInfo = () => {
                         </div>
                         <div className="d-flex align-items-center">
                             <span className="avatar avatar-sm me-2 rounded-circle flex-shrink-0 bg-primary"><i className="isax isax-location-tick5"></i></span>
-                            <p>4635 Pheasant Ridge Road, USA</p>
+                            <p>4635 Pheasant Ridge Road, Tunisia</p>
                         </div>
                     </div>
                 </div>

@@ -145,7 +145,7 @@ const CruiseDetails = () => {
                                             <h4 className="mb-1 d-flex align-items-center flex-wrap">Coral Cruiser<span className="badge badge-xs bg-success rounded-pill ms-2"><i className="isax isax-ticket-star me-1"></i>Verified</span></h4>
                                             <div className="d-flex align-items-center flex-wrap">
                                                 <p className="fs-14 mb-2 me-3 pe-3 border-end"><i className="isax isax-ship me-2"></i>Luxury Cruise</p>
-                                                <p className="fs-14 mb-2 me-3 pe-3 border-end"><i className="isax isax-location5 me-2"></i>Ciutat Vella, Barcelona<Link to="#" className="link-primary text-decoration-underline fw-medium ms-2">View Location</Link></p>
+                                                <p className="fs-14 mb-2 me-3 pe-3 border-end"><i className="isax isax-location5 me-2"></i>Tunis<Link to="#" className="link-primary text-decoration-underline fw-medium ms-2">View Location</Link></p>
                                                 <div className="d-flex align-items-center mb-2">
                                                     <span className="badge badge-warning badge-xs text-gray-9 fs-13 fw-medium me-2">5.0</span>
                                                     <p className="fs-14"><Link to="#">(400 Reviews)</Link></p>
@@ -221,7 +221,7 @@ const CruiseDetails = () => {
                                     </div>
                                     <div id="accordion_collapse_two" className="accordion-collapse collapse show">
                                         <div className="accordion-body">
-                                            <p className="mb-2">Kicking off on April 1, 2025, the "DreamsTour" will take Luna to major cities across North America and Europe, including Los Angeles, New York, Chicago, Toronto, and London. Each concert will showcase her unique blend
+                                            <p className="mb-2">Kicking off on April 1, 2025, the "DreamsTour" will take Luna to beautiful destinations across Tunisia, including Tunis, Hammamet, Sousse, Monastir, and Djerba. Each cruise will showcase her unique blend
                                                 of pop and ethereal soundscapes, bringing her music to life in a way you've never seen before.
                                             </p>
                                             <Link to="#" className="fs-14 fw-medium text-decoration-underline mb-2">Show More</Link>
@@ -449,7 +449,7 @@ const CruiseDetails = () => {
                                                             <span className="badge badge-info-100 fs-10 fw-medium rounded-pill me-2 mb-2">Private Safe</span>
                                                         </div>
                                                         <div className="d-flex align-items-center justify-content-between flex-wrap border-top pt-3">
-                                                            <h5 className="text-primary me-2 mb-3">$252 <span className="text-default text-decoration-line-through">$252</span> <span className="fs-14 fw-normal text-default">/ Night ( $759 total includes taxes & fees)</span></h5>
+                                                            <h5 className="text-primary me-2 mb-3">252 TND <span className="text-default text-decoration-line-through">252 TND</span> <span className="fs-14 fw-normal text-default">/ Night ( 759 TND total includes taxes & fees)</span></h5>
                                                             <div className="btn btn-primary btn-md mb-3">
                                                                 <div className="form-check d-flex align-items-center ps-0">
                                                                     <input className="form-check-input ms-0 mt-0 border border-white" name="book" type="checkbox" id="book1" defaultChecked />
@@ -497,7 +497,7 @@ const CruiseDetails = () => {
                                                             <span className="badge badge-info-100 fs-10 fw-medium rounded-pill me-2 mb-2">Private Safe</span>
                                                         </div>
                                                         <div className="d-flex align-items-center justify-content-between flex-wrap border-top pt-3">
-                                                            <h5 className="text-primary me-2 mb-3">$658 <span className="text-default text-decoration-line-through">$252</span> <span className="fs-14 fw-normal text-default">/ Night ( $759 total includes taxes & fees)</span></h5>
+                                                            <h5 className="text-primary me-2 mb-3">658 TND <span className="text-default text-decoration-line-through">252 TND</span> <span className="fs-14 fw-normal text-default">/ Night ( 759 TND total includes taxes & fees)</span></h5>
                                                             <div className="btn btn-primary btn-md mb-3">
                                                                 <div className="form-check d-flex align-items-center ps-0">
                                                                     <input className="form-check-input ms-0 mt-0 border border-white" name="book" type="checkbox" id="book2" />
@@ -545,7 +545,7 @@ const CruiseDetails = () => {
                                                             <span className="badge badge-info-100 fs-10 fw-medium rounded-pill me-2 mb-2">Private Safe</span>
                                                         </div>
                                                         <div className="d-flex align-items-center justify-content-between flex-wrap border-top pt-3">
-                                                            <h5 className="text-primary me-2 mb-3">$658 <span className="text-default text-decoration-line-through">$252</span> <span className="fs-14 fw-normal text-default">/ Night ( $759 total includes taxes & fees)</span></h5>
+                                                            <h5 className="text-primary me-2 mb-3">658 TND <span className="text-default text-decoration-line-through">252 TND</span> <span className="fs-14 fw-normal text-default">/ Night ( 759 TND total includes taxes & fees)</span></h5>
                                                             <div className="btn btn-primary btn-md mb-3">
                                                                 <div className="form-check d-flex align-items-center ps-0">
                                                                     <input className="form-check-input ms-0 mt-0 border border-white" name="book" type="checkbox" id="book3" />

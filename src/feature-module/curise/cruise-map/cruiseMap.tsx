@@ -41,8 +41,8 @@ const locations: Location[] = [
         lat: 53.470692,
         lng: -2.220328,
         grid_name: "Bonnie Yacht",
-        grid_address: "Princess Street,Edinburgh",
-        grid_rate: "$300",
+        grid_address: "Tunis",
+        grid_rate: "300 TND",
         image: "assets/img/cruise/cruise-06.jpg",
         grid_star: "4.9",
     },
@@ -51,8 +51,8 @@ const locations: Location[] = [
         lat: 53.469189,
         lng: -2.199262,
         grid_name: "Coral Cruiser",
-        grid_address: "Deansgate,Manchester",
-        grid_rate: "$400",
+        grid_address: "Hammamet",
+        grid_rate: "400 TND",
         image: "assets/img/cruise/cruise-07.jpg",
         grid_star: "5.0",
     },
@@ -61,8 +61,8 @@ const locations: Location[] = [
         lat: 53.468665,
         lng: -2.189269,
         grid_name: "Super Aquamarine",
-        grid_address: "Ciutat Vella, Barcelona",
-        grid_rate: "$500",
+        grid_address: "Sousse",
+        grid_rate: "500 TND",
         image: "assets/img/cruise/cruise-08.jpg",
         grid_star: "5.0",
     },
@@ -202,7 +202,7 @@ const CruiseMap = () => {
                                                 defaultChecked
                                             />
                                             <label className="form-check-label ms-2" htmlFor="pricing1">
-                                                $50 - $100
+                                                50 TND - 100 TND
                                             </label>
                                         </div>
                                         <div className="form-check d-flex align-items-center ps-0 mb-2">
@@ -214,7 +214,7 @@ const CruiseMap = () => {
                                                 defaultChecked
                                             />
                                             <label className="form-check-label ms-2" htmlFor="pricing2">
-                                                $100 - $1000
+                                                100 TND - 1000 TND
                                             </label>
                                         </div>
                                         <div className="form-check d-flex align-items-center ps-0 mb-2">
@@ -226,7 +226,7 @@ const CruiseMap = () => {
                                                 defaultChecked
                                             />
                                             <label className="form-check-label ms-2" htmlFor="pricing3">
-                                                $1000 - $5000
+                                                1000 TND - 5000 TND
                                             </label>
                                         </div>
                                         <div className="form-check d-flex align-items-center ps-0 mb-0">
@@ -238,7 +238,7 @@ const CruiseMap = () => {
                                                 defaultChecked
                                             />
                                             <label className="form-check-label ms-2" htmlFor="pricing4">
-                                                $10000 - $2000
+                                                10000 TND - 2000 TND
                                             </label>
                                         </div>
                                         <div className="d-flex align-items-center justify-content-end border-top pt-3 mt-3">
@@ -501,7 +501,7 @@ const CruiseMap = () => {
                                                 defaultChecked
                                             />
                                             <label className="form-check-label ms-2" htmlFor="pricing01">
-                                                $50 - $100
+                                                50 TND - 100 TND
                                             </label>
                                         </div>
                                         <div className="form-check d-flex align-items-center ps-0 mb-2">
@@ -513,7 +513,7 @@ const CruiseMap = () => {
                                                 defaultChecked
                                             />
                                             <label className="form-check-label ms-2" htmlFor="pricing02">
-                                                $100 - $1000
+                                                100 TND - 1000 TND
                                             </label>
                                         </div>
                                         <div className="form-check d-flex align-items-center ps-0 mb-2">
@@ -525,7 +525,7 @@ const CruiseMap = () => {
                                                 defaultChecked
                                             />
                                             <label className="form-check-label ms-2" htmlFor="pricing03">
-                                                $1000 - $5000
+                                                1000 TND - 5000 TND
                                             </label>
                                         </div>
                                         <div className="form-check d-flex align-items-center ps-0 mb-0">
@@ -537,7 +537,7 @@ const CruiseMap = () => {
                                                 defaultChecked
                                             />
                                             <label className="form-check-label ms-2" htmlFor="pricing04">
-                                                $10000 - $2000
+                                                10000 TND - 2000 TND
                                             </label>
                                         </div>
                                         <div className="d-flex align-items-center justify-content-end border-top pt-3 mt-3">
@@ -561,7 +561,7 @@ const CruiseMap = () => {
                     <div className="col-xl-8">
                         <div className="map-lists-widget border-top">
                             <div className="d-flex align-items-center justify-content-between flex-wrap">
-                                <h6 className="mb-4">1920 Cruises Found on Your Search</h6>
+                                <h6 className="mb-4">Cruises in Tunisia</h6>
                                 <div className="list-item d-flex align-items-center shadow-md bg-white rounded-3 p-2 mb-4">
                                     <Link to={routes.cruiseGrid} className="list-icon me-2">
                                         <i className="isax isax-grid-1" />
@@ -638,7 +638,7 @@ const CruiseMap = () => {
                                                         </h5>
                                                         <p className="d-flex align-items-center fs-14">
                                                             <i className="isax isax-location5 me-2" />
-                                                            Ciutat Vella, Barcelona
+                                                            Tunis
                                                         </p>
                                                     </div>
                                                     <div className="d-flex align-items-center">
@@ -658,7 +658,7 @@ const CruiseMap = () => {
                                                         <span className="badge badge-warning badge-xs text-gray-9 fs-13 fw-medium me-2">
                                                             4.9
                                                         </span>
-                                                        <p className="fs-14 text-truncate">(400 Reviews)</p>
+                                                        <p className="fs-14 text-truncate">(0)</p>
                                                     </div>
                                                 </div>
                                                 <p className="fs-14 line-ellipsis mb-3">
@@ -699,7 +699,7 @@ const CruiseMap = () => {
                                                         </Link>
                                                     </h6>
                                                     <h5 className="text-primary text-nowrap me-2">
-                                                        $500{" "}
+                                                        500 TND{" "}
                                                         <span className="fs-14 fw-normal text-default">
                                                             / day
                                                         </span>
@@ -709,7 +709,7 @@ const CruiseMap = () => {
                                         </div>
                                         {/* /Cruise Grid */}
                                         {/* Cruise Grid */}
-                                        <div className="place-item mb-4">
+                                        <div className="place-item mb-4 d-none">
                                             <div className="place-img">
                                                 <div className="img-slider image-slide owl-carousel nav-center">
                                                     <Slider {...imgslideroption}>
@@ -841,7 +841,7 @@ const CruiseMap = () => {
                                         </div>
                                         {/* /Cruise Grid */}
                                         {/* Cruise Grid */}
-                                        <div className="place-item mb-4">
+                                        <div className="place-item mb-4 d-none">
                                             <div className="place-img">
                                                 <div className="img-slider  owl-carousel nav-center h-100">
                                                     <Slider {...imgslideroption}>
@@ -973,7 +973,7 @@ const CruiseMap = () => {
                                         </div>
                                         {/* /Cruise Grid */}
                                         {/* Cruise Grid */}
-                                        <div className="place-item mb-4">
+                                        <div className="place-item mb-4 d-none">
                                             <div className="place-img">
                                                 <div className="img-slider image-slide owl-carousel nav-center">
                                                     <Slider {...imgslideroption}>

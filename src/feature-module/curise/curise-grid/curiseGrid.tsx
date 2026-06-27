@@ -102,7 +102,7 @@ const CuriseGrid = () => {
                             {/* /Sidebar */}
                             <div className="col-xl-9 col-lg-8 theiaStickySidebar">
                                 <div className="d-flex align-items-center justify-content-between flex-wrap">
-                                    <h6 className="mb-3">1920 Cruises Found on Your Search</h6>
+                                    <h6 className="mb-3">Cruises in Tunisia</h6>
                                     <div className="d-flex align-items-center flex-wrap">
                                         <div className="list-item d-flex align-items-center mb-3">
                                             <Link to={routes.cruiseGrid} className="list-icon active me-2">
@@ -307,7 +307,7 @@ const CuriseGrid = () => {
                                                         <span className="badge badge-warning badge-xs text-gray-9 fs-13 fw-medium me-2">
                                                             4.9
                                                         </span>
-                                                        <p className="fs-14 text-truncate">(400)</p>
+                                                        <p className="fs-14 text-truncate">(0)</p>
                                                     </div>
                                                 </div>
                                                 <h5 className="mb-1 text-truncate">
@@ -315,7 +315,7 @@ const CuriseGrid = () => {
                                                 </h5>
                                                 <p className="d-flex align-items-center mb-3">
                                                     <i className="isax isax-location5 me-2" />
-                                                    Ciutat Vella, Barcelona
+                                                    Tunis
                                                 </p>
                                                 <div className="curise-details d-flex justify-content-between align-items-center mb-3">
                                                     <div>
@@ -355,7 +355,7 @@ const CuriseGrid = () => {
                                                         </Link>
                                                     </h6>
                                                     <h5 className="text-primary text-nowrap me-2">
-                                                        $500{" "}
+                                                        500 TND{" "}
                                                         <span className="fs-14 fw-normal text-default">
                                                             / day
                                                         </span>
@@ -366,7 +366,7 @@ const CuriseGrid = () => {
                                     </div>
                                     {/* /Cruise Grid */}
                                     {/* Cruise Grid */}
-                                    <div className="col-xl-4 col-md-6 d-flex">
+                                    <div className="col-xl-4 col-md-6 d-flex d-none">
                                         <div className="place-item mb-4 flex-fill">
                                             <div className="place-img">
                                                 <Link to={routes.cruiseDetails}>
@@ -453,7 +453,7 @@ const CuriseGrid = () => {
                                                         </Link>
                                                     </h6>
                                                     <h5 className="text-primary text-nowrap me-2">
-                                                        $600{" "}
+                                                        500 TND{" "}
                                                         <span className="fs-14 fw-normal text-default">
                                                             / day
                                                         </span>
@@ -464,7 +464,7 @@ const CuriseGrid = () => {
                                     </div>
                                     {/* /Cruise Grid */}
                                     {/* Cruise Grid */}
-                                    <div className="col-xl-4 col-md-6 d-flex">
+                                    <div className="col-xl-4 col-md-6 d-flex d-none">
                                         <div className="place-item mb-4 flex-fill">
                                             <div className="place-img">
                                                 <Link to={routes.cruiseDetails}>
@@ -562,7 +562,7 @@ const CuriseGrid = () => {
                                     </div>
                                     {/* /Cruise Grid */}
                                     {/* Cruise Grid */}
-                                    <div className="col-xl-4 col-md-6 d-flex">
+                                    <div className="col-xl-4 col-md-6 d-flex d-none">
                                         <div className="place-item mb-4 flex-fill">
                                             <div className="place-img">
                                                 <Link to={routes.cruiseDetails}>
@@ -660,7 +660,7 @@ const CuriseGrid = () => {
                                     </div>
                                     {/* /Cruise Grid */}
                                     {/* Cruise Grid */}
-                                    <div className="col-xl-4 col-md-6 d-flex">
+                                    <div className="col-xl-4 col-md-6 d-flex d-none">
                                         <div className="place-item common-grid-slider mb-4 flex-fill">
                                             <div className="place-img">
                                                 <div className="img-slider image-slide owl-carousel nav-center">
@@ -783,7 +783,7 @@ const CuriseGrid = () => {
                                     </div>
                                     {/* /Cruise Grid */}
                                     {/* Cruise Grid */}
-                                    <div className="col-xl-4 col-md-6 d-flex">
+                                    <div className="col-xl-4 col-md-6 d-flex d-none">
                                         <div className="place-item mb-4 flex-fill">
                                             <div className="place-img">
                                                 <Link to={routes.cruiseDetails}>
@@ -881,7 +881,7 @@ const CuriseGrid = () => {
                                     </div>
                                     {/* /Cruise Grid */}
                                     {/* Cruise Grid */}
-                                    <div className="col-xl-4 col-md-6 d-flex">
+                                    <div className="col-xl-4 col-md-6 d-flex d-none">
                                         <div className="place-item  common-grid-slider mb-4 flex-fill">
                                             <div className="place-img">
                                                 <div className="img-slider image-slide owl-carousel nav-center">
@@ -1004,7 +1004,7 @@ const CuriseGrid = () => {
                                     </div>
                                     {/* /Cruise Grid */}
                                     {/* Cruise Grid */}
-                                    <div className="col-xl-4 col-md-6 d-flex">
+                                    <div className="col-xl-4 col-md-6 d-flex d-none">
                                         <div className="place-item common-grid-slider mb-4 flex-fill">
                                             <div className="place-img">
                                                 <div className="img-slider image-slide owl-carousel nav-center">
@@ -1127,7 +1127,7 @@ const CuriseGrid = () => {
                                     </div>
                                     {/* /Cruise Grid */}
                                     {/* Cruise Grid */}
-                                    <div className="col-xl-4 col-md-6 d-flex">
+                                    <div className="col-xl-4 col-md-6 d-flex d-none">
                                         <div className="place-item common-grid-slider mb-4 flex-fill">
                                             <div className="place-img">
                                                 <div className="img-slider image-slide owl-carousel nav-center">
@@ -1251,7 +1251,7 @@ const CuriseGrid = () => {
                                     {/* /Cruise Grid */}
                                 </div>
                                 {/* Pagination */}
-                                <nav className="pagination-nav">
+                                <nav className="pagination-nav d-none">
                                     <ul className="pagination justify-content-center">
                                         <li className="page-item disabled">
                                             <Link

@@ -81,14 +81,14 @@ const CruiseSearch = () => {
                                                     >
                                                       <BookingDropdown
                                                         label="Destination"
-                                                        defaultValue="Newyork"
-                                                        defaultSubValue="USA"
+                                                        defaultValue="Hammamet"
+                                                        defaultSubValue="Tunisia"
                                                         locations={[
-                                                          { value: "Newyork", subValue: "USA" },
+                                                          { value: "Hammamet", subValue: "Tunisia" },
                                                           { value: "Boston", subValue: "Spain" },
-                                                          { value: "NorthernVirginia", subValue: "USA" },
-                                                          { value: "LosAngeles", subValue: "USA" },
-                                                          { value: "Orlando", subValue: "USA" }
+                                                          { value: "NorthernVirginia", subValue: "Tunisia" },
+                                                          { value: "LosAngeles", subValue: "Tunisia" },
+                                                          { value: "Orlando", subValue: "Tunisia" }
                                                         ]}
                                                       />
                                                     </div>
@@ -279,7 +279,7 @@ const CruiseSearch = () => {
                         </Link>
                         <div className="ms-2">
                             <h6 className="fs-16 fw-medium"><Link to={routes.cruiseGrid}>Luxury Cruise</Link></h6>
-                            <p className="fs-14">216 Cruises</p>
+                            <p className="fs-14 d-none">216 Cruises</p>
                         </div>
                     </div>
                 </div>
@@ -290,7 +290,7 @@ const CruiseSearch = () => {
                         </Link>
                         <div className="ms-2">
                             <h6 className="fs-16 fw-medium"><Link to={routes.cruiseGrid}>Adventure Cruise</Link></h6>
-                            <p className="fs-14">569 Cruises</p>
+                            <p className="fs-14 d-none">569 Cruises</p>
                         </div>
                     </div>
                 </div>
@@ -301,7 +301,7 @@ const CruiseSearch = () => {
                         </Link>
                         <div className="ms-2">
                             <h6 className="fs-16 fw-medium"><Link to={routes.cruiseGrid}>River Cruise</Link></h6>
-                            <p className="fs-14">129 Cruises</p>
+                            <p className="fs-14 d-none">129 Cruises</p>
                         </div>
                     </div>
                 </div>
@@ -312,7 +312,7 @@ const CruiseSearch = () => {
                         </Link>
                         <div className="ms-2">
                             <h6 className="fs-16 fw-medium"><Link to={routes.cruiseGrid}>Family Cruise</Link></h6>
-                            <p className="fs-14">150 Cruises</p>
+                            <p className="fs-14 d-none">150 Cruises</p>
                         </div>
                     </div>
                 </div>
@@ -323,7 +323,7 @@ const CruiseSearch = () => {
                         </Link>
                         <div className="ms-2">
                             <h6 className="fs-16 fw-medium"><Link to={routes.cruiseGrid}>Sailing Cruises</Link></h6>
-                            <p className="fs-14">200 Cruises</p>
+                            <p className="fs-14 d-none">200 Cruises</p>
                         </div>
                     </div>
                 </div>
@@ -334,7 +334,7 @@ const CruiseSearch = () => {
                         </Link>
                         <div className="ms-2">
                             <h6 className="fs-16 fw-medium"><Link to={routes.cruiseGrid}>World Cruises</Link></h6>
-                            <p className="fs-14">320 Cruises</p>
+                            <p className="fs-14 d-none">320 Cruises</p>
                         </div>
                     </div>
                 </div>

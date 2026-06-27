@@ -30,9 +30,9 @@ const SearchOption = () => {
                                         <input
                                             type="text"
                                             className="form-control"
-                                            defaultValue="Newyork"
+                                            defaultValue="Hammamet"
                                         />
-                                        <p className="fs-12 mb-0">USA</p>
+                                        <p className="fs-12 mb-0">Tunisia</p>
                                     </div>
                                     <div className="dropdown-menu dropdown-md p-0">
                                         <div className="input-search p-3 border-bottom">
@@ -50,7 +50,7 @@ const SearchOption = () => {
                                         <ul>
                                             <li className="border-bottom">
                                                 <Link className="dropdown-item" to="#">
-                                                    <h6 className="fs-16 fw-medium">USA</h6>
+                                                    <h6 className="fs-16 fw-medium">Tunisia</h6>
                                                     <p>2000 Properties</p>
                                                 </Link>
                                             </li>
@@ -305,7 +305,7 @@ const SearchOption = () => {
                                 <h6 className="fs-16 fw-medium">
                                     <Link to={routes.cruiseGrid}>Luxury Cruise</Link>
                                 </h6>
-                                <p className="fs-14">216 Cruises</p>
+                                <p className="fs-14 d-none">216 Cruises</p>
                             </div>
                         </div>
                     </div>
@@ -322,7 +322,7 @@ const SearchOption = () => {
                                 <h6 className="fs-16 fw-medium">
                                     <Link to={routes.cruiseGrid}>Adventure Cruise</Link>
                                 </h6>
-                                <p className="fs-14">569 Cruises</p>
+                                <p className="fs-14 d-none">569 Cruises</p>
                             </div>
                         </div>
                     </div>
@@ -339,7 +339,7 @@ const SearchOption = () => {
                                 <h6 className="fs-16 fw-medium">
                                     <Link to={routes.cruiseGrid}>River Cruise</Link>
                                 </h6>
-                                <p className="fs-14">129 Cruises</p>
+                                <p className="fs-14 d-none">129 Cruises</p>
                             </div>
                         </div>
                     </div>
@@ -356,7 +356,7 @@ const SearchOption = () => {
                                 <h6 className="fs-16 fw-medium">
                                     <Link to={routes.cruiseGrid}>Family Cruise</Link>
                                 </h6>
-                                <p className="fs-14">150 Cruises</p>
+                                <p className="fs-14 d-none">150 Cruises</p>
                             </div>
                         </div>
                     </div>
@@ -373,7 +373,7 @@ const SearchOption = () => {
                                 <h6 className="fs-16 fw-medium">
                                     <Link to={routes.cruiseGrid}>Sailing Cruises</Link>
                                 </h6>
-                                <p className="fs-14">200 Cruises</p>
+                                <p className="fs-14 d-none">200 Cruises</p>
                             </div>
                         </div>
                     </div>
@@ -390,7 +390,7 @@ const SearchOption = () => {
                                 <h6 className="fs-16 fw-medium">
                                     <Link to={routes.cruiseGrid}>World Cruises</Link>
                                 </h6>
-                                <p className="fs-14">320 Cruises</p>
+                                <p className="fs-14 d-none">320 Cruises</p>
                             </div>
                         </div>
                     </div>

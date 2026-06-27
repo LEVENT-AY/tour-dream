@@ -2,7 +2,7 @@ import { Slider, type SliderSingleProps } from 'antd'
 import { Link } from 'react-router-dom'
 
 const CruiseFilter = () => {
-    const formatter: NonNullable<SliderSingleProps['tooltip']>['formatter'] = (value) => `$${value}`;
+    const formatter: NonNullable<SliderSingleProps['tooltip']>['formatter'] = (value) => `${value} TND`;
     return (
         <>
             {/* Filter Modal */}
@@ -91,7 +91,7 @@ const CruiseFilter = () => {
                                         <div className="filter-range-amount">
                                             <p className="fs-14">
                                                 Range :{" "}
-                                                <span className="text-gray-9 fw-medium">$200 - $5695</span>
+                                                <span className="text-gray-9 fw-medium">200 TND - 5695 TND</span>
                                             </p>
                                         </div>
                                     </div>
