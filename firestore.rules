@@ -220,6 +220,15 @@ service cloud.firestore {
       allow delete: if isAdmin() || (isApprovedAgent() && isAgentListingOwner());
     }
 
+    match /buses/{itemId} {
+      allow read: if resource.data.published == true
+        || isAdmin()
+        || (isApprovedAgent() && isAgentListingOwner());
+      allow create: if isAdmin() || (isApprovedAgent() && isAgentListingCreateSafe());
+      allow update: if isAdmin() || (isApprovedAgent() && isAgentListingOwner() && isAgentListingUpdateSafe());
+      allow delete: if isAdmin() || (isApprovedAgent() && isAgentListingOwner());
+    }
+
     // ---------- Bookings ----------
     function isBookingAgent() {
       return resource.data.agentId == currentUserId();

@@ -194,6 +194,30 @@ const PROJECT_ID = 'tour-tunisi-test';
       createdBy: 'agent2',
       createdAt: new Date().toISOString(),
     });
+    await db.collection('buses').doc('publishedBus').set({
+      title: 'Published Bus',
+      published: true,
+      ownerId: 'agent1',
+      agentId: 'agent1',
+      createdBy: 'agent1',
+      createdAt: new Date().toISOString(),
+    });
+    await db.collection('buses').doc('draftBus').set({
+      title: 'Draft Bus',
+      published: false,
+      ownerId: 'agent1',
+      agentId: 'agent1',
+      createdBy: 'agent1',
+      createdAt: new Date().toISOString(),
+    });
+    await db.collection('buses').doc('otherAgentBus').set({
+      title: 'Other Agent Bus',
+      published: false,
+      ownerId: 'agent2',
+      agentId: 'agent2',
+      createdBy: 'agent2',
+      createdAt: new Date().toISOString(),
+    });
     await db.collection('settings').doc('app').set({
       maintenanceMode: false,
     });
@@ -495,6 +519,60 @@ const PROJECT_ID = 'tour-tunisi-test';
       createdAt: new Date().toISOString(),
     }));
     await assertSucceeds(ref.update({ title: 'Updated Admin Cruise', updatedAt: new Date().toISOString() }));
+    await assertSucceeds(ref.delete());
+  });
+
+  // 43. Anonymous user can read published bus
+  await test('Anonymous user can read published bus', async () => {
+    const unauthed = testEnv.unauthenticatedContext();
+    await assertSucceeds(unauthed.firestore().collection('buses').doc('publishedBus').get());
+  });
+
+  // 44. Signed-in customer can read published bus
+  await test('Signed-in customer can read published bus', async () => {
+    const customer = testEnv.authenticatedContext('customer1');
+    await assertSucceeds(customer.firestore().collection('buses').doc('publishedBus').get());
+  });
+
+  // 45. Signed-in customer cannot read unpublished bus
+  await test('Signed-in customer cannot read unpublished bus', async () => {
+    const customer = testEnv.authenticatedContext('customer1');
+    await assertFails(customer.firestore().collection('buses').doc('draftBus').get());
+  });
+
+  // 46. Non-owning agent cannot read another agent's unpublished bus
+  await test("Non-owning agent cannot read another agent's unpublished bus", async () => {
+    const agent = testEnv.authenticatedContext('agent1');
+    await assertFails(agent.firestore().collection('buses').doc('otherAgentBus').get());
+  });
+
+  // 47. Owning approved agent can read own unpublished bus
+  await test('Owning approved agent can read own unpublished bus', async () => {
+    const agent = testEnv.authenticatedContext('agent1');
+    await assertSucceeds(agent.firestore().collection('buses').doc('draftBus').get());
+  });
+
+  // 48. Admin can read all buses
+  await test('Admin can read all buses', async () => {
+    const admin = testEnv.authenticatedContext('admin1');
+    await assertSucceeds(admin.firestore().collection('buses').doc('publishedBus').get());
+    await assertSucceeds(admin.firestore().collection('buses').doc('draftBus').get());
+    await assertSucceeds(admin.firestore().collection('buses').doc('otherAgentBus').get());
+  });
+
+  // 49. Admin can create, update, and delete a bus
+  await test('Admin can create, update, and delete a bus', async () => {
+    const admin = testEnv.authenticatedContext('admin1');
+    const ref = admin.firestore().collection('buses').doc('adminBus');
+    await assertSucceeds(ref.set({
+      title: 'Admin Bus',
+      published: false,
+      ownerId: 'admin1',
+      agentId: 'admin1',
+      createdBy: 'admin1',
+      createdAt: new Date().toISOString(),
+    }));
+    await assertSucceeds(ref.update({ title: 'Updated Admin Bus', updatedAt: new Date().toISOString() }));
     await assertSucceeds(ref.delete());
   });
 
