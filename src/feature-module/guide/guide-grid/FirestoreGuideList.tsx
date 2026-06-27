@@ -9,7 +9,11 @@ const GUIDE_FALLBACK_IMAGE = 'assets/img/guide/guide-01.jpg';
 
 type GuideRecord = Record<string, any>;
 
-const FirestoreGuideList = () => {
+interface FirestoreGuideListProps {
+  onStatus?: (status: 'loading' | 'hasData' | 'empty') => void;
+}
+
+const FirestoreGuideList: React.FC<FirestoreGuideListProps> = ({ onStatus }) => {
   const routes = all_routes;
   const [guides, setGuides] = useState<GuideRecord[]>([]);
   const [loading, setLoading] = useState(true);
@@ -19,16 +23,18 @@ const FirestoreGuideList = () => {
 
     const loadGuides = async () => {
       try {
+        if (active) onStatus?.('loading');
         const data = await fetchGuides();
         if (active) {
-          setGuides(
-            data
-              .filter((guide) => guide.published !== false)
-              .map((guide) => normalizeGuideDetails(guide))
-          );
+          const processed = data
+            .filter((guide) => guide.published !== false)
+            .map((guide) => normalizeGuideDetails(guide));
+          setGuides(processed);
+          onStatus?.(processed.length > 0 ? 'hasData' : 'empty');
         }
       } catch (error) {
         console.error('Error loading Firestore guides:', error);
+        if (active) onStatus?.('empty');
       } finally {
         if (active) {
           setLoading(false);
@@ -81,7 +87,7 @@ const FirestoreGuideList = () => {
   return (
     <div className="mb-4">
       <div className="d-flex align-items-center justify-content-between flex-wrap mb-3">
-        <h6 className="mb-0">Available Guides from Agents</h6>
+        <h6 className="mb-0">Local Guides</h6>
         <span className="fs-14 text-gray-6">{guides.length} found</span>
       </div>
       <div className="row">

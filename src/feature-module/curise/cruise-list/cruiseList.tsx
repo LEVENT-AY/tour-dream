@@ -10,6 +10,7 @@ import FirestoreCruiseList from './FirestoreCruiseList';
 
 const CruiseList = () => {
     const routes = all_routes
+    const [fsStatus, setFsStatus] = useState<'loading' | 'hasData' | 'empty' | null>(null);
     //Breadcrumb Data
     const breadcrumbs = [
         {
@@ -154,7 +155,8 @@ const CruiseList = () => {
                                     <Link to={routes.login} className="btn btn-white btn-sm mb-2">Sign In</Link>
                                 </div>
                             </div>
-                            <FirestoreCruiseList />
+                            <FirestoreCruiseList onStatus={setFsStatus} />
+                            {fsStatus !== 'hasData' && (
                             <div className="hotel-list list-full">
                                 <div className="row justify-content-center">
                                     <div className="col-md-12">
@@ -228,6 +230,7 @@ const CruiseList = () => {
 
                                 </div>
                             </div>
+                            )}
 
                         </div>
 

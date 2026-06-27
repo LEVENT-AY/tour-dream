@@ -1,4 +1,5 @@
 
+import { useState } from "react";
 import Breadcrumb from "../../../core/common/Breadcrumb/breadcrumb";
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
@@ -11,6 +12,7 @@ import FirestoreBusList from "./FirestoreBusList";
 
 const BusList = () => {
   const routes = all_routes;
+  const [fsStatus, setFsStatus] = useState<'loading' | 'hasData' | 'empty' | null>(null);
 
   //Breadcrumb Data
   const breadcrumbs = [
@@ -179,7 +181,8 @@ const BusList = () => {
                   </Link>
                 </div>
               </div>
-              <FirestoreBusList />
+              <FirestoreBusList onStatus={setFsStatus} />
+              {fsStatus !== 'hasData' && (
               <div className="bus-list">
                 <div className="row justify-content-center">
                   <div className="col-md-12">
@@ -1298,6 +1301,7 @@ const BusList = () => {
                   </div>
                 </div>
               </div>
+              )}
               {/* Pagination */}
               <nav className="pagination-nav">
                 <ul className="pagination justify-content-center">

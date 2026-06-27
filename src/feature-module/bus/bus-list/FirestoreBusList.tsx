@@ -8,7 +8,11 @@ const BUS_FALLBACK_IMAGE = 'assets/img/bus/bus-img-01.jpg';
 
 type BusRecord = Record<string, any>;
 
-const FirestoreBusList = () => {
+interface FirestoreBusListProps {
+  onStatus?: (status: 'loading' | 'hasData' | 'empty') => void;
+}
+
+const FirestoreBusList: React.FC<FirestoreBusListProps> = ({ onStatus }) => {
   const routes = all_routes;
   const [buses, setBuses] = useState<BusRecord[]>([]);
   const [loading, setLoading] = useState(true);
@@ -18,12 +22,16 @@ const FirestoreBusList = () => {
 
     const loadBuses = async () => {
       try {
+        if (active) onStatus?.('loading');
         const data = await fetchBuses();
         if (active) {
-          setBuses(data.filter((bus) => bus.published !== false));
+          const filtered = data.filter((bus) => bus.published !== false);
+          setBuses(filtered);
+          onStatus?.(filtered.length > 0 ? 'hasData' : 'empty');
         }
       } catch (error) {
         console.error('Error loading Firestore buses:', error);
+        if (active) onStatus?.('empty');
       } finally {
         if (active) {
           setLoading(false);
@@ -69,7 +77,7 @@ const FirestoreBusList = () => {
   return (
     <div className="mb-4">
       <div className="d-flex align-items-center justify-content-between flex-wrap mb-3">
-        <h6 className="mb-0">Available Buses from Agents</h6>
+        <h6 className="mb-0">Available Bus Trips</h6>
         <span className="fs-14 text-gray-6">{buses.length} found</span>
       </div>
       <div className="bus-list">

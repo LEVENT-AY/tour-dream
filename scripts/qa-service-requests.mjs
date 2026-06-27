@@ -319,6 +319,131 @@ check(
   'ServiceRequestAssignmentStats not found in adminDashboardServices.ts'
 );
 
+// 11. Public marketplace list components exist
+const fsCruiseList = readFile('src/feature-module/curise/cruise-list/FirestoreCruiseList.tsx');
+const fsBusList = readFile('src/feature-module/bus/bus-list/FirestoreBusList.tsx');
+const fsVisaList = readFile('src/feature-module/visa/visa-list/FirestoreVisaList.tsx');
+const fsGuideList = readFile('src/feature-module/guide/guide-grid/FirestoreGuideList.tsx');
+
+check(
+  'FirestoreCruiseList exists and has onStatus',
+  /onStatus/.test(fsCruiseList),
+  'onStatus not found in FirestoreCruiseList'
+);
+check(
+  'FirestoreBusList exists and has onStatus',
+  /onStatus/.test(fsBusList),
+  'onStatus not found in FirestoreBusList'
+);
+check(
+  'FirestoreVisaList exists and has onStatus',
+  /onStatus/.test(fsVisaList),
+  'onStatus not found in FirestoreVisaList'
+);
+check(
+  'FirestoreGuideList exists and has onStatus',
+  /onStatus/.test(fsGuideList),
+  'onStatus not found in FirestoreGuideList'
+);
+
+// 12. Marketplace headings
+check(
+  'Cruise list heading is "Available Cruises"',
+  /Available Cruises/.test(fsCruiseList),
+  'heading not found in FirestoreCruiseList'
+);
+check(
+  'Bus list heading is "Available Bus Trips"',
+  /Available Bus Trips/.test(fsBusList),
+  'heading not found in FirestoreBusList'
+);
+check(
+  'Visa list heading is "Visa Services"',
+  /Visa Services/.test(fsVisaList),
+  'heading not found in FirestoreVisaList'
+);
+check(
+  'Guide list heading is "Local Guides"',
+  /Local Guides/.test(fsGuideList),
+  'heading not found in FirestoreGuideList'
+);
+
+// 13. List components link to details with ?id=
+check(
+  'CruiseList links to details with ?id=',
+  /\?id=/.test(fsCruiseList),
+  '?id= not found in FirestoreCruiseList'
+);
+check(
+  'BusList links to details with ?id=',
+  /\?id=/.test(fsBusList),
+  '?id= not found in FirestoreBusList'
+);
+check(
+  'VisaList links to details with ?id=',
+  /\?id=/.test(fsVisaList),
+  '?id= not found in FirestoreVisaList'
+);
+check(
+  'GuideList links to details with ?id=',
+  /\?id=/.test(fsGuideList),
+  '?id= not found in FirestoreGuideList'
+);
+
+// 14. Parent pages conditionally hide static fallback when FS has data
+const cruiseParent = readFile('src/feature-module/curise/cruise-list/cruiseList.tsx');
+const busParent = readFile('src/feature-module/bus/bus-list/busList.tsx');
+const visaParent = readFile('src/feature-module/visa/visa-list/visaList.tsx');
+const guideParent = readFile('src/feature-module/guide/guide-grid/guideGrid.tsx');
+
+check(
+  'Cruise parent hides fallback when FS has data',
+  /fsStatus\s*!==\s*'hasData'/.test(cruiseParent),
+  'conditional fallback hiding not found in cruiseList.tsx'
+);
+check(
+  'Bus parent hides fallback when FS has data',
+  /fsStatus\s*!==\s*'hasData'/.test(busParent),
+  'conditional fallback hiding not found in busList.tsx'
+);
+check(
+  'Visa parent hides fallback when FS has data',
+  /fsStatus\s*!==\s*'hasData'/.test(visaParent),
+  'conditional fallback hiding not found in visaList.tsx'
+);
+check(
+  'Guide parent hides fallback when FS has data',
+  /fsStatus\s*!==\s*'hasData'/.test(guideParent),
+  'conditional fallback hiding not found in guideGrid.tsx'
+);
+
+// 15. Detail components still have ServiceRequestForm
+const fsCruiseDetails = readFile('src/feature-module/curise/curise-details/FirestoreCruiseDetails.tsx');
+const fsBusDetails = readFile('src/feature-module/bus/bus-details/FirestoreBusDetails.tsx');
+const fsVisaDetails = readFile('src/feature-module/visa/visa-details/FirestoreVisaDetails.tsx');
+const fsGuideDetails = readFile('src/feature-module/guide/guide-Details/FirestoreGuideDetails.tsx');
+
+check(
+  'FirestoreCruiseDetails has ServiceRequestForm',
+  /ServiceRequestForm/.test(fsCruiseDetails),
+  'ServiceRequestForm not found in FirestoreCruiseDetails'
+);
+check(
+  'FirestoreBusDetails has ServiceRequestForm',
+  /ServiceRequestForm/.test(fsBusDetails),
+  'ServiceRequestForm not found in FirestoreBusDetails'
+);
+check(
+  'FirestoreVisaDetails has ServiceRequestForm',
+  /ServiceRequestForm/.test(fsVisaDetails),
+  'ServiceRequestForm not found in FirestoreVisaDetails'
+);
+check(
+  'FirestoreGuideDetails has ServiceRequestForm',
+  /ServiceRequestForm/.test(fsGuideDetails),
+  'ServiceRequestForm not found in FirestoreGuideDetails'
+);
+
 // Summary
 console.log('\n=== QA: Service Requests Flow ===\n');
 if (ok.length) {

@@ -9,7 +9,11 @@ const VISA_FALLBACK_IMAGE = 'assets/img/visa/visa-01.jpg';
 
 type VisaRecord = Record<string, any>;
 
-const FirestoreVisaList = () => {
+interface FirestoreVisaListProps {
+  onStatus?: (status: 'loading' | 'hasData' | 'empty') => void;
+}
+
+const FirestoreVisaList: React.FC<FirestoreVisaListProps> = ({ onStatus }) => {
   const routes = all_routes;
   const [visas, setVisas] = useState<VisaRecord[]>([]);
   const [loading, setLoading] = useState(true);
@@ -19,16 +23,18 @@ const FirestoreVisaList = () => {
 
     const loadVisas = async () => {
       try {
+        if (active) onStatus?.('loading');
         const data = await fetchVisas();
         if (active) {
-          setVisas(
-            data
-              .filter((visa) => visa.published !== false)
-              .map((visa) => normalizeVisaDetails(visa))
-          );
+          const processed = data
+            .filter((visa) => visa.published !== false)
+            .map((visa) => normalizeVisaDetails(visa));
+          setVisas(processed);
+          onStatus?.(processed.length > 0 ? 'hasData' : 'empty');
         }
       } catch (error) {
         console.error('Error loading Firestore visas:', error);
+        if (active) onStatus?.('empty');
       } finally {
         if (active) {
           setLoading(false);
@@ -73,7 +79,7 @@ const FirestoreVisaList = () => {
   return (
     <div className="mb-4">
       <div className="d-flex align-items-center justify-content-between flex-wrap mb-3">
-        <h6 className="mb-0">Available Visas from Agents</h6>
+        <h6 className="mb-0">Visa Services</h6>
         <span className="fs-14 text-gray-6">{visas.length} found</span>
       </div>
       <div className="hotel-list">

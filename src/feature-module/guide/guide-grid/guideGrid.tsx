@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import Breadcrumb from "../../../core/common/Breadcrumb/breadcrumb";
 import ImageWithBasePath from "../../../core/common/imageWithBasePath";
@@ -5,6 +6,7 @@ import { all_routes } from "../../router/all_routes";
 import FirestoreGuideList from "./FirestoreGuideList";
 
 const GuideGrid = () => {
+  const [fsStatus, setFsStatus] = useState<'loading' | 'hasData' | 'empty' | null>(null);
 
 
   const routes = all_routes;
@@ -35,8 +37,9 @@ const GuideGrid = () => {
       {/* Page Wrapper */}
       <div className="content">
         <div className="container">
-          <FirestoreGuideList />
-          {/* row start */}
+          <FirestoreGuideList onStatus={setFsStatus} />
+          {fsStatus !== 'hasData' && (
+          <>
           <div className="row">
             <div className="col-md-6 col-lg-3">
               <div className="card guide-card">
@@ -599,12 +602,13 @@ const GuideGrid = () => {
               </div>
             </div>
           </div>
-          {/* row end */}
           <div className="d-flex align-items-center justify-content-center">
             <button className="btn btn-primary">
               Load More <i className="isax isax-arrow-right-3 ms-2" />
             </button>
           </div>
+          </>
+          )}
         </div>
       </div>
       {/* /Page Wrapper */}

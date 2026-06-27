@@ -12,7 +12,11 @@ type CruiseRecord = Record<string, any>;
 const CRUISE_FALLBACK_IMAGE = 'assets/img/cruise/cruise-05.jpg';
 const AGENT_FALLBACK_IMAGE = 'assets/img/users/user-08.jpg';
 
-const FirestoreCruiseList = () => {
+interface FirestoreCruiseListProps {
+  onStatus?: (status: 'loading' | 'hasData' | 'empty') => void;
+}
+
+const FirestoreCruiseList: React.FC<FirestoreCruiseListProps> = ({ onStatus }) => {
   const routes = all_routes;
   const [cruises, setCruises] = useState<CruiseRecord[]>([]);
   const [loading, setLoading] = useState(true);
@@ -23,12 +27,16 @@ const FirestoreCruiseList = () => {
 
     const loadCruises = async () => {
       try {
+        if (active) onStatus?.('loading');
         const data = await fetchCruises();
         if (active) {
-          setCruises(data.filter((cruise) => cruise.published !== false));
+          const filtered = data.filter((cruise) => cruise.published !== false);
+          setCruises(filtered);
+          onStatus?.(filtered.length > 0 ? 'hasData' : 'empty');
         }
       } catch (error) {
         console.error('Error loading Firestore cruises:', error);
+        if (active) onStatus?.('empty');
       } finally {
         if (active) {
           setLoading(false);
@@ -99,7 +107,7 @@ const FirestoreCruiseList = () => {
   return (
     <div className="mb-4">
       <div className="d-flex align-items-center justify-content-between flex-wrap mb-3">
-        <h6 className="mb-0">Available Cruises from Agents</h6>
+        <h6 className="mb-0">Available Cruises</h6>
         <span className="fs-14 text-gray-6">{cruises.length} found</span>
       </div>
       <div className="hotel-list list-full">

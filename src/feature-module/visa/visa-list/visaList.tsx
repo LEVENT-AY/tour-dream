@@ -10,6 +10,7 @@ import { Link } from "react-router-dom";
 const VisaList = () => {
   const routes = all_routes;
   const [fav, setFav] = useState<boolean[]>([]);
+  const [fsStatus, setFsStatus] = useState<'loading' | 'hasData' | 'empty' | null>(null);
   const handleFav = (i: number) => {
     setFav((prev) => {
       const updated = [...prev];
@@ -176,7 +177,8 @@ const VisaList = () => {
                   </div>
                 </div>
               </div>
-              <FirestoreVisaList />
+              <FirestoreVisaList onStatus={setFsStatus} />
+              {fsStatus !== 'hasData' && (
               <div className="hotel-list">
                 <div className="row justify-content-center">
                   <div className="col-md-12">
@@ -664,6 +666,7 @@ const VisaList = () => {
                   </div>
                 </div>
               </div>
+              )}
               {/* Pagination */}
               <nav className="pagination-nav">
                 <ul className="pagination justify-content-center">
