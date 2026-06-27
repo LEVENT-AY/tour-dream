@@ -242,6 +242,30 @@ const PROJECT_ID = 'tour-tunisi-test';
       createdBy: 'agent2',
       createdAt: new Date().toISOString(),
     });
+    await db.collection('guides').doc('publishedGuide').set({
+      title: 'Published Guide',
+      published: true,
+      ownerId: 'agent1',
+      agentId: 'agent1',
+      createdBy: 'agent1',
+      createdAt: new Date().toISOString(),
+    });
+    await db.collection('guides').doc('draftGuide').set({
+      title: 'Draft Guide',
+      published: false,
+      ownerId: 'agent1',
+      agentId: 'agent1',
+      createdBy: 'agent1',
+      createdAt: new Date().toISOString(),
+    });
+    await db.collection('guides').doc('otherAgentGuide').set({
+      title: 'Other Agent Guide',
+      published: false,
+      ownerId: 'agent2',
+      agentId: 'agent2',
+      createdBy: 'agent2',
+      createdAt: new Date().toISOString(),
+    });
     await db.collection('settings').doc('app').set({
       maintenanceMode: false,
     });
@@ -651,6 +675,60 @@ const PROJECT_ID = 'tour-tunisi-test';
       createdAt: new Date().toISOString(),
     }));
     await assertSucceeds(ref.update({ title: 'Updated Admin Visa', updatedAt: new Date().toISOString() }));
+    await assertSucceeds(ref.delete());
+  });
+
+  // 57. Anonymous user can read published guide
+  await test('Anonymous user can read published guide', async () => {
+    const unauthed = testEnv.unauthenticatedContext();
+    await assertSucceeds(unauthed.firestore().collection('guides').doc('publishedGuide').get());
+  });
+
+  // 58. Signed-in customer can read published guide
+  await test('Signed-in customer can read published guide', async () => {
+    const customer = testEnv.authenticatedContext('customer1');
+    await assertSucceeds(customer.firestore().collection('guides').doc('publishedGuide').get());
+  });
+
+  // 59. Signed-in customer cannot read unpublished guide
+  await test('Signed-in customer cannot read unpublished guide', async () => {
+    const customer = testEnv.authenticatedContext('customer1');
+    await assertFails(customer.firestore().collection('guides').doc('draftGuide').get());
+  });
+
+  // 60. Non-owning agent cannot read another agent's unpublished guide
+  await test("Non-owning agent cannot read another agent's unpublished guide", async () => {
+    const agent = testEnv.authenticatedContext('agent1');
+    await assertFails(agent.firestore().collection('guides').doc('otherAgentGuide').get());
+  });
+
+  // 61. Owning approved agent can read own unpublished guide
+  await test('Owning approved agent can read own unpublished guide', async () => {
+    const agent = testEnv.authenticatedContext('agent1');
+    await assertSucceeds(agent.firestore().collection('guides').doc('draftGuide').get());
+  });
+
+  // 62. Admin can read all guides
+  await test('Admin can read all guides', async () => {
+    const admin = testEnv.authenticatedContext('admin1');
+    await assertSucceeds(admin.firestore().collection('guides').doc('publishedGuide').get());
+    await assertSucceeds(admin.firestore().collection('guides').doc('draftGuide').get());
+    await assertSucceeds(admin.firestore().collection('guides').doc('otherAgentGuide').get());
+  });
+
+  // 63. Admin can create, update, and delete a guide
+  await test('Admin can create, update, and delete a guide', async () => {
+    const admin = testEnv.authenticatedContext('admin1');
+    const ref = admin.firestore().collection('guides').doc('adminGuide');
+    await assertSucceeds(ref.set({
+      title: 'Admin Guide',
+      published: false,
+      ownerId: 'admin1',
+      agentId: 'admin1',
+      createdBy: 'admin1',
+      createdAt: new Date().toISOString(),
+    }));
+    await assertSucceeds(ref.update({ title: 'Updated Admin Guide', updatedAt: new Date().toISOString() }));
     await assertSucceeds(ref.delete());
   });
 
