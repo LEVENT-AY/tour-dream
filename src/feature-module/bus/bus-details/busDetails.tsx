@@ -8,6 +8,7 @@ import { useState } from 'react';
 import BusAccordion from './busAccordion';
 import ImageWithBasePath from '../../../core/common/imageWithBasePath';
 import { Link } from 'react-router-dom';
+import FirestoreBusDetails from './FirestoreBusDetails';
 import { DatePicker } from 'antd';
 import dayjs from "dayjs";
 
@@ -58,6 +59,7 @@ const BusDetails = () => {
       {/* Page Wrapper */}
       <div className="content">
         <div className="container">
+          <FirestoreBusDetails />
           <div className="row">
             <div className="col-xl-8">
 
