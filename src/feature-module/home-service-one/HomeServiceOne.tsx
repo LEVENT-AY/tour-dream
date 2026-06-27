@@ -7,6 +7,7 @@ import dayjs from "dayjs";
 import { all_routes } from "../router/all_routes";
 import CommonDateRange from "../../core/common/dateRange/CommonDateRange";
 import TrendingList from "./trendingList";
+import FeaturedServices from "./FeaturedServices";
 import ExperienceSection from "./experienceSection";
 import Recomanded from "./recomanded";
 import DeliverySection from "./deliverySection";
@@ -1555,7 +1556,7 @@ const guidePassenger =
                                     </div>
                                   </div>
                                   <Link
-                                    to={all_routes.cruiseGrid}
+                                    to={all_routes.cruiseList}
                                     className="btn btn-primary search-btn rounded"
                                   >
                                     Search
@@ -1680,7 +1681,7 @@ const guidePassenger =
                                     </div>
                                   </div>
                                   <Link
-                                    to={all_routes.cruiseGrid}
+                                    to={all_routes.cruiseList}
                                     className="btn btn-primary search-btn rounded"
                                   >
                                     Search
@@ -2740,7 +2741,7 @@ const guidePassenger =
                                     </div>
                                   </div>
                                   <Link
-                                    to={all_routes.visaGrid}
+                                    to={all_routes.visaList}
                                     className="btn btn-primary search-btn rounded"
                                   >
                                     Search
@@ -3023,6 +3024,7 @@ const guidePassenger =
       </section>
       {/* /Hero Section */}
       <TrendingList />
+      <FeaturedServices />
       <ExperienceSection />
       <Recomanded />
       <DeliverySection />
