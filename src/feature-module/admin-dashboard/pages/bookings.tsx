@@ -1,32 +1,34 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { fetchAdminBookings, updateBookingStatus, type Booking } from '../../../core/services/firebaseServices';
-import BookingStatusBadge from '../../../core/common/badge/BookingStatusBadge';
-import { formatListingType } from '../../../core/common/bookingDisplay';
+import {
+  fetchServiceRequests,
+  updateServiceRequestStatus,
+  deleteServiceRequest,
+  type ServiceRequest,
+  type ServiceRequestStatus,
+} from '../../../core/services/firebaseServices';
 
-const NEXT_STATUS_OPTIONS: Record<'pending' | 'confirmed' | 'cancelled', ('confirmed' | 'cancelled')[]> = {
-  pending: ['confirmed', 'cancelled'],
-  confirmed: ['cancelled'],
-  cancelled: [],
-};
+const STATUS_OPTIONS: ServiceRequestStatus[] = ['pending', 'contacted', 'confirmed', 'cancelled'];
 
 interface AdminBookingsProps {
   title?: string;
-  defaultStatus?: "pending" | "confirmed" | "cancelled" | "all";
+  defaultStatus?: ServiceRequestStatus | 'all';
 }
 
-const AdminBookings: React.FC<AdminBookingsProps> = ({ title = "All Bookings", defaultStatus = "all" }) => {
-  const [bookings, setBookings] = useState<Booking[]>([]);
+const AdminBookings: React.FC<AdminBookingsProps> = ({ title = 'All Bookings', defaultStatus = 'all' }) => {
+  const [requests, setRequests] = useState<ServiceRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState<"all" | "pending" | "confirmed" | "cancelled">(defaultStatus);
+  const [statusFilter, setStatusFilter] = useState<ServiceRequestStatus | 'all'>(defaultStatus);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [updatingId, setUpdatingId] = useState<string | null>(null);
 
   const load = async () => {
     setLoading(true);
     try {
-      const data = await fetchAdminBookings(statusFilter === 'all' ? undefined : statusFilter);
-      setBookings(data);
+      const data = await fetchServiceRequests(statusFilter === 'all' ? undefined : statusFilter);
+      setRequests(data);
     } catch (err) {
-      console.error(err);
+      console.error('Error loading service requests:', err);
     } finally {
       setLoading(false);
     }
@@ -37,23 +39,43 @@ const AdminBookings: React.FC<AdminBookingsProps> = ({ title = "All Bookings", d
   }, [statusFilter]);
 
   const filtered = useMemo(() => {
-    return bookings.filter((b) => {
-      const text = `${b.userName || ''} ${b.userEmail || ''} ${b.itemTitle || ''} ${formatListingType(b.listingType || b.itemType)}`.toLowerCase();
+    return requests.filter((r) => {
+      const text = `${r.serviceTitle || ''} ${r.customerName || ''} ${r.customerEmail || ''} ${r.customerPhone || ''} ${r.serviceType || ''} ${r.message || ''}`.toLowerCase();
       return text.includes(search.toLowerCase());
     });
-  }, [bookings, search]);
+  }, [requests, search]);
 
-  const changeStatus = async (booking: Booking, status: "pending" | "confirmed" | "cancelled") => {
+  const changeStatus = async (id: string, status: ServiceRequestStatus) => {
+    setUpdatingId(id);
     try {
-      await updateBookingStatus(
-        booking.id!,
-        status,
-        undefined,
-        booking.userId
-      );
+      await updateServiceRequestStatus(id, status);
       await load();
     } catch (err) {
-      console.error(err);
+      console.error('Error updating status:', err);
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!window.confirm('Are you sure you want to delete this request?')) return;
+    setDeletingId(id);
+    try {
+      await deleteServiceRequest(id);
+      await load();
+    } catch (err) {
+      console.error('Error deleting request:', err);
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  const formatDate = (value?: string) => {
+    if (!value) return '\u2014';
+    try {
+      return new Date(value).toLocaleString('en-GB');
+    } catch {
+      return value;
     }
   };
 
@@ -69,7 +91,7 @@ const AdminBookings: React.FC<AdminBookingsProps> = ({ title = "All Bookings", d
             <input
               type="text"
               className="form-control"
-              placeholder="Search bookings..."
+              placeholder="Search requests..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
@@ -81,9 +103,11 @@ const AdminBookings: React.FC<AdminBookingsProps> = ({ title = "All Bookings", d
             onChange={(e) => setStatusFilter(e.target.value as any)}
           >
             <option value="all">All Status</option>
-            <option value="pending">Pending</option>
-            <option value="confirmed">Confirmed</option>
-            <option value="cancelled">Cancelled</option>
+            {STATUS_OPTIONS.map((s) => (
+              <option key={s} value={s}>
+                {s.charAt(0).toUpperCase() + s.slice(1)}
+              </option>
+            ))}
           </select>
         </div>
       </div>
@@ -94,8 +118,10 @@ const AdminBookings: React.FC<AdminBookingsProps> = ({ title = "All Bookings", d
             <table className="table table-hover mb-0">
               <thead className="table-light">
                 <tr>
+                  <th>Service</th>
                   <th>Customer</th>
-                  <th>Booking Request</th>
+                  <th>Date / Guests</th>
+                  <th>Message</th>
                   <th>Created</th>
                   <th>Status</th>
                   <th className="text-end">Actions</th>
@@ -104,48 +130,82 @@ const AdminBookings: React.FC<AdminBookingsProps> = ({ title = "All Bookings", d
               <tbody>
                 {loading ? (
                   <tr>
-                    <td colSpan={5} className="text-center py-4">
+                    <td colSpan={7} className="text-center py-4">
                       <span className="spinner-border spinner-border-sm text-primary me-2" />
                       Loading...
                     </td>
                   </tr>
                 ) : filtered.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="text-center py-4 text-muted">
-                      No bookings found.
+                    <td colSpan={7} className="text-center py-4 text-muted">
+                      No requests found.
                     </td>
                   </tr>
                 ) : (
-                  filtered.map((b) => (
-                    <tr key={b.id}>
+                  filtered.map((r) => (
+                    <tr key={r.id}>
                       <td>
-                        <div className="fw-medium">{b.customerName || b.userName || '—'}</div>
-                        <div className="small text-muted">{b.customerEmail || b.userEmail || '—'}</div>
-                        <div className="small text-muted">{b.customerPhone || b.userPhone || '—'}</div>
+                        <div className="fw-medium">{r.serviceTitle || '\u2014'}</div>
+                        <span className="badge bg-light text-dark text-capitalize">
+                          {r.serviceType || 'other'}
+                        </span>
                       </td>
                       <td>
-                        <div className="fw-medium">{b.title || b.itemTitle || '—'}</div>
-                        <div className="small text-muted">{formatListingType(b.listingType || b.itemType)}</div>
+                        <div>{r.customerName || '\u2014'}</div>
+                        <div className="fs-12 text-muted">
+                          {r.customerEmail ? (
+                            <a href={`mailto:${r.customerEmail}`} className="text-muted text-decoration-none">
+                              {r.customerEmail}
+                            </a>
+                          ) : '\u2014'}
+                        </div>
+                        <div className="fs-12 text-muted">
+                          {r.customerPhone ? (
+                            <a href={`tel:${r.customerPhone}`} className="text-muted text-decoration-none">
+                              {r.customerPhone}
+                            </a>
+                          ) : '\u2014'}
+                        </div>
                       </td>
-                      <td>{b.createdAt ? new Date(b.createdAt).toLocaleString() : '—'}</td>
                       <td>
-                        <BookingStatusBadge status={b.status} />
+                        <div className="fs-14">{r.requestedDate || '\u2014'}</div>
+                        <div className="fs-12 text-muted">
+                          {r.guestsCount ? `${r.guestsCount} guest${r.guestsCount > 1 ? 's' : ''}` : '\u2014'}
+                        </div>
+                      </td>
+                      <td>
+                        <div className="fs-14 text-truncate" style={{ maxWidth: '220px' }} title={r.message || ''}>
+                          {r.message || '\u2014'}
+                        </div>
+                      </td>
+                      <td>{formatDate(r.createdAt)}</td>
+                      <td>
+                        <select
+                          className={`form-select form-select-sm ${r.status === 'pending' ? 'bg-warning text-dark' : r.status === 'contacted' ? 'bg-info text-dark' : r.status === 'confirmed' ? 'bg-success text-white' : 'bg-danger text-white'}`}
+                          value={r.status}
+                          disabled={updatingId === r.id}
+                          onChange={(e) => changeStatus(r.id!, e.target.value as ServiceRequestStatus)}
+                        >
+                          {STATUS_OPTIONS.map((s) => (
+                            <option key={s} value={s}>
+                              {s.charAt(0).toUpperCase() + s.slice(1)}
+                            </option>
+                          ))}
+                        </select>
                       </td>
                       <td className="text-end">
-                        {(b.status === 'pending' || b.status === 'confirmed' || b.status === 'cancelled'
-                          ? NEXT_STATUS_OPTIONS[b.status]
-                          : []
-                        ).map((s) => (
-                          <button
-                            key={s}
-                            className={`btn btn-sm me-1 ${
-                              s === 'confirmed' ? 'btn-success' : 'btn-danger'
-                            }`}
-                            onClick={() => changeStatus(b, s)}
-                          >
-                            {s === 'confirmed' ? 'Confirm' : 'Cancel'}
-                          </button>
-                        ))}
+                        <button
+                          className="btn btn-sm btn-light text-danger"
+                          disabled={deletingId === r.id}
+                          onClick={() => handleDelete(r.id!)}
+                          title="Delete"
+                        >
+                          {deletingId === r.id ? (
+                            <span className="spinner-border spinner-border-sm" />
+                          ) : (
+                            <i className="isax isax-trash" />
+                          )}
+                        </button>
                       </td>
                     </tr>
                   ))

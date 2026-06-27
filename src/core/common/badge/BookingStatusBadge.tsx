@@ -1,8 +1,9 @@
-import type { Booking } from '../../services/firebaseServices';
 import { bookingStatusClass, formatBookingStatus } from '../bookingDisplay';
 
+export type BadgeStatus = 'pending' | 'contacted' | 'confirmed' | 'cancelled' | 'completed' | 'rejected';
+
 interface BookingStatusBadgeProps {
-  status?: Booking['status'];
+  status?: BadgeStatus;
 }
 
 const BookingStatusBadge = ({ status = 'pending' }: BookingStatusBadgeProps) => {

@@ -22,6 +22,7 @@ const LISTING_LABELS: Record<string, string> = {
 
 const STATUS_LABELS: Record<string, string> = {
   pending: 'Pending',
+  contacted: 'Contacted',
   confirmed: 'Confirmed',
   cancelled: 'Cancelled',
   canceled: 'Cancelled',
@@ -51,6 +52,7 @@ export const formatBookingStatus = (value?: string): string => {
 export const bookingStatusClass = (value?: string): string => {
   const normalized = String(value || 'pending').toLowerCase();
   if (normalized === 'pending') return 'bg-warning text-dark';
+  if (normalized === 'contacted') return 'bg-info text-dark';
   if (normalized === 'confirmed') return 'bg-success';
   if (normalized === 'cancelled' || normalized === 'canceled') return 'bg-danger';
   if (normalized === 'completed') return 'bg-primary';

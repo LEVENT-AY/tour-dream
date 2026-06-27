@@ -124,7 +124,6 @@ export const all_routes = {
     adminBuses: "/admin/buses",
     adminVisas: "/admin/visas",
     adminGuides: "/admin/guides",
-    adminServiceRequests: "/admin/service-requests",
     adminAgents: "/admin/agents",
     adminCustomers: "/admin/customers",
     adminReviews: "/admin/reviews",
