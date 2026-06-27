@@ -266,6 +266,17 @@ const PROJECT_ID = 'tour-tunisi-test';
       createdBy: 'agent2',
       createdAt: new Date().toISOString(),
     });
+    await db.collection('serviceRequests').doc('publicRequest').set({
+      serviceType: 'cruise',
+      serviceId: 'cruise1',
+      serviceTitle: 'Cruise Request',
+      customerName: 'John Doe',
+      customerEmail: 'john@example.com',
+      customerPhone: '1234567890',
+      status: 'pending',
+      source: 'public',
+      createdAt: new Date().toISOString(),
+    });
     await db.collection('settings').doc('app').set({
       maintenanceMode: false,
     });
@@ -730,6 +741,107 @@ const PROJECT_ID = 'tour-tunisi-test';
     }));
     await assertSucceeds(ref.update({ title: 'Updated Admin Guide', updatedAt: new Date().toISOString() }));
     await assertSucceeds(ref.delete());
+  });
+
+  // 64. Admin can create, update, and delete a service request
+  await test('Admin can create, update, and delete a service request', async () => {
+    const admin = testEnv.authenticatedContext('admin1');
+    const ref = admin.firestore().collection('serviceRequests').doc('adminRequest');
+    await assertSucceeds(ref.set({
+      serviceType: 'cruise',
+      serviceId: 'cruise1',
+      serviceTitle: 'Admin Cruise Request',
+      customerName: 'Admin User',
+      customerEmail: 'admin@example.com',
+      customerPhone: '1234567890',
+      status: 'pending',
+      source: 'public',
+      createdAt: new Date().toISOString(),
+    }));
+    await assertSucceeds(ref.update({ status: 'contacted', updatedAt: new Date().toISOString() }));
+    await assertSucceeds(ref.delete());
+  });
+
+  // 65. Public can create a valid pending service request
+  await test('Public can create a valid pending service request', async () => {
+    const unauthed = testEnv.unauthenticatedContext();
+    const ref = unauthed.firestore().collection('serviceRequests').doc('newPublicRequest');
+    await assertSucceeds(ref.set({
+      serviceType: 'visa',
+      serviceId: 'visa1',
+      serviceTitle: 'Visa Request',
+      customerName: 'Jane Doe',
+      customerEmail: 'jane@example.com',
+      status: 'pending',
+      source: 'public',
+      createdAt: new Date().toISOString(),
+    }));
+  });
+
+  // 66. Public cannot read service requests
+  await test('Public cannot read service requests', async () => {
+    const unauthed = testEnv.unauthenticatedContext();
+    await assertFails(unauthed.firestore().collection('serviceRequests').doc('publicRequest').get());
+  });
+
+  // 67. Public cannot update service requests
+  await test('Public cannot update service requests', async () => {
+    const unauthed = testEnv.unauthenticatedContext();
+    await assertFails(unauthed.firestore().collection('serviceRequests').doc('publicRequest').update({ status: 'contacted' }));
+  });
+
+  // 68. Public cannot delete service requests
+  await test('Public cannot delete service requests', async () => {
+    const unauthed = testEnv.unauthenticatedContext();
+    await assertFails(unauthed.firestore().collection('serviceRequests').doc('publicRequest').delete());
+  });
+
+  // 69. Public cannot create confirmed service request
+  await test('Public cannot create confirmed service request', async () => {
+    const unauthed = testEnv.unauthenticatedContext();
+    const ref = unauthed.firestore().collection('serviceRequests').doc('badStatusRequest');
+    await assertFails(ref.set({
+      serviceType: 'bus',
+      serviceId: 'bus1',
+      serviceTitle: 'Bus Request',
+      customerName: 'Bad Status',
+      customerEmail: 'bad@example.com',
+      status: 'confirmed',
+      source: 'public',
+      createdAt: new Date().toISOString(),
+    }));
+  });
+
+  // 70. Public cannot create request with assignedTo
+  await test('Public cannot create request with assignedTo', async () => {
+    const unauthed = testEnv.unauthenticatedContext();
+    const ref = unauthed.firestore().collection('serviceRequests').doc('badAssignedRequest');
+    await assertFails(ref.set({
+      serviceType: 'guide',
+      serviceId: 'guide1',
+      serviceTitle: 'Guide Request',
+      customerName: 'Bad Assigned',
+      customerEmail: 'assigned@example.com',
+      status: 'pending',
+      source: 'public',
+      assignedTo: 'agent1',
+      createdAt: new Date().toISOString(),
+    }));
+  });
+
+  // 71. Public cannot create request missing customer contact
+  await test('Public cannot create request missing customer contact', async () => {
+    const unauthed = testEnv.unauthenticatedContext();
+    const ref = unauthed.firestore().collection('serviceRequests').doc('noContactRequest');
+    await assertFails(ref.set({
+      serviceType: 'tour',
+      serviceId: 'tour1',
+      serviceTitle: 'Tour Request',
+      customerName: 'No Contact',
+      status: 'pending',
+      source: 'public',
+      createdAt: new Date().toISOString(),
+    }));
   });
 
   await testEnv.cleanup();

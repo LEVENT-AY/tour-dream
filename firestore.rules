@@ -247,6 +247,53 @@ service cloud.firestore {
       allow delete: if isAdmin() || (isApprovedAgent() && isAgentListingOwner());
     }
 
+    // ---------- Service Requests ----------
+    function isValidServiceType(serviceType) {
+      return serviceType in ['cruise', 'bus', 'visa', 'guide', 'tour', 'hotel', 'activity', 'other'];
+    }
+
+    function hasRequiredServiceRequestFields() {
+      return request.resource.data.serviceType is string
+        && isValidServiceType(request.resource.data.serviceType)
+        && request.resource.data.serviceId is string
+        && request.resource.data.serviceId.size() > 0
+        && request.resource.data.serviceTitle is string
+        && request.resource.data.serviceTitle.size() > 0
+        && request.resource.data.customerName is string
+        && request.resource.data.customerName.size() > 0
+        && (
+          (request.resource.data.customerPhone is string && request.resource.data.customerPhone.size() > 0)
+          || (request.resource.data.customerEmail is string && request.resource.data.customerEmail.size() > 0)
+        );
+    }
+
+    function hasNoAdminServiceRequestFields() {
+      return !('assignedTo' in request.resource.data)
+        && !('internalNotes' in request.resource.data);
+    }
+
+    function isSafeServiceRequestStatus() {
+      return !('status' in request.resource.data) || request.resource.data.status == 'pending';
+    }
+
+    function isSafeServiceRequestSource() {
+      return !('source' in request.resource.data) || request.resource.data.source == 'public';
+    }
+
+    function isSafePublicServiceRequestCreate() {
+      return hasRequiredServiceRequestFields()
+        && hasNoAdminServiceRequestFields()
+        && isSafeServiceRequestStatus()
+        && isSafeServiceRequestSource();
+    }
+
+    match /serviceRequests/{requestId} {
+      allow read: if isAdmin();
+      allow create: if isAdmin() || isSafePublicServiceRequestCreate();
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
     // ---------- Bookings ----------
     function isBookingAgent() {
       return resource.data.agentId == currentUserId();
