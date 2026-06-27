@@ -24,6 +24,12 @@ export interface AdminStats {
   totalActivities: number;
   totalListings: number;
   totalRevenue: number;
+  totalServiceRequests: number;
+  pendingServiceRequests: number;
+  contactedServiceRequests: number;
+  confirmedServiceRequests: number;
+  cancelledServiceRequests: number;
+  todayServiceRequests: number;
 }
 
 export interface RecentBooking {
@@ -54,12 +60,15 @@ export interface RecentListing {
   createdAt?: Timestamp;
 }
 
-const getCount = async (col: string, filters?: { field: string; value: unknown }[]) => {
+const getCount = async (
+  col: string,
+  filters?: { field: string; value: unknown; op?: string }[]
+) => {
   try {
     let q = query(collection(db, col));
     if (filters) {
       filters.forEach((f) => {
-        q = query(q, where(f.field, '==', f.value));
+        q = query(q, where(f.field, f.op as any || '==', f.value));
       });
     }
     const snapshot = await getCountFromServer(q);
@@ -70,6 +79,9 @@ const getCount = async (col: string, filters?: { field: string; value: unknown }
 };
 
 export const getAdminStats = async (): Promise<AdminStats> => {
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
+
   const [
     totalBookings,
     pendingBookings,
@@ -82,6 +94,12 @@ export const getAdminStats = async (): Promise<AdminStats> => {
     totalFlights,
     totalCars,
     totalActivities,
+    totalRequests,
+    pendingRequests,
+    contactedRequests,
+    confirmedRequests,
+    cancelledRequests,
+    todayRequests,
   ] = await Promise.all([
     getCount('bookings'),
     getCount('bookings', [{ field: 'status', value: 'pending' }]),
@@ -94,6 +112,12 @@ export const getAdminStats = async (): Promise<AdminStats> => {
     getCount('flights'),
     getCount('cars'),
     getCount('activities'),
+    getCount('serviceRequests'),
+    getCount('serviceRequests', [{ field: 'status', value: 'pending' }]),
+    getCount('serviceRequests', [{ field: 'status', value: 'contacted' }]),
+    getCount('serviceRequests', [{ field: 'status', value: 'confirmed' }]),
+    getCount('serviceRequests', [{ field: 'status', value: 'cancelled' }]),
+    getCount('serviceRequests', [{ field: 'createdAt', value: todayStart.toISOString(), op: '>=' }]),
   ]);
 
   return {
@@ -110,6 +134,12 @@ export const getAdminStats = async (): Promise<AdminStats> => {
     totalActivities,
     totalListings: totalTours + totalHotels + totalFlights + totalCars + totalActivities,
     totalRevenue: 0,
+    totalServiceRequests: totalRequests,
+    pendingServiceRequests: pendingRequests,
+    contactedServiceRequests: contactedRequests,
+    confirmedServiceRequests: confirmedRequests,
+    cancelledServiceRequests: cancelledRequests,
+    todayServiceRequests: todayRequests,
   };
 };
 

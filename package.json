@@ -13,6 +13,7 @@
     "deploy:rules": "firebase deploy --only firestore:rules --project=tour-tunisi",
     "ensure:demo-accounts": "node scripts/ensure-demo-accounts.mjs",
     "demo:ensure-accounts": "node scripts/ensure-demo-accounts.mjs",
+    "qa:service-requests": "node scripts/qa-service-requests.mjs",
     "smoke:customer-login": "node scripts/smoke-customer-login.cjs",
     "smoke:customer-dashboard": "node scripts/smoke-customer-dashboard.cjs",
     "smoke:demo-accounts": "node scripts/smoke-demo-accounts.mjs",

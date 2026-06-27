@@ -164,6 +164,63 @@ const AdminDashboard: React.FC = () => {
         ))}
       </div>
 
+      {/* Service Request Stats */}
+      {stats && stats.totalServiceRequests > 0 && (
+        <div className="mb-4">
+          <h5 className="mb-3">Service Requests</h5>
+          <div className="row g-3">
+            <div className="col-12 col-sm-6 col-xl-2">
+              <Link to={all_routes.adminBookings} className="card text-decoration-none h-100 border-primary">
+                <div className="card-body text-center py-3">
+                  <h3 className="text-primary mb-1">{stats.totalServiceRequests}</h3>
+                  <h6 className="text-muted mb-0">Total</h6>
+                </div>
+              </Link>
+            </div>
+            <div className="col-12 col-sm-6 col-xl-2">
+              <Link to={all_routes.adminBookingsPending} className="card text-decoration-none h-100 border-warning">
+                <div className="card-body text-center py-3">
+                  <h3 className="text-warning mb-1">{stats.pendingServiceRequests}</h3>
+                  <h6 className="text-muted mb-0">Pending</h6>
+                </div>
+              </Link>
+            </div>
+            <div className="col-12 col-sm-6 col-xl-2">
+              <Link to={all_routes.adminBookings} className="card text-decoration-none h-100 border-info">
+                <div className="card-body text-center py-3">
+                  <h3 className="text-info mb-1">{stats.contactedServiceRequests}</h3>
+                  <h6 className="text-muted mb-0">Contacted</h6>
+                </div>
+              </Link>
+            </div>
+            <div className="col-12 col-sm-6 col-xl-2">
+              <Link to={all_routes.adminBookingsConfirmed} className="card text-decoration-none h-100 border-success">
+                <div className="card-body text-center py-3">
+                  <h3 className="text-success mb-1">{stats.confirmedServiceRequests}</h3>
+                  <h6 className="text-muted mb-0">Confirmed</h6>
+                </div>
+              </Link>
+            </div>
+            <div className="col-12 col-sm-6 col-xl-2">
+              <Link to={all_routes.adminBookingsCancelled} className="card text-decoration-none h-100 border-danger">
+                <div className="card-body text-center py-3">
+                  <h3 className="text-danger mb-1">{stats.cancelledServiceRequests}</h3>
+                  <h6 className="text-muted mb-0">Cancelled</h6>
+                </div>
+              </Link>
+            </div>
+            <div className="col-12 col-sm-6 col-xl-2">
+              <div className="card text-decoration-none h-100">
+                <div className="card-body text-center py-3">
+                  <h3 className="text-dark mb-1">{stats.todayServiceRequests}</h3>
+                  <h6 className="text-muted mb-0">Today</h6>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Booking Status Overview */}
       <div className="card mb-4">
         <div className="card-header bg-white">
