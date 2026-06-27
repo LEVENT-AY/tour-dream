@@ -1,0 +1,159 @@
+import { useEffect, useState } from 'react';
+import ImageWithBasePath from '../../../core/common/imageWithBasePath';
+import { fetchVisas } from '../../../core/services/firebaseServices';
+import { normalizeVisaDetails } from '../../../core/services/listingDetailModels';
+
+const VISA_FALLBACK_IMAGE = 'assets/img/visa/visa-01.jpg';
+
+type VisaRecord = Record<string, any>;
+
+const FirestoreVisaList = () => {
+  const [visas, setVisas] = useState<VisaRecord[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let active = true;
+
+    const loadVisas = async () => {
+      try {
+        const data = await fetchVisas();
+        if (active) {
+          setVisas(
+            data
+              .filter((visa) => visa.published !== false)
+              .map((visa) => normalizeVisaDetails(visa))
+          );
+        }
+      } catch (error) {
+        console.error('Error loading Firestore visas:', error);
+      } finally {
+        if (active) {
+          setLoading(false);
+        }
+      }
+    };
+
+    loadVisas();
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const getVisaImage = (visa: VisaRecord) =>
+    visa.mainImage || visa.image || (Array.isArray(visa.gallery) ? visa.gallery[0] : '') || VISA_FALLBACK_IMAGE;
+
+  const formatPrice = (visa: VisaRecord) => {
+    const price = visa.price ?? 0;
+    const currency = visa.currency || 'TND';
+    return price > 0 ? `${price} ${currency}` : 'Price on request';
+  };
+
+  if (loading) {
+    return (
+      <div className="text-center py-4">
+        <div
+          className="spinner-border spinner-border-sm text-primary me-2"
+          role="status"
+        />
+        <span className="fs-14 text-gray-6">Loading available visas...</span>
+      </div>
+    );
+  }
+
+  if (visas.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="mb-4">
+      <div className="d-flex align-items-center justify-content-between flex-wrap mb-3">
+        <h6 className="mb-0">Available Visas from Agents</h6>
+        <span className="fs-14 text-gray-6">{visas.length} found</span>
+      </div>
+      <div className="hotel-list">
+        <div className="row justify-content-center">
+          <div className="col-md-12">
+            {visas.map((visa, index) => (
+              <div className="place-item mb-4" key={visa.id || index}>
+                <div className="place-img">
+                  <div className="slide-images">
+                    <ImageWithBasePath
+                      src={getVisaImage(visa)}
+                      className="img-fluid w-100"
+                      alt={visa.title || 'Visa image'}
+                      fallbackSrc={VISA_FALLBACK_IMAGE}
+                    />
+                  </div>
+                  <div className="fav-item">
+                    <span className="badge bg-white text-dark d-inline-flex align-items-center">
+                      {visa.visaType || 'Visa'}
+                    </span>
+                  </div>
+                </div>
+                <div className="place-content d-flex flex-column justify-content-between">
+                  <div className="d-flex align-items-center justify-content-between mb-2">
+                    <div className="d-flex flex-wrap align-items-center me-2">
+                      <span className="me-1">
+                        <i className="isax isax-clock text-gray-6" />
+                      </span>
+                      <p className="fs-14 text-gray-9">
+                        {visa.processingTime || 'Processing time on request'}
+                      </p>
+                    </div>
+                  </div>
+                  <div>
+                    <h5 className="mb-2 text-truncate">
+                      {visa.title || visa.name || 'Visa'}
+                    </h5>
+                    <div className="d-flex align-items-center gap-3 mb-3">
+                      {visa.destination && (
+                        <p className="d-flex align-items-center fs-14 mb-0">
+                          Destination : {visa.destination}
+                        </p>
+                      )}
+                      {visa.country && (
+                        <p className="fs-14 mb-0">
+                          <i className="ti ti-point-filled text-primary me-2" />
+                          {visa.country}
+                        </p>
+                      )}
+                    </div>
+                    {visa.description && (
+                      <p className="fs-14 text-gray-6 mb-3 line-clamp-2">
+                        {visa.description}
+                      </p>
+                    )}
+                  </div>
+                  <div className="d-flex align-items-center justify-content-between border-top pt-3">
+                    <div className="mb-0">
+                      <h6 className="d-flex align-items-center text-gray-6 fs-14 fw-normal">
+                        From
+                        <span className="ms-1 fs-18 fw-semibold text-primary">
+                          {formatPrice(visa)}
+                        </span>
+                        <span className="ms-1 fs-14 text-gray-3">
+                          / Person
+                        </span>
+                      </h6>
+                    </div>
+                    {visa.location && (
+                      <div className="ms-2 d-flex align-items-center">
+                        <p className="d-flex fs-14 align-items-center mb-0">
+                          <i className="isax isax-location5 me-1" />
+                          {visa.location}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default FirestoreVisaList;

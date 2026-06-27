@@ -4,6 +4,7 @@ import ImageWithBasePath from "../../../core/common/imageWithBasePath";
 import { all_routes } from "../../router/all_routes";
 import VisaFilter from "../visaFilter";
 import VisaSearch from "../visaSearch";
+import FirestoreVisaList from "./FirestoreVisaList";
 import { Link } from "react-router-dom";
 
 const VisaList = () => {
@@ -175,6 +176,7 @@ const VisaList = () => {
                   </div>
                 </div>
               </div>
+              <FirestoreVisaList />
               <div className="hotel-list">
                 <div className="row justify-content-center">
                   <div className="col-md-12">
