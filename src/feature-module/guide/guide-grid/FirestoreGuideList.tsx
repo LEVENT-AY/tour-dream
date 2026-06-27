@@ -1,13 +1,16 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import ImageWithBasePath from '../../../core/common/imageWithBasePath';
 import { fetchGuides } from '../../../core/services/firebaseServices';
 import { normalizeGuideDetails } from '../../../core/services/listingDetailModels';
+import { all_routes } from '../../router/all_routes';
 
 const GUIDE_FALLBACK_IMAGE = 'assets/img/guide/guide-01.jpg';
 
 type GuideRecord = Record<string, any>;
 
 const FirestoreGuideList = () => {
+  const routes = all_routes;
   const [guides, setGuides] = useState<GuideRecord[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -87,16 +90,20 @@ const FirestoreGuideList = () => {
             <div className="card guide-card h-100">
               <div className="card-body">
                 <div className="guide-img">
-                  <ImageWithBasePath
-                    src={getGuideImage(guide)}
-                    alt={guide.title || 'Guide image'}
-                    className="img-fluid"
-                    fallbackSrc={GUIDE_FALLBACK_IMAGE}
-                  />
+                  <Link to={`${routes.guideDetails}?id=${guide.id}`}>
+                    <ImageWithBasePath
+                      src={getGuideImage(guide)}
+                      alt={guide.title || 'Guide image'}
+                      className="img-fluid"
+                      fallbackSrc={GUIDE_FALLBACK_IMAGE}
+                    />
+                  </Link>
                 </div>
                 <div className="mb-2">
                   <h3 className="text-truncate">
-                    {guide.title || guide.name || 'Guide'}
+                    <Link to={`${routes.guideDetails}?id=${guide.id}`}>
+                      {guide.title || guide.name || 'Guide'}
+                    </Link>
                   </h3>
                   <p className="fs-14 text-gray-6 mb-1">
                     {guide.location || guide.city || guide.region || 'Location on request'}
@@ -122,12 +129,20 @@ const FirestoreGuideList = () => {
                     {guide.description}
                   </p>
                 )}
-                <h6 className="d-flex align-items-center text-gray-6 fs-14 fw-normal">
-                  From
-                  <span className="ms-1 fs-16 fw-semibold text-primary">
-                    {formatPrice(guide)}
-                  </span>
-                </h6>
+                <div className="d-flex align-items-center justify-content-between">
+                  <h6 className="d-flex align-items-center text-gray-6 fs-14 fw-normal mb-0">
+                    From
+                    <span className="ms-1 fs-16 fw-semibold text-primary">
+                      {formatPrice(guide)}
+                    </span>
+                  </h6>
+                  <Link
+                    to={`${routes.guideDetails}?id=${guide.id}`}
+                    className="btn btn-dark btn-sm"
+                  >
+                    View Details
+                  </Link>
+                </div>
               </div>
             </div>
           </div>

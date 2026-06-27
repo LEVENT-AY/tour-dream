@@ -1,13 +1,16 @@
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import Breadcrumb from "../../../core/common/Breadcrumb/breadcrumb";
 import { all_routes } from "../../router/all_routes";
 import ImageWithBasePath from "../../../core/common/imageWithBasePath";
 import Lightbox from "yet-another-react-lightbox";
 import React from "react";
+import FirestoreGuideDetails from "./FirestoreGuideDetails";
 const GuideDetails = () => {
 
 
   const routes = all_routes;
+  const [searchParams] = useSearchParams();
+  const guideId = searchParams.get('id');
   const [open, setOpen] = React.useState(false);
   //Breadcrumb Data
   const breadcrumbs = [
@@ -35,6 +38,8 @@ const GuideDetails = () => {
       {/* Page Wrapper */}
       <div className="content">
         <div className="container">
+          <FirestoreGuideDetails />
+          {!guideId && <>
           <div className="guide-details-card-one">
             <div className="guide-details-card-one-inner">
               <div className="d-flex align-items-center guide-details-card-one-inner-content">
@@ -708,6 +713,7 @@ const GuideDetails = () => {
               </div>
             </div>
           </div>
+          </>}
         </div>
       </div>
       {/* /Page Wrapper */}
