@@ -7,7 +7,7 @@ import CustomSelect from '../../../core/common/commonSelect';
 import { useState } from 'react';
 import BusAccordion from './busAccordion';
 import ImageWithBasePath from '../../../core/common/imageWithBasePath';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import FirestoreBusDetails from './FirestoreBusDetails';
 import { DatePicker } from 'antd';
 import dayjs from "dayjs";
@@ -15,6 +15,8 @@ import dayjs from "dayjs";
 const BusDetails = () => {
 
   const routes = all_routes;
+  const [searchParams] = useSearchParams();
+  const busId = searchParams.get('id');
 
   //Breadcrumb Data
   const breadcrumbs = [
@@ -60,6 +62,7 @@ const BusDetails = () => {
       <div className="content">
         <div className="container">
           <FirestoreBusDetails />
+          {!busId && (
           <div className="row">
             <div className="col-xl-8">
 
@@ -684,6 +687,7 @@ const BusDetails = () => {
               </div>
             </div>
           </div>
+          )}
         </div>
       </div>
       {/* /Page Wrapper */}
