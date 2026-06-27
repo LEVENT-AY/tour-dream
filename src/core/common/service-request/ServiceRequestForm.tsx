@@ -32,11 +32,16 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [honeypot, setHoneypot] = useState('');
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
     const { name, value } = e.target;
+    if (name === '_hp_name') {
+      setHoneypot(value);
+      return;
+    }
     setForm((prev) => ({ ...prev, [name]: value }));
     setError(null);
     setSuccess(null);
@@ -44,14 +49,17 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({
 
   const validate = (): string | null => {
     const name = form.customerName.trim();
-    if (!name) return 'Please enter your name.';
+    if (!name) return 'Please enter your full name.';
     const email = form.customerEmail.trim();
     const phone = form.customerPhone.trim();
     if (!email && !phone) {
-      return 'Please enter a phone number or email address.';
+      return 'Please provide a phone number or email so we can reach you.';
     }
     if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       return 'Please enter a valid email address.';
+    }
+    if (phone && phone.length < 6) {
+      return 'Please enter a valid phone number.';
     }
     if (form.guestsCount && Number(form.guestsCount) < 1) {
       return 'Guests count must be at least 1.';
@@ -61,6 +69,7 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (honeypot) return;
     const validationError = validate();
     if (validationError) {
       setError(validationError);
@@ -83,7 +92,7 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({
         guestsCount: form.guestsCount ? Number(form.guestsCount) : undefined,
         message: form.message.trim() || undefined,
       });
-      setSuccess('Request submitted successfully. We will contact you soon.');
+      setSuccess('Your request has been sent! Our team will contact you shortly.');
       setForm({
         customerName: '',
         customerEmail: '',
@@ -94,7 +103,7 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({
       });
     } catch (err) {
       console.error('Error submitting service request:', err);
-      setError('Failed to submit request. Please try again later.');
+      setError('Something went wrong. Please try again or contact us directly.');
     } finally {
       setSubmitting(false);
     }
@@ -103,7 +112,10 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({
   return (
     <div className="card shadow-none border mt-4">
       <div className="card-body">
-        <h5 className="mb-3">Request this {serviceType}</h5>
+        <h5 className="mb-1">Send Booking Request</h5>
+        <p className="text-muted small mb-3">
+          No online payment needed now. Our team will review your request and contact you.
+        </p>
         {success && (
           <div className="alert alert-success py-2 fs-14" role="alert">
             {success}
@@ -115,6 +127,16 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({
           </div>
         )}
         <form onSubmit={handleSubmit}>
+          <div style={{ position: 'absolute', left: '-9999px' }} aria-hidden="true">
+            <input
+              type="text"
+              name="_hp_name"
+              tabIndex={-1}
+              autoComplete="off"
+              value={honeypot}
+              onChange={handleChange}
+            />
+          </div>
           <div className="mb-3">
             <label htmlFor="customerName" className="form-label fs-14">
               Full Name <span className="text-danger">*</span>
@@ -124,7 +146,7 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({
               id="customerName"
               name="customerName"
               className="form-control"
-              placeholder="Your name"
+              placeholder="Your full name"
               value={form.customerName}
               onChange={handleChange}
               required
@@ -159,6 +181,11 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({
                 onChange={handleChange}
               />
             </div>
+          </div>
+          <div className="mb-2">
+            <small className="text-muted">
+              Provide a phone number or email so we can contact you <span className="text-danger">*</span>
+            </small>
           </div>
           <div className="row">
             <div className="col-md-6 mb-3">
@@ -212,7 +239,7 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({
             {submitting ? (
               <>
                 <span className="spinner-border spinner-border-sm me-2" />
-                Submitting...
+                Sending...
               </>
             ) : (
               'Send Request'

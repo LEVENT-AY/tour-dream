@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import {
   fetchServiceRequests,
   updateServiceRequestStatus,
@@ -39,17 +39,31 @@ const TABS: TabItem[] = [
   { key: 'cancelled', label: 'Cancelled' },
 ];
 
-const normalizePhone = (phone: string): string => {
-  return phone.replace(/[^\d]/g, '');
-};
+const CSV_HEADERS = [
+  'createdAt','status','priority','serviceType','serviceTitle',
+  'customerName','phone','email','requestedDate','guestsCount',
+  'assignedTo','followUpDate','message','internalNotes',
+];
+
+const normalizePhone = (phone: string): string => phone.replace(/[^\d]/g, '');
 
 const formatShortDate = (value?: string) => {
   if (!value) return '\u2014';
-  try {
-    return new Date(value).toLocaleDateString('en-GB');
-  } catch {
-    return value;
-  }
+  try { return new Date(value).toLocaleDateString('en-GB'); } catch { return value; }
+};
+
+const todayStr = () => new Date().toISOString().slice(0, 10);
+
+const isOverdue = (r: ServiceRequest): boolean => {
+  if (!r.followUpDate) return false;
+  if (r.status === 'confirmed' || r.status === 'cancelled') return false;
+  return r.followUpDate < todayStr();
+};
+
+const isDueToday = (r: ServiceRequest): boolean => {
+  if (!r.followUpDate) return false;
+  if (r.status === 'confirmed' || r.status === 'cancelled') return false;
+  return r.followUpDate === todayStr();
 };
 
 interface AdminBookingsProps {
@@ -64,8 +78,8 @@ const AdminBookings: React.FC<AdminBookingsProps> = ({ title = 'All Bookings', d
   const [activeTab, setActiveTab] = useState<ServiceRequestStatus | 'all'>(defaultStatus);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [copyFeedback, setCopyFeedback] = useState<string | null>(null);
 
-  // Modal state
   const [selectedRequest, setSelectedRequest] = useState<ServiceRequest | null>(null);
   const [modalStatus, setModalStatus] = useState<ServiceRequestStatus>('pending');
   const [modalPriority, setModalPriority] = useState<ServiceRequestPriority>('normal');
@@ -87,29 +101,22 @@ const AdminBookings: React.FC<AdminBookingsProps> = ({ title = 'All Bookings', d
     }
   };
 
-  useEffect(() => {
-    load();
-  }, []);
+  useEffect(() => { load(); }, []);
 
   const statusCounts = useMemo(() => {
     const counts: Record<string, number> = { all: allRequests.length };
-    STATUS_OPTIONS.forEach((s) => {
-      counts[s] = allRequests.filter((r) => r.status === s).length;
-    });
+    STATUS_OPTIONS.forEach((s) => { counts[s] = allRequests.filter((r) => r.status === s).length; });
     return counts;
   }, [allRequests]);
 
   const filtered = useMemo(() => {
     let result = allRequests;
-    if (activeTab !== 'all') {
-      result = result.filter((r) => r.status === activeTab);
-    }
+    if (activeTab !== 'all') result = result.filter((r) => r.status === activeTab);
     if (search.trim()) {
       const q = search.toLowerCase();
-      result = result.filter((r) => {
-        const text = `${r.serviceTitle || ''} ${r.customerName || ''} ${r.customerEmail || ''} ${r.customerPhone || ''} ${r.serviceType || ''} ${r.message || ''} ${r.assignedTo || ''}`.toLowerCase();
-        return text.includes(q);
-      });
+      result = result.filter((r) =>
+        `${r.serviceTitle || ''} ${r.customerName || ''} ${r.customerEmail || ''} ${r.customerPhone || ''} ${r.serviceType || ''} ${r.message || ''} ${r.assignedTo || ''}`.toLowerCase().includes(q)
+      );
     }
     return result;
   }, [allRequests, activeTab, search]);
@@ -167,6 +174,35 @@ const AdminBookings: React.FC<AdminBookingsProps> = ({ title = 'All Bookings', d
     }
   };
 
+  const copyFollowUp = useCallback(async (r: ServiceRequest) => {
+    const msg = `Hi ${r.customerName || 'there'}, this is DreamsTour following up on your request for "${r.serviceTitle || 'a service'}".${r.requestedDate ? ` You requested ${r.requestedDate}.` : ''} Please let us know if you have any questions.`;
+    try {
+      await navigator.clipboard.writeText(msg);
+      setCopyFeedback(r.id!);
+      setTimeout(() => setCopyFeedback(null), 2000);
+    } catch { /* clipboard not available */ }
+  }, []);
+
+  const exportCSV = useCallback(() => {
+    const esc = (v: unknown) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+    const rows = filtered.map((r) =>
+      CSV_HEADERS.map((h) => {
+        if (h === 'guestsCount') return esc(r.guestsCount ?? '');
+        if (h === 'phone') return esc(r.customerPhone);
+        if (h === 'email') return esc(r.customerEmail);
+        return esc((r as any)[h]);
+      }).join(',')
+    );
+    const csv = [CSV_HEADERS.join(','), ...rows].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `bookings-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }, [filtered]);
+
   const emptyMessage = () => {
     if (search.trim()) return 'No requests match your search.';
     if (activeTab !== 'all') return `No ${STATUS_LABELS[activeTab]?.toLowerCase() || ''} requests found.`;
@@ -177,9 +213,12 @@ const AdminBookings: React.FC<AdminBookingsProps> = ({ title = 'All Bookings', d
     <div>
       <div className="d-flex flex-wrap align-items-center justify-content-between mb-4">
         <h3 className="mb-0">{title}</h3>
+        <button className="btn btn-sm btn-light" onClick={exportCSV} title="Export visible rows as CSV">
+          <i className="isax isax-export me-1" />
+          Export CSV
+        </button>
       </div>
 
-      {/* Tabs with counters */}
       <div className="mb-3">
         <ul className="nav nav-pills gap-2 flex-nowrap overflow-auto pb-1">
           {TABS.map((tab) => (
@@ -212,7 +251,7 @@ const AdminBookings: React.FC<AdminBookingsProps> = ({ title = 'All Bookings', d
       </div>
 
       <div className="card mb-4">
-        <div className="card-body d-flex flex-wrap gap-3">
+        <div className="card-body d-flex flex-wrap gap-3 align-items-center">
           <div className="flex-grow-1" style={{ minWidth: '240px' }}>
             <input
               type="text"
@@ -222,6 +261,9 @@ const AdminBookings: React.FC<AdminBookingsProps> = ({ title = 'All Bookings', d
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
+          <small className="text-muted text-nowrap">
+            {filtered.length} of {allRequests.length} request{allRequests.length !== 1 ? 's' : ''}
+          </small>
         </div>
       </div>
 
@@ -256,98 +298,116 @@ const AdminBookings: React.FC<AdminBookingsProps> = ({ title = 'All Bookings', d
                     </td>
                   </tr>
                 ) : (
-                  filtered.map((r) => (
-                    <tr key={r.id}>
-                      <td>
-                        <div className="fw-medium text-wrap" style={{ maxWidth: '180px' }}>
-                          {r.serviceTitle || '\u2014'}
-                        </div>
-                        <span className="badge bg-light text-dark text-capitalize">
-                          {r.serviceType || 'other'}
-                        </span>
-                      </td>
-                      <td>
-                        <div>{r.customerName || '\u2014'}</div>
-                        <div className="fs-12 text-muted">
-                          {r.customerEmail ? (
-                            <a href={`mailto:${r.customerEmail}`} className="text-muted text-decoration-none">
-                              {r.customerEmail}
-                            </a>
-                          ) : '\u2014'}
-                        </div>
-                        <div className="fs-12 text-muted d-flex align-items-center gap-1">
-                          {r.customerPhone ? (
-                            <>
-                              <a href={`tel:${r.customerPhone}`} className="text-muted text-decoration-none">
-                                {r.customerPhone}
+                  filtered.map((r) => {
+                    const overdue = isOverdue(r);
+                    const dueToday = isDueToday(r);
+                    return (
+                      <tr key={r.id} className={overdue ? 'table-warning' : dueToday ? 'table-info' : ''}>
+                        <td>
+                          <div className="fw-medium text-wrap d-flex align-items-center gap-1" style={{ maxWidth: '180px' }}>
+                            {r.serviceTitle || '\u2014'}
+                            {r.priority === 'urgent' && (
+                              <span className="badge bg-danger" title="Urgent">!</span>
+                            )}
+                          </div>
+                          <span className="badge bg-light text-dark text-capitalize">
+                            {r.serviceType || 'other'}
+                          </span>
+                        </td>
+                        <td>
+                          <div>{r.customerName || '\u2014'}</div>
+                          <div className="fs-12 text-muted">
+                            {r.customerEmail ? (
+                              <a href={`mailto:${r.customerEmail}`} className="text-muted text-decoration-none">
+                                {r.customerEmail}
                               </a>
-                              <a
-                                href={`https://wa.me/${normalizePhone(r.customerPhone)}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-success text-decoration-none"
-                                title="WhatsApp"
-                              >
-                                <i className="isax isax-whatsapp fs-14" />
-                              </a>
-                            </>
-                          ) : '\u2014'}
-                        </div>
-                      </td>
-                      <td>
-                        <span className={PRIORITY_BADGE[r.priority || 'normal']}>
-                          {r.priority || 'normal'}
-                        </span>
-                      </td>
-                      <td>
-                        <div className="fs-14">{r.requestedDate || '\u2014'}</div>
-                        <div className="fs-12 text-muted">
-                          {r.guestsCount ? `${r.guestsCount} guest${r.guestsCount > 1 ? 's' : ''}` : '\u2014'}
-                        </div>
-                      </td>
-                      <td>
-                        <div className="text-truncate" style={{ maxWidth: '200px' }} title={r.message || ''}>
-                          {r.message || '\u2014'}
-                        </div>
-                      </td>
-                      <td className="text-nowrap">{formatShortDate(r.createdAt)}</td>
-                      <td>
-                        <select
-                          className={`form-select form-select-sm ${r.status === 'pending' ? 'bg-warning text-dark' : r.status === 'contacted' ? 'bg-info text-dark' : r.status === 'confirmed' ? 'bg-success text-white' : 'bg-danger text-white'}`}
-                          value={r.status}
-                          disabled={updatingId === r.id}
-                          onChange={(e) => changeStatus(r.id!, e.target.value as ServiceRequestStatus)}
-                        >
-                          {STATUS_OPTIONS.map((s) => (
-                            <option key={s} value={s}>
-                              {s.charAt(0).toUpperCase() + s.slice(1)}
-                            </option>
-                          ))}
-                        </select>
-                      </td>
-                      <td className="text-end text-nowrap">
-                        <button
-                          className="btn btn-sm btn-light me-1"
-                          onClick={() => openModal(r)}
-                          title="Details"
-                        >
-                          <i className="isax isax-eye" />
-                        </button>
-                        <button
-                          className="btn btn-sm btn-light text-danger"
-                          disabled={deletingId === r.id}
-                          onClick={() => handleDelete(r.id!)}
-                          title="Delete"
-                        >
-                          {deletingId === r.id ? (
-                            <span className="spinner-border spinner-border-sm" />
-                          ) : (
-                            <i className="isax isax-trash" />
-                          )}
-                        </button>
-                      </td>
-                    </tr>
-                  ))
+                            ) : '\u2014'}
+                          </div>
+                          <div className="fs-12 text-muted d-flex align-items-center gap-1">
+                            {r.customerPhone ? (
+                              <>
+                                <a href={`tel:${r.customerPhone}`} className="text-muted text-decoration-none">
+                                  {r.customerPhone}
+                                </a>
+                                <a
+                                  href={`https://wa.me/${normalizePhone(r.customerPhone)}?text=${encodeURIComponent(`Hi ${r.customerName || ''}, this is DreamsTour following up on your request for "${r.serviceTitle || ''}".`)}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-success text-decoration-none"
+                                  title="WhatsApp"
+                                >
+                                  <i className="isax isax-whatsapp fs-14" />
+                                </a>
+                              </>
+                            ) : '\u2014'}
+                          </div>
+                        </td>
+                        <td>
+                          <span className={PRIORITY_BADGE[r.priority || 'normal']}>
+                            {r.priority || 'normal'}
+                          </span>
+                        </td>
+                        <td>
+                          <div className="fs-14">{r.requestedDate || '\u2014'}</div>
+                          <div className="fs-12 text-muted">
+                            {r.guestsCount ? `${r.guestsCount} guest${r.guestsCount > 1 ? 's' : ''}` : '\u2014'}
+                          </div>
+                        </td>
+                        <td>
+                          <div className="text-truncate" style={{ maxWidth: '180px' }} title={r.message || ''}>
+                            {r.message || '\u2014'}
+                          </div>
+                        </td>
+                        <td className="text-nowrap">{formatShortDate(r.createdAt)}</td>
+                        <td>
+                          <select
+                            className={`form-select form-select-sm ${r.status === 'pending' ? 'bg-warning text-dark' : r.status === 'contacted' ? 'bg-info text-dark' : r.status === 'confirmed' ? 'bg-success text-white' : 'bg-danger text-white'}`}
+                            value={r.status}
+                            disabled={updatingId === r.id}
+                            onChange={(e) => changeStatus(r.id!, e.target.value as ServiceRequestStatus)}
+                          >
+                            {STATUS_OPTIONS.map((s) => (
+                              <option key={s} value={s}>
+                                {s.charAt(0).toUpperCase() + s.slice(1)}
+                              </option>
+                            ))}
+                          </select>
+                        </td>
+                        <td className="text-end text-nowrap">
+                          <button
+                            className="btn btn-sm btn-light me-1"
+                            onClick={() => openModal(r)}
+                            title="Details"
+                          >
+                            <i className="isax isax-eye" />
+                          </button>
+                          <button
+                            className="btn btn-sm btn-light me-1"
+                            onClick={() => copyFollowUp(r)}
+                            title="Copy follow-up message"
+                          >
+                            {copyFeedback === r.id ? (
+                              <i className="isax isax-tick-circle text-success" />
+                            ) : (
+                              <i className="isax isax-copy" />
+                            )}
+                          </button>
+                          <button
+                            className="btn btn-sm btn-light text-danger"
+                            disabled={deletingId === r.id}
+                            onClick={() => handleDelete(r.id!)}
+                            title="Delete"
+                          >
+                            {deletingId === r.id ? (
+                              <span className="spinner-border spinner-border-sm" />
+                            ) : (
+                              <i className="isax isax-trash" />
+                            )}
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })
                 )}
               </tbody>
             </table>
@@ -355,7 +415,6 @@ const AdminBookings: React.FC<AdminBookingsProps> = ({ title = 'All Bookings', d
         </div>
       </div>
 
-      {/* Details Modal */}
       {selectedRequest && (
         <div
           ref={modalRef}
@@ -395,7 +454,7 @@ const AdminBookings: React.FC<AdminBookingsProps> = ({ title = 'All Bookings', d
                             {selectedRequest.customerPhone}
                           </a>
                           <a
-                            href={`https://wa.me/${normalizePhone(selectedRequest.customerPhone)}`}
+                            href={`https://wa.me/${normalizePhone(selectedRequest.customerPhone)}?text=${encodeURIComponent(`Hi ${selectedRequest.customerName || ''}, this is DreamsTour following up on your request for "${selectedRequest.serviceTitle || ''}".`)}`}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="text-success"
@@ -488,17 +547,8 @@ const AdminBookings: React.FC<AdminBookingsProps> = ({ title = 'All Bookings', d
               </div>
               <div className="modal-footer">
                 <button className="btn btn-light" onClick={() => setSelectedRequest(null)}>Cancel</button>
-                <button
-                  className="btn btn-primary"
-                  disabled={modalSaving}
-                  onClick={handleModalSave}
-                >
-                  {modalSaving ? (
-                    <>
-                      <span className="spinner-border spinner-border-sm me-2" />
-                      Saving...
-                    </>
-                  ) : 'Save'}
+                <button className="btn btn-primary" disabled={modalSaving} onClick={handleModalSave}>
+                  {modalSaving ? <><span className="spinner-border spinner-border-sm me-2" />Saving...</> : 'Save'}
                 </button>
               </div>
             </div>

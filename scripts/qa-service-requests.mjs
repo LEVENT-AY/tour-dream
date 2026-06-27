@@ -83,6 +83,31 @@ check(
   !publicForm.includes('assignedTo'),
   'assignedTo found in ServiceRequestForm'
 );
+check(
+  'Public form does not expose followUpDate',
+  !publicForm.includes('followUpDate'),
+  'followUpDate found in ServiceRequestForm'
+);
+check(
+  'Public form has honeypot field',
+  /_hp_name/.test(publicForm),
+  'honeypot _hp_name not found in ServiceRequestForm'
+);
+check(
+  'Public form shows success state reference',
+  /success/.test(publicForm) && /alert-success/.test(publicForm),
+  'success state not found in ServiceRequestForm'
+);
+check(
+  'Public form shows error state reference',
+  /error/.test(publicForm) && /alert-danger/.test(publicForm),
+  'error state not found in ServiceRequestForm'
+);
+check(
+  'Public form has loading state',
+  /submitting/.test(publicForm),
+  'submitting/loading state not found in ServiceRequestForm'
+);
 
 // 2d. CreateServiceRequestInput does NOT have admin fields
 const createInputPattern = /interface\s+CreateServiceRequestInput[\s\S]*?\{[^}]*\}/;
@@ -163,7 +188,24 @@ check(
   'fetchServiceRequests() call not found in bookings.tsx'
 );
 
-// 4b. Admin Bookings supports priority/internalNotes/followUpDate
+// 4b. Admin Bookings has CSV export and copy action
+check(
+  'Admin Bookings has CSV export reference',
+  /exportCSV/.test(bookingsContent) || /csv/.test(bookingsContent),
+  'CSV export not found in bookings.tsx'
+);
+check(
+  'Admin Bookings has copy follow-up action',
+  /copyFollowUp/.test(bookingsContent),
+  'copyFollowUp not found in bookings.tsx'
+);
+check(
+  'Admin Bookings has prefilled WhatsApp',
+  /wa\.me.*text=/.test(bookingsContent),
+  'prefilled WhatsApp text not found in bookings.tsx'
+);
+
+// 4c. Admin Bookings supports priority/internalNotes/followUpDate
 check(
   'Admin Bookings references priority',
   /\bpriority\b/.test(bookingsContent),
