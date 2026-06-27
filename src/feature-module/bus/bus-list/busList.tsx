@@ -7,6 +7,7 @@ import ImageWithBasePath from "../../../core/common/imageWithBasePath";
 import { Link } from "react-router-dom";
 import BusOffcanvas from "../Busoffcanvas";
 import BusSearch from "../busSearch";
+import FirestoreBusList from "./FirestoreBusList";
 
 const BusList = () => {
   const routes = all_routes;
@@ -178,6 +179,7 @@ const BusList = () => {
                   </Link>
                 </div>
               </div>
+              <FirestoreBusList />
               <div className="bus-list">
                 <div className="row justify-content-center">
                   <div className="col-md-12">
