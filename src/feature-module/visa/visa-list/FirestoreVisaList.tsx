@@ -1,13 +1,16 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import ImageWithBasePath from '../../../core/common/imageWithBasePath';
 import { fetchVisas } from '../../../core/services/firebaseServices';
 import { normalizeVisaDetails } from '../../../core/services/listingDetailModels';
+import { all_routes } from '../../router/all_routes';
 
 const VISA_FALLBACK_IMAGE = 'assets/img/visa/visa-01.jpg';
 
 type VisaRecord = Record<string, any>;
 
 const FirestoreVisaList = () => {
+  const routes = all_routes;
   const [visas, setVisas] = useState<VisaRecord[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -43,6 +46,8 @@ const FirestoreVisaList = () => {
   const getVisaImage = (visa: VisaRecord) =>
     visa.mainImage || visa.image || (Array.isArray(visa.gallery) ? visa.gallery[0] : '') || VISA_FALLBACK_IMAGE;
 
+  const buildVisaDetailsLink = (id: string) => `${routes.visaDetails}?id=${id}`;
+
   const formatPrice = (visa: VisaRecord) => {
     const price = visa.price ?? 0;
     const currency = visa.currency || 'TND';
@@ -74,16 +79,20 @@ const FirestoreVisaList = () => {
       <div className="hotel-list">
         <div className="row justify-content-center">
           <div className="col-md-12">
-            {visas.map((visa, index) => (
+            {visas.map((visa, index) => {
+              const visaLink = buildVisaDetailsLink(visa.id);
+              return (
               <div className="place-item mb-4" key={visa.id || index}>
                 <div className="place-img">
                   <div className="slide-images">
-                    <ImageWithBasePath
-                      src={getVisaImage(visa)}
-                      className="img-fluid w-100"
-                      alt={visa.title || 'Visa image'}
-                      fallbackSrc={VISA_FALLBACK_IMAGE}
-                    />
+                    <Link to={visaLink}>
+                      <ImageWithBasePath
+                        src={getVisaImage(visa)}
+                        className="img-fluid w-100"
+                        alt={visa.title || 'Visa image'}
+                        fallbackSrc={VISA_FALLBACK_IMAGE}
+                      />
+                    </Link>
                   </div>
                   <div className="fav-item">
                     <span className="badge bg-white text-dark d-inline-flex align-items-center">
@@ -104,7 +113,9 @@ const FirestoreVisaList = () => {
                   </div>
                   <div>
                     <h5 className="mb-2 text-truncate">
-                      {visa.title || visa.name || 'Visa'}
+                      <Link to={visaLink}>
+                        {visa.title || visa.name || 'Visa'}
+                      </Link>
                     </h5>
                     <div className="d-flex align-items-center gap-3 mb-3">
                       {visa.destination && (
@@ -137,18 +148,25 @@ const FirestoreVisaList = () => {
                         </span>
                       </h6>
                     </div>
-                    {visa.location && (
-                      <div className="ms-2 d-flex align-items-center">
-                        <p className="d-flex fs-14 align-items-center mb-0">
+                    <div className="d-flex align-items-center">
+                      {visa.location && (
+                        <p className="d-flex fs-14 align-items-center mb-0 me-3">
                           <i className="isax isax-location5 me-1" />
                           {visa.location}
                         </p>
-                      </div>
-                    )}
+                      )}
+                      <Link
+                        to={visaLink}
+                        className="btn btn-dark btn-md search-btn"
+                      >
+                        View Details
+                      </Link>
+                    </div>
                   </div>
                 </div>
               </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </div>

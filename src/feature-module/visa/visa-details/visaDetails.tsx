@@ -4,15 +4,18 @@ import ImageWithBasePath from "../../../core/common/imageWithBasePath";
 import { all_routes } from "../../router/all_routes";
 import dayjs from "dayjs";
 import React, { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import CustomSelect from "../../../core/common/commonSelect";
 import { visaDays } from "../../../core/common/selectOption/json/selectOption";
 import BannerCounter from "../../../core/common/banner-counter/counter";
 import Lightbox from "yet-another-react-lightbox";
+import FirestoreVisaDetails from "./FirestoreVisaDetails";
 
 
 const VisaDetails = () => {
   const routes = all_routes;
+  const [searchParams] = useSearchParams();
+  const visaId = searchParams.get('id');
   const [defaultDate] = useState(dayjs());
   const [open, setOpen] = React.useState(false);
   const navigate = useNavigate();
@@ -62,6 +65,8 @@ const VisaDetails = () => {
       {/* Page Wrapper */}
       <div className="content">
         <div className="container">
+          <FirestoreVisaDetails />
+          {!visaId && (
           <div className="row">
             <div className="col-xl-8">
               {/* Slider */}
@@ -1288,6 +1293,7 @@ const VisaDetails = () => {
               </div>
             </div>
           </div>
+          )}
         </div>
       </div>
       {/* /Page Wrapper */}
