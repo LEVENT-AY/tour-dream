@@ -218,6 +218,30 @@ const PROJECT_ID = 'tour-tunisi-test';
       createdBy: 'agent2',
       createdAt: new Date().toISOString(),
     });
+    await db.collection('visas').doc('publishedVisa').set({
+      title: 'Published Visa',
+      published: true,
+      ownerId: 'agent1',
+      agentId: 'agent1',
+      createdBy: 'agent1',
+      createdAt: new Date().toISOString(),
+    });
+    await db.collection('visas').doc('draftVisa').set({
+      title: 'Draft Visa',
+      published: false,
+      ownerId: 'agent1',
+      agentId: 'agent1',
+      createdBy: 'agent1',
+      createdAt: new Date().toISOString(),
+    });
+    await db.collection('visas').doc('otherAgentVisa').set({
+      title: 'Other Agent Visa',
+      published: false,
+      ownerId: 'agent2',
+      agentId: 'agent2',
+      createdBy: 'agent2',
+      createdAt: new Date().toISOString(),
+    });
     await db.collection('settings').doc('app').set({
       maintenanceMode: false,
     });
@@ -573,6 +597,60 @@ const PROJECT_ID = 'tour-tunisi-test';
       createdAt: new Date().toISOString(),
     }));
     await assertSucceeds(ref.update({ title: 'Updated Admin Bus', updatedAt: new Date().toISOString() }));
+    await assertSucceeds(ref.delete());
+  });
+
+  // 50. Anonymous user can read published visa
+  await test('Anonymous user can read published visa', async () => {
+    const unauthed = testEnv.unauthenticatedContext();
+    await assertSucceeds(unauthed.firestore().collection('visas').doc('publishedVisa').get());
+  });
+
+  // 51. Signed-in customer can read published visa
+  await test('Signed-in customer can read published visa', async () => {
+    const customer = testEnv.authenticatedContext('customer1');
+    await assertSucceeds(customer.firestore().collection('visas').doc('publishedVisa').get());
+  });
+
+  // 52. Signed-in customer cannot read unpublished visa
+  await test('Signed-in customer cannot read unpublished visa', async () => {
+    const customer = testEnv.authenticatedContext('customer1');
+    await assertFails(customer.firestore().collection('visas').doc('draftVisa').get());
+  });
+
+  // 53. Non-owning agent cannot read another agent's unpublished visa
+  await test("Non-owning agent cannot read another agent's unpublished visa", async () => {
+    const agent = testEnv.authenticatedContext('agent1');
+    await assertFails(agent.firestore().collection('visas').doc('otherAgentVisa').get());
+  });
+
+  // 54. Owning approved agent can read own unpublished visa
+  await test('Owning approved agent can read own unpublished visa', async () => {
+    const agent = testEnv.authenticatedContext('agent1');
+    await assertSucceeds(agent.firestore().collection('visas').doc('draftVisa').get());
+  });
+
+  // 55. Admin can read all visas
+  await test('Admin can read all visas', async () => {
+    const admin = testEnv.authenticatedContext('admin1');
+    await assertSucceeds(admin.firestore().collection('visas').doc('publishedVisa').get());
+    await assertSucceeds(admin.firestore().collection('visas').doc('draftVisa').get());
+    await assertSucceeds(admin.firestore().collection('visas').doc('otherAgentVisa').get());
+  });
+
+  // 56. Admin can create, update, and delete a visa
+  await test('Admin can create, update, and delete a visa', async () => {
+    const admin = testEnv.authenticatedContext('admin1');
+    const ref = admin.firestore().collection('visas').doc('adminVisa');
+    await assertSucceeds(ref.set({
+      title: 'Admin Visa',
+      published: false,
+      ownerId: 'admin1',
+      agentId: 'admin1',
+      createdBy: 'admin1',
+      createdAt: new Date().toISOString(),
+    }));
+    await assertSucceeds(ref.update({ title: 'Updated Admin Visa', updatedAt: new Date().toISOString() }));
     await assertSucceeds(ref.delete());
   });
 
