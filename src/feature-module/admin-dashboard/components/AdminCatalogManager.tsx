@@ -328,6 +328,7 @@ const AdminCatalogManager: React.FC<AdminCatalogManagerProps> = ({
       <input
         type={field.type === 'number' ? 'number' : 'text'}
         className="form-control"
+        min={field.type === 'number' ? 0 : undefined}
         value={value === undefined || value === null ? '' : value}
         onChange={(e) =>
           updateFormField(field.name, field.type === 'number' ? parseFloat(e.target.value) : e.target.value)
@@ -431,8 +432,8 @@ const AdminCatalogManager: React.FC<AdminCatalogManagerProps> = ({
                         )}
                       </td>
                       <td>{item.location || '—'}</td>
-                      <td>${item.price ?? item.startingPrice ?? item.pricePerNight ?? 0}</td>
-                      <td>{item.rating ?? '—'}</td>
+                      <td>{`${item.currency || 'TND'} ${item.price ?? item.startingPrice ?? item.pricePerNight ?? 0}`}</td>
+                      <td>{typeof item.rating === 'number' && item.rating > 0 ? item.rating : '—'}</td>
                       <td>
                         <button
                           data-testid={`admin-featured-toggle-${item.id}`}
