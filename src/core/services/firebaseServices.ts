@@ -585,6 +585,7 @@ export const deleteCatalogItem = async (collectionName: string, itemId: string):
 
 export type ServiceRequestStatus = "pending" | "contacted" | "confirmed" | "cancelled";
 export type ServiceType = "cruise" | "bus" | "visa" | "guide" | "tour" | "hotel" | "activity" | "other";
+export type ServiceRequestPriority = "low" | "normal" | "high" | "urgent";
 
 export interface ServiceRequest {
   id?: string;
@@ -600,6 +601,10 @@ export interface ServiceRequest {
   status: ServiceRequestStatus;
   source: "public";
   assignedTo?: string;
+  priority?: ServiceRequestPriority;
+  internalNotes?: string;
+  followUpDate?: string;
+  lastContactedAt?: string;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -634,12 +639,30 @@ export const fetchServiceRequestById = async (id: string): Promise<ServiceReques
 
 export const updateServiceRequestStatus = async (
   id: string,
-  status: ServiceRequestStatus
+  status: ServiceRequestStatus,
+  adminFields?: {
+    priority?: ServiceRequestPriority;
+    assignedTo?: string;
+    internalNotes?: string;
+    followUpDate?: string;
+    lastContactedAt?: string;
+  }
 ): Promise<void> => {
-  await updateDoc(doc(db, "serviceRequests", id), {
+  const data: Record<string, any> = {
     status,
     updatedAt: serverTimestamp(),
-  });
+  };
+  if (adminFields) {
+    if (adminFields.priority !== undefined) data.priority = adminFields.priority;
+    if (adminFields.assignedTo !== undefined) data.assignedTo = adminFields.assignedTo;
+    if (adminFields.internalNotes !== undefined) data.internalNotes = adminFields.internalNotes;
+    if (adminFields.followUpDate !== undefined) data.followUpDate = adminFields.followUpDate;
+    if (adminFields.lastContactedAt !== undefined) data.lastContactedAt = adminFields.lastContactedAt;
+  }
+  if (status === 'contacted' && !data.lastContactedAt) {
+    data.lastContactedAt = new Date().toISOString();
+  }
+  await updateDoc(doc(db, "serviceRequests", id), data);
 };
 
 export const deleteServiceRequest = async (id: string): Promise<void> => {

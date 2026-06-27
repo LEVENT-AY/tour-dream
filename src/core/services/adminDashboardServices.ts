@@ -30,6 +30,7 @@ export interface AdminStats {
   confirmedServiceRequests: number;
   cancelledServiceRequests: number;
   todayServiceRequests: number;
+  urgentServiceRequests: number;
 }
 
 export interface RecentBooking {
@@ -100,6 +101,7 @@ export const getAdminStats = async (): Promise<AdminStats> => {
     confirmedRequests,
     cancelledRequests,
     todayRequests,
+    urgentRequests,
   ] = await Promise.all([
     getCount('bookings'),
     getCount('bookings', [{ field: 'status', value: 'pending' }]),
@@ -118,6 +120,7 @@ export const getAdminStats = async (): Promise<AdminStats> => {
     getCount('serviceRequests', [{ field: 'status', value: 'confirmed' }]),
     getCount('serviceRequests', [{ field: 'status', value: 'cancelled' }]),
     getCount('serviceRequests', [{ field: 'createdAt', value: todayStart.toISOString(), op: '>=' }]),
+    getCount('serviceRequests', [{ field: 'priority', value: 'urgent' }]),
   ]);
 
   return {
@@ -140,6 +143,7 @@ export const getAdminStats = async (): Promise<AdminStats> => {
     confirmedServiceRequests: confirmedRequests,
     cancelledServiceRequests: cancelledRequests,
     todayServiceRequests: todayRequests,
+    urgentServiceRequests: urgentRequests,
   };
 };
 

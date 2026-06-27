@@ -217,6 +217,14 @@ const AdminDashboard: React.FC = () => {
                 </div>
               </div>
             </div>
+            <div className="col-12 col-sm-6 col-xl-2">
+              <div className="card text-decoration-none h-100 border-danger">
+                <div className="card-body text-center py-3">
+                  <h3 className="text-danger mb-1">{stats.urgentServiceRequests}</h3>
+                  <h6 className="text-muted mb-0">Urgent</h6>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       )}

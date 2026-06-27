@@ -39,6 +39,68 @@ check(
   'export const createServiceRequest not found in firebaseServices.ts'
 );
 
+// 2b. Admin fields exported (ServiceRequestPriority, priority, internalNotes, followUpDate)
+check(
+  'ServiceRequestPriority type exported',
+  /export\s+type\s+ServiceRequestPriority/.test(firebaseServices),
+  'ServiceRequestPriority type not found'
+);
+check(
+  'ServiceRequest has priority field',
+  /\bpriority\??:\s*ServiceRequestPriority/.test(firebaseServices),
+  'priority field missing in ServiceRequest'
+);
+check(
+  'ServiceRequest has internalNotes field',
+  /\binternalNotes\??:\s*string/.test(firebaseServices),
+  'internalNotes field missing in ServiceRequest'
+);
+check(
+  'ServiceRequest has followUpDate field',
+  /\bfollowUpDate\??:\s*string/.test(firebaseServices),
+  'followUpDate field missing in ServiceRequest'
+);
+check(
+  'ServiceRequest has lastContactedAt field',
+  /\blastContactedAt\??:\s*string/.test(firebaseServices),
+  'lastContactedAt field missing in ServiceRequest'
+);
+
+// 2c. Public form does NOT expose admin-only fields
+const publicForm = readFile('src/core/common/service-request/ServiceRequestForm.tsx');
+check(
+  'Public form does not expose priority',
+  !publicForm.includes('priority'),
+  'priority found in ServiceRequestForm'
+);
+check(
+  'Public form does not expose internalNotes',
+  !publicForm.includes('internalNotes'),
+  'internalNotes found in ServiceRequestForm'
+);
+check(
+  'Public form does not expose assignedTo',
+  !publicForm.includes('assignedTo'),
+  'assignedTo found in ServiceRequestForm'
+);
+
+// 2d. CreateServiceRequestInput does NOT have admin fields
+const createInputPattern = /interface\s+CreateServiceRequestInput[\s\S]*?\{[^}]*\}/;
+const createInputMatch = firebaseServices.match(/interface\s+CreateServiceRequestInput[\s\S]*?\n\}/);
+if (createInputMatch) {
+  const inputBlock = createInputMatch[0];
+  check(
+    'CreateServiceRequestInput has no priority',
+    !inputBlock.includes('priority'),
+    'priority found in CreateServiceRequestInput'
+  );
+  check(
+    'CreateServiceRequestInput has no internalNotes',
+    !inputBlock.includes('internalNotes'),
+    'internalNotes found in CreateServiceRequestInput'
+  );
+}
+
 // 3. Four Firestore details components import ServiceRequestForm
 const cruiseContent = readFile('src/feature-module/curise/curise-details/FirestoreCruiseDetails.tsx');
 const busContent = readFile('src/feature-module/bus/bus-details/FirestoreBusDetails.tsx');
@@ -57,7 +119,6 @@ check(
   /<ServiceRequestForm/.test(cruiseContent),
   'missing <ServiceRequestForm in FirestoreCruiseDetails'
 );
-
 check(
   'FirestoreBusDetails imports ServiceRequestForm',
   srImportPattern.test(busContent),
@@ -68,7 +129,6 @@ check(
   /<ServiceRequestForm/.test(busContent),
   'missing <ServiceRequestForm in FirestoreBusDetails'
 );
-
 check(
   'FirestoreVisaDetails imports ServiceRequestForm',
   srImportPattern.test(visaContent),
@@ -79,7 +139,6 @@ check(
   /<ServiceRequestForm/.test(visaContent),
   'missing <ServiceRequestForm in FirestoreVisaDetails'
 );
-
 check(
   'FirestoreGuideDetails imports ServiceRequestForm',
   srImportPattern.test(guideContent),
@@ -102,6 +161,28 @@ check(
   'Admin Bookings calls fetchServiceRequests',
   /fetchServiceRequests\s*\(/.test(bookingsContent),
   'fetchServiceRequests() call not found in bookings.tsx'
+);
+
+// 4b. Admin Bookings supports priority/internalNotes/followUpDate
+check(
+  'Admin Bookings references priority',
+  /\bpriority\b/.test(bookingsContent),
+  'priority not referenced in bookings.tsx'
+);
+check(
+  'Admin Bookings references internalNotes',
+  /\binternalNotes\b/.test(bookingsContent),
+  'internalNotes not referenced in bookings.tsx'
+);
+check(
+  'Admin Bookings references followUpDate',
+  /\bfollowUpDate\b/.test(bookingsContent),
+  'followUpDate not referenced in bookings.tsx'
+);
+check(
+  'Admin Bookings has WhatsApp link',
+  /wa\.me/.test(bookingsContent),
+  'WhatsApp link not found in bookings.tsx'
 );
 
 // 5. Old serviceRequests.tsx admin page does not exist
