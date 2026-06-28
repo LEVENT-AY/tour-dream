@@ -15,6 +15,7 @@
     "demo:ensure-accounts": "node scripts/ensure-demo-accounts.mjs",
     "qa:service-requests": "node scripts/qa-service-requests.mjs",
     "qa:marketplace": "node scripts/qa-marketplace.mjs",
+    "qa:agent-dashboard": "node scripts/qa-agent-dashboard.mjs",
     "smoke:customer-login": "node scripts/smoke-customer-login.cjs",
     "smoke:customer-dashboard": "node scripts/smoke-customer-dashboard.cjs",
     "smoke:demo-accounts": "node scripts/smoke-demo-accounts.mjs",

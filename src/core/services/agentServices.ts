@@ -45,6 +45,14 @@ export const AGENT_LISTING_COLLECTIONS = [
 export type ListingCollection = (typeof AGENT_LISTING_COLLECTIONS)[number];
 export type ListingStatus = "draft" | "pending_review" | "approved" | "rejected" | "suspended";
 
+export interface RecentListingItem {
+  id: string;
+  collection: string;
+  title: string;
+  image: string;
+  createdAt: string;
+}
+
 export interface DashboardStats {
   listings: {
     total: number;
@@ -53,6 +61,7 @@ export interface DashboardStats {
     approved: number;
     rejected: number;
     byType: Record<string, number>;
+    recentListings: RecentListingItem[];
   };
   bookings: {
     total: number;
@@ -465,6 +474,12 @@ export const fetchAgentDashboardStats = async (
 
   const listingIds = new Set(listings.map((item) => item.id));
 
+  const sortedListings = [...listings].sort((a, b) => {
+    const da = new Date(a.createdAt || 0).getTime();
+    const db = new Date(b.createdAt || 0).getTime();
+    return db - da;
+  });
+
   const stats: DashboardStats = {
     listings: {
       total: listings.length,
@@ -473,6 +488,13 @@ export const fetchAgentDashboardStats = async (
       approved: 0,
       rejected: 0,
       byType: {},
+      recentListings: sortedListings.slice(0, 5).map((item) => ({
+        id: item.id,
+        collection: item.collection,
+        title: item.title || item.name || "Untitled",
+        image: Array.isArray(item.images) ? item.images[0] : (typeof item.image === "string" ? item.image : "assets/img/hotels/hotel-20.jpg"),
+        createdAt: item.createdAt || "",
+      })),
     },
     bookings: {
       total: bookings.length,

@@ -500,156 +500,59 @@ const AgentDashboard = () => {
                   <div className="card shadow-none flex-fill">
                     <div className="card-body">
                       <h6 className="mb-4">Recently Added</h6>
-                      <div className="d-flex justify-content-between align-items-center mb-4">
-                        <div className="d-flex align-items-center">
-                          <Link
-                            to={routes.hotelDetails}
-                            className="avatar avatar-lg flex-shrink-0 me-2"
-                          >
-                            <ImageWithBasePath
-                              src="assets/img/hotels/hotel-20.jpg"
-                              className="img-fluid rounded-circle"
-                              alt="Img"
-                            />
-                          </Link>
-                          <div>
-                            <h6 className="fs-16">
-                              <Link to={routes.hotelDetails}>The Grand Horizon</Link>{" "}
-                              <span className="badge badge-soft-info badge-xs rounded-pill">
-                                <i className="isax isax-signpost me-1" />
-                                Hotels
-                              </span>
-                            </h6>
-                            <p className="fs-14">Last Booked : 25 Apr 2025</p>
+                      {loading ? (
+                        <div className="text-center py-4">
+                          <div className="spinner-border text-primary" role="status">
+                            <span className="visually-hidden">Loading...</span>
                           </div>
                         </div>
-                        <Link
-                          to={routes.agentHotelBooking}
-                          className="btn rebook-btn btn-sm"
-                        >
-                          06 Bookings
-                        </Link>
-                      </div>
-                      <div className="d-flex justify-content-between align-items-center mb-4">
-                        <div className="d-flex align-items-center">
-                          <Link
-                            to={routes.tourDetails}
-                            className="avatar avatar-lg flex-shrink-0 me-2"
-                          >
-                            <ImageWithBasePath
-                              src="assets/img/tours/tours-28.jpg"
-                              className="img-fluid rounded-circle"
-                              alt="Img"
-                            />
-                          </Link>
-                          <div>
-                            <h6 className="fs-16">
-                              <Link to={routes.tourDetails}>Dare DevCon</Link>{" "}
-                              <span className="badge badge-soft-pink badge-xs rounded-pill">
-                                <i className="isax isax-signpost me-1" />
-                                Tour
-                              </span>
-                            </h6>
-                            <p className="fs-14">Last Booked : 16 May 2025</p>
-                          </div>
+                      ) : stats?.listings.recentListings && stats.listings.recentListings.length > 0 ? (
+                        stats.listings.recentListings.map((item, idx) => {
+                          const badgeMap: Record<string, { badge: string; label: string }> = {
+                            hotels: { badge: 'badge-soft-info', label: 'Hotel' },
+                            tours: { badge: 'badge-soft-pink', label: 'Tour' },
+                            flights: { badge: 'badge-soft-teal', label: 'Flight' },
+                            cars: { badge: 'badge-soft-warning', label: 'Car' },
+                            cruise: { badge: 'badge-soft-cyan', label: 'Cruise' },
+                            activities: { badge: 'badge-soft-pink', label: 'Activity' },
+                            resorts: { badge: 'badge-soft-info', label: 'Resort' },
+                            chalets: { badge: 'badge-soft-info', label: 'Chalet' },
+                          };
+                          const info = badgeMap[item.collection] || { badge: 'badge-soft-secondary', label: item.collection };
+                          const createdDate = item.createdAt
+                            ? new Date(item.createdAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: '2-digit' })
+                            : '—';
+                          return (
+                            <div key={item.id} className={`d-flex justify-content-between align-items-center${idx < stats.listings.recentListings.length - 1 ? ' mb-4' : ''}`}>
+                              <div className="d-flex align-items-center">
+                                <span className="avatar avatar-lg flex-shrink-0 me-2">
+                                  <ImageWithBasePath
+                                    src={item.image}
+                                    className="img-fluid rounded-circle"
+                                    alt={item.title}
+                                  />
+                                </span>
+                                <div>
+                                  <h6 className="fs-16">
+                                    <span>{item.title}</span>{" "}
+                                    <span className={`badge ${info.badge} badge-xs rounded-pill`}>
+                                      <i className="isax isax-signpost me-1" />
+                                      {info.label}
+                                    </span>
+                                  </h6>
+                                  <p className="fs-14">Added : {createdDate}</p>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })
+                      ) : (
+                        <div className="text-center py-4">
+                          <i className="isax isax-box fs-32 text-gray-4 mb-2 d-block" />
+                          <p className="fw-medium mb-1">No listings yet</p>
+                          <p className="fs-14 text-gray-6 mb-0">Your listings will appear here once they are created and assigned to your agent account.</p>
                         </div>
-                        <Link
-                          to={routes.agentTourBooking}
-                          className="btn rebook-btn btn-sm"
-                        >
-                          12 Bookings
-                        </Link>
-                      </div>
-                      <div className="d-flex justify-content-between align-items-center mb-4">
-                        <div className="d-flex align-items-center">
-                          <Link
-                            to={routes.flightDetails}
-                            className="avatar avatar-lg flex-shrink-0 me-2"
-                          >
-                            <ImageWithBasePath
-                              src="assets/img/flight/flight-05.jpg"
-                              className="img-fluid rounded-circle"
-                              alt="Img"
-                            />
-                          </Link>
-                          <div>
-                            <h6 className="fs-16">
-                              <Link to={routes.flightDetails}>Altair 333</Link>{" "}
-                              <span className="badge badge-soft-teal badge-xs rounded-pill">
-                                <i className="isax isax-signpost me-1" />
-                                Flight
-                              </span>
-                            </h6>
-                            <p className="fs-14">Last Booked : 25 May 2025</p>
-                          </div>
-                        </div>
-                        <Link
-                          to={routes.agentFlightBooking}
-                          className="btn rebook-btn btn-sm"
-                        >
-                          14 Bookings
-                        </Link>
-                      </div>
-                      <div className="d-flex justify-content-between align-items-center mb-4">
-                        <div className="d-flex align-items-center">
-                          <Link
-                            to={routes.cruiseDetails}
-                            className="avatar avatar-lg flex-shrink-0 me-2"
-                          >
-                            <ImageWithBasePath
-                              src="assets/img/cruise/cruise-28.jpg"
-                              className="img-fluid rounded-circle"
-                              alt="Img"
-                            />
-                          </Link>
-                          <div>
-                            <h6 className="fs-16">
-                              <Link to={routes.cruiseDetails}>Oceania Cruises</Link>{" "}
-                              <span className="badge badge-soft-cyan badge-xs rounded-pill">
-                                <i className="isax isax-signpost me-1" />
-                                Cruise
-                              </span>
-                            </h6>
-                            <p className="fs-14">Last Booked : 18 Jun 2025</p>
-                          </div>
-                        </div>
-                        <Link
-                          to={routes.agentCruiseBooking}
-                          className="btn rebook-btn btn-sm"
-                        >
-                          22 Bookings
-                        </Link>
-                      </div>
-                      <div className="d-flex justify-content-between align-items-center">
-                        <div className="d-flex align-items-center">
-                          <Link
-                            to={routes.tourDetails}
-                            className="avatar avatar-lg flex-shrink-0 me-2"
-                          >
-                            <ImageWithBasePath
-                              src="assets/img/tours/tours-26.jpg"
-                              className="img-fluid rounded-circle"
-                              alt="Img"
-                            />
-                          </Link>
-                          <div>
-                            <h6 className="fs-16">
-                              <Link to={routes.tourDetails}>Fitness Frenzy</Link>{" "}
-                              <span className="badge badge-soft-pink badge-xs rounded-pill">
-                                <i className="isax isax-signpost me-1" />
-                                Tour
-                              </span>
-                            </h6>
-                            <p className="fs-14">Last Booked : 25 May 2025</p>
-                          </div>
-                        </div>
-                        <Link
-                          to={routes.agentTourBooking}
-                          className="btn rebook-btn btn-sm"
-                        >
-                          40 Bookings
-                        </Link>
-                      </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -661,101 +564,10 @@ const AgentDashboard = () => {
                       <div className="d-flex justify-content-between align-items-center mb-4 gap-2">
                         <h6>Latest Invoices</h6>
                       </div>
-                      <div className="card shadow-none mb-4">
-                        <div className="card-body p-2">
-                          <div className="d-flex justify-content-between align-items-center flex-fill">
-                            <div>
-                              <div className="d-flex align-items-center flex-wrap mb-1">
-                                <Link
-                                  to={routes.invoices}
-                                  className="fs-14 link-primary border-end pe-2 me-2 mb-0"
-                                >
-                                  #INV12565
-                                </Link>
-                                <p className="fs-14">Date: 15 May 2024</p>
-                              </div>
-                              <h6 className="fs-16 fw-medium">
-                                <Link to={routes.flightDetails}>Cloudrider 789</Link>
-                              </h6>
-                            </div>
-                            <div className="text-end">
-                              <p className="fs-14 mb-1">Amount</p>
-                              <h6 className="fw-medium">$569</h6>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="card shadow-none mb-4">
-                        <div className="card-body p-2">
-                          <div className="d-flex justify-content-between align-items-center flex-fill">
-                            <div>
-                              <div className="d-flex align-items-center flex-wrap mb-1">
-                                <Link
-                                  to={routes.invoices}
-                                  className="fs-14 link-primary border-end pe-2 me-2 mb-0"
-                                >
-                                  #INV12564
-                                </Link>
-                                <p className="fs-14">Date: 13 May 2024</p>
-                              </div>
-                              <h6 className="fs-16 fw-medium">
-                                <Link to={routes.hotelDetails}>The Luxe Haven</Link>
-                              </h6>
-                            </div>
-                            <div className="text-end">
-                              <p className="fs-14 mb-1">Amount</p>
-                              <h6 className="fw-medium">$430</h6>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="card shadow-none mb-4">
-                        <div className="card-body p-2">
-                          <div className="d-flex justify-content-between align-items-center flex-fill">
-                            <div>
-                              <div className="d-flex align-items-center flex-wrap mb-1">
-                                <Link
-                                  to={routes.invoices}
-                                  className="fs-14 link-primary border-end pe-2 me-2 mb-0"
-                                >
-                                  #INV12563
-                                </Link>
-                                <p className="fs-14">Date: 10 May 2024</p>
-                              </div>
-                              <h6 className="fs-16 fw-medium">
-                                <Link to={routes.carDetails}>Ford Mustang 4.0 AT</Link>
-                              </h6>
-                            </div>
-                            <div className="text-end">
-                              <p className="fs-14 mb-1">Amount</p>
-                              <h6 className="fw-medium">$380</h6>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="card shadow-none mb-0">
-                        <div className="card-body p-2">
-                          <div className="d-flex justify-content-between align-items-center flex-fill">
-                            <div>
-                              <h6 className="fs-16 fw-medium mb-1">
-                                <Link to={routes.cruiseDetails}>Super Aquamarine</Link>
-                              </h6>
-                              <div className="d-flex align-items-center flex-wrap">
-                                <Link
-                                  to={routes.invoices}
-                                  className="fs-14 link-primary border-end pe-2 me-2 mb-0"
-                                >
-                                  #INV12562
-                                </Link>
-                                <p className="fs-14">Date: 04 May 2024</p>
-                              </div>
-                            </div>
-                            <div className="text-end">
-                              <p className="fs-14 mb-1">Amount</p>
-                              <h6 className="fw-medium">$475</h6>
-                            </div>
-                          </div>
-                        </div>
+                      <div className="text-center py-4">
+                        <i className="isax isax-receipt-2 fs-32 text-gray-4 mb-2 d-block" />
+                        <p className="fw-medium mb-1">No invoices yet</p>
+                        <p className="fs-14 text-gray-6 mb-0">Invoices and payout documents will appear here once the finance workflow is enabled.</p>
                       </div>
                     </div>
                   </div>
