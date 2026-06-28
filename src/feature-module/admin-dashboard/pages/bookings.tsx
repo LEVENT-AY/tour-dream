@@ -21,6 +21,13 @@ const PRIORITY_BADGE: Record<string, string> = {
   urgent: 'badge bg-danger',
 };
 
+const STATUS_BADGE: Record<string, string> = {
+  pending: 'badge bg-warning text-dark',
+  contacted: 'badge bg-info text-dark',
+  confirmed: 'badge bg-success',
+  cancelled: 'badge bg-danger',
+};
+
 const STATUS_LABELS: Record<string, string> = {
   all: 'All',
   pending: 'Pending',
@@ -109,6 +116,7 @@ const AdminBookings: React.FC<AdminBookingsProps> = ({ title = 'All Bookings', d
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [copyFeedback, setCopyFeedback] = useState<string | null>(null);
+  const [copyReqFeedback, setCopyReqFeedback] = useState<string | null>(null);
 
   const [adminUsers, setAdminUsers] = useState<AdminUserView[]>([]);
   const [assignmentFilter, setAssignmentFilter] = useState<'all' | 'unassigned' | 'assigned' | 'mine'>('all');
@@ -292,6 +300,26 @@ const AdminBookings: React.FC<AdminBookingsProps> = ({ title = 'All Bookings', d
       setTimeout(() => setCopyFeedback(null), 2000);
     } catch { /* clipboard not available */ }
   }, [buildFollowUpMsg]);
+
+  const copyRequestSummary = useCallback(async (r: ServiceRequest) => {
+    const lines = [
+      'Request Summary:',
+      `Customer: ${r.customerName || 'Not provided'}`,
+      `Contact: ${r.customerPhone || r.customerEmail || 'Not provided'}`,
+      `Service: ${r.serviceTitle || 'N/A'} (${r.serviceType || 'other'})`,
+      `Status: ${STATUS_LABELS[r.status] || r.status}`,
+      `Priority: ${r.priority ? r.priority.charAt(0).toUpperCase() + r.priority.slice(1) : 'Normal'}`,
+      `Assigned to: ${r.assignedTo || 'Unassigned'}`,
+      `Follow-up: ${r.followUpDate || 'Not set'}`,
+      `Payment: ${r.paymentFlow === 'manual' ? 'Manual' : r.paymentFlow || 'N/A'}${r.preferredPaymentMethod ? ` / ${PAYMENT_METHOD_LABELS[r.preferredPaymentMethod] || r.preferredPaymentMethod.replace(/_/g, ' ')}` : ''}`,
+      `Customer message: ${r.message || '(none)'}`,
+    ];
+    try {
+      await navigator.clipboard.writeText(lines.join('\n'));
+      setCopyReqFeedback(r.id!);
+      setTimeout(() => setCopyReqFeedback(null), 2500);
+    } catch { /* clipboard not available */ }
+  }, []);
 
   const readableCsvValue = (r: ServiceRequest, field: string): string => {
     if (field === 'preferredPaymentMethod') {
@@ -694,61 +722,122 @@ const AdminBookings: React.FC<AdminBookingsProps> = ({ title = 'All Bookings', d
             <div className="modal-content">
               <div className="modal-header">
                 <h5 className="modal-title">Request Details</h5>
-                <button type="button" className="btn-close" onClick={() => setSelectedRequest(null)} />
+                <div className="d-flex align-items-center gap-2">
+                  {copyReqFeedback === selectedRequest.id ? (
+                    <span className="text-success fs-13"><i className="isax isax-tick-circle me-1" />Copied</span>
+                  ) : (
+                    <button className="btn btn-sm btn-light" onClick={() => copyRequestSummary(selectedRequest)} title="Copy request summary">
+                      <i className="isax isax-copy me-1" />Copy summary
+                    </button>
+                  )}
+                  <button type="button" className="btn-close" onClick={() => setSelectedRequest(null)} />
+                </div>
               </div>
               <div className="modal-body">
                 <div className="row g-3">
-                  <div className="col-md-6">
-                    <h6 className="text-muted mb-1">Service</h6>
-                    <p className="mb-0">{selectedRequest.serviceTitle || '\u2014'}</p>
-                    <span className="badge bg-light text-dark text-capitalize">
-                      {selectedRequest.serviceType || 'other'}
-                    </span>
-                  </div>
-                  <div className="col-md-6">
-                    <h6 className="text-muted mb-1">Customer</h6>
-                    <p className="mb-0">{selectedRequest.customerName || '\u2014'}</p>
-                    {selectedRequest.customerEmail && (
-                      <a href={`mailto:${selectedRequest.customerEmail}`} className="fs-14 text-decoration-none">
-                        {selectedRequest.customerEmail}
-                      </a>
-                    )}
-                    <div className="d-flex align-items-center gap-2">
-                      {selectedRequest.customerPhone && (
-                        <>
-                          <a href={`tel:${selectedRequest.customerPhone}`} className="fs-14 text-decoration-none">
-                            {selectedRequest.customerPhone}
-                          </a>
-                          <a
-                            href={`https://wa.me/${normalizePhone(selectedRequest.customerPhone)}?text=${encodeURIComponent(buildFollowUpMsg(selectedRequest))}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-success"
-                            title="WhatsApp"
-                          >
-                            <i className="isax isax-whatsapp fs-16" />
-                          </a>
-                        </>
-                      )}
+                  <div className="col-12">
+                    <h6 className="text-muted border-bottom pb-1">Customer</h6>
+                    <div className="row">
+                      <div className="col-md-6">
+                        <p className="mb-0 fw-medium">{selectedRequest.customerName || <em className="text-muted">Customer name not provided</em>}</p>
+                      </div>
+                      <div className="col-md-6">
+                        <div className="d-flex flex-wrap align-items-center gap-2">
+                          {selectedRequest.customerPhone ? (
+                            <>
+                              <a href={`tel:${selectedRequest.customerPhone}`} className="text-decoration-none fs-14">{selectedRequest.customerPhone}</a>
+                              <a
+                                href={`https://wa.me/${normalizePhone(selectedRequest.customerPhone)}?text=${encodeURIComponent(buildFollowUpMsg(selectedRequest))}`}
+                                target="_blank" rel="noopener noreferrer"
+                                className="text-success text-decoration-none" title="Open WhatsApp follow-up"
+                              >
+                                <i className="isax isax-whatsapp fs-16" />
+                              </a>
+                              <button
+                                className="btn btn-sm btn-light px-2"
+                                onClick={() => copyFollowUp(selectedRequest)}
+                                title="Copy follow-up message"
+                              >
+                                {copyFeedback === selectedRequest.id ? (
+                                  <i className="isax isax-tick-circle text-success" />
+                                ) : (
+                                  <i className="isax isax-copy" />
+                                )}
+                                <span className="ms-1 fs-12">Copy msg</span>
+                              </button>
+                            </>
+                          ) : (
+                            <em className="text-muted fs-14">No phone provided</em>
+                          )}
+                        </div>
+                        <div className="mt-1">
+                          {selectedRequest.customerEmail ? (
+                            <a href={`mailto:${selectedRequest.customerEmail}`} className="fs-14 text-decoration-none">{selectedRequest.customerEmail}</a>
+                          ) : (
+                            <em className="text-muted fs-14">No email provided</em>
+                          )}
+                        </div>
+                      </div>
                     </div>
                   </div>
-                  <div className="col-md-6">
-                    <h6 className="text-muted mb-1">Requested Date</h6>
-                    <p className="mb-0">{selectedRequest.requestedDate || '\u2014'}</p>
-                  </div>
-                  <div className="col-md-6">
-                    <h6 className="text-muted mb-1">Guests</h6>
-                    <p className="mb-0">
-                      {selectedRequest.guestsCount ? `${selectedRequest.guestsCount} guest${selectedRequest.guestsCount > 1 ? 's' : ''}` : '\u2014'}
-                    </p>
+                  <div className="col-12">
+                    <h6 className="text-muted border-bottom pb-1">Service Request</h6>
+                    <div className="row">
+                      <div className="col-md-8">
+                        <p className="mb-0 fw-medium">{selectedRequest.serviceTitle || '\u2014'}</p>
+                        <span className="badge bg-light text-dark text-capitalize mt-1">{selectedRequest.serviceType || 'other'}</span>
+                      </div>
+                      <div className="col-md-4">
+                        <span className="fs-13 text-muted">Date</span>
+                        <p className="mb-0">{selectedRequest.requestedDate || <em className="text-muted">Not provided</em>}</p>
+                      </div>
+                      <div className="col-12 mt-2">
+                        <span className="fs-13 text-muted">
+                          Guests: {selectedRequest.guestsCount ? `${selectedRequest.guestsCount} guest${selectedRequest.guestsCount > 1 ? 's' : ''}` : <em className="text-muted">Not provided</em>}
+                        </span>
+                      </div>
+                      <div className="col-12 mt-2">
+                        <span className="fs-13 text-muted">Customer message</span>
+                        <p className="mb-0 mt-1" style={{ whiteSpace: 'pre-wrap' }}>{selectedRequest.message || <em className="text-muted">No message provided</em>}</p>
+                      </div>
+                    </div>
                   </div>
                   <div className="col-12">
-                    <h6 className="text-muted mb-1">Message</h6>
-                    <p className="mb-0" style={{ whiteSpace: 'pre-wrap' }}>{selectedRequest.message || '\u2014'}</p>
+                    <h6 className="text-muted border-bottom pb-1">Operations</h6>
+                    <div className="row g-2">
+                      <div className="col-md-3">
+                        <span className="fs-13 text-muted">Status</span>
+                        <div><span className={STATUS_BADGE[selectedRequest.status] || 'badge bg-light text-dark'}>{STATUS_LABELS[selectedRequest.status] || selectedRequest.status}</span></div>
+                      </div>
+                      <div className="col-md-3">
+                        <span className="fs-13 text-muted">Priority</span>
+                        <div><span className={PRIORITY_BADGE[selectedRequest.priority || 'normal']}>{(selectedRequest.priority || 'normal').charAt(0).toUpperCase() + (selectedRequest.priority || 'normal').slice(1)}</span></div>
+                      </div>
+                      <div className="col-md-3">
+                        <span className="fs-13 text-muted">Assigned to</span>
+                        <div>{selectedRequest.assignedTo ? selectedRequest.assignedTo : <em className="text-muted">Not assigned</em>}</div>
+                      </div>
+                      <div className="col-md-3">
+                        <span className="fs-13 text-muted">Follow-up</span>
+                        <div>
+                          {selectedRequest.followUpDate ? (
+                            <span>
+                              {formatShortDate(selectedRequest.followUpDate)}
+                              {isOverdue(selectedRequest) && <span className="badge bg-danger ms-1 fs-10">Overdue</span>}
+                              {isDueToday(selectedRequest) && <span className="badge bg-info ms-1 fs-10">Today</span>}
+                            </span>
+                          ) : (
+                            <em className="text-muted">No follow-up date set</em>
+                          )}
+                        </div>
+                        <div className="fs-12 text-muted mt-1">
+                          {selectedRequest.lastContactedAt ? `Last contacted: ${formatShortDate(selectedRequest.lastContactedAt)}` : ''}
+                        </div>
+                      </div>
+                    </div>
                   </div>
                   <div className="col-12">
-                    <hr className="my-2" />
-                    <h6 className="text-muted mb-2">Payment Info</h6>
+                    <h6 className="text-muted border-bottom pb-1">Payment Info</h6>
                     <div className="row g-2">
                       <div className="col-md-4">
                         <span className="fs-13 text-muted">Flow</span>
@@ -756,11 +845,11 @@ const AdminBookings: React.FC<AdminBookingsProps> = ({ title = 'All Bookings', d
                       </div>
                       <div className="col-md-4">
                         <span className="fs-13 text-muted">Status</span>
-                        <p className="mb-0">{selectedRequest.paymentStatus === 'not_requested' ? 'Not requested' : selectedRequest.paymentStatus ? selectedRequest.paymentStatus.replace(/_/g, ' ') : '\u2014'}</p>
+                        <p className="mb-0">{selectedRequest.paymentStatus === 'not_requested' ? 'Not requested' : selectedRequest.paymentStatus ? selectedRequest.paymentStatus.replace(/_/g, ' ') : <em className="text-muted">Not requested</em>}</p>
                       </div>
                       <div className="col-md-4">
-                        <span className="fs-13 text-muted">Preferred Method</span>
-                        <p className="mb-0">{selectedRequest.preferredPaymentMethod ? (PAYMENT_METHOD_LABELS[selectedRequest.preferredPaymentMethod] || selectedRequest.preferredPaymentMethod.replace(/_/g, ' ')) : 'Not selected'}</p>
+                        <span className="fs-13 text-muted">Preferred method</span>
+                        <p className="mb-0">{selectedRequest.preferredPaymentMethod ? (PAYMENT_METHOD_LABELS[selectedRequest.preferredPaymentMethod] || selectedRequest.preferredPaymentMethod.replace(/_/g, ' ')) : <em className="text-muted">Not selected</em>}</p>
                       </div>
                     </div>
                     <p className="fs-12 text-muted mt-2 mb-0">
@@ -768,9 +857,17 @@ const AdminBookings: React.FC<AdminBookingsProps> = ({ title = 'All Bookings', d
                     </p>
                   </div>
                   <div className="col-12">
-                    <hr className="my-2" />
-                    <h6 className="text-muted mb-2">Admin Fields</h6>
+                    <h6 className="text-muted border-bottom pb-1">Internal Notes</h6>
+                    <p className="fs-12 text-muted mb-1">These notes are visible only to the admin team and are not shown to customers.</p>
+                    <textarea
+                      className="form-control"
+                      rows={3}
+                      placeholder="Add internal notes for the team. These notes are not shown to customers."
+                      value={modalInternalNotes}
+                      onChange={(e) => setModalInternalNotes(e.target.value)}
+                    />
                   </div>
+                  <div className="col-12"><hr className="my-1" /></div>
                   <div className="col-md-4">
                     <label className="form-label fs-14">Status</label>
                     <select
@@ -828,7 +925,7 @@ const AdminBookings: React.FC<AdminBookingsProps> = ({ title = 'All Bookings', d
                       />
                     )}
                   </div>
-                  <div className="col-md-6">
+                  <div className="col-md-4">
                     <label className="form-label fs-14">Follow-up Date</label>
                     <input
                       type="date"
@@ -837,21 +934,17 @@ const AdminBookings: React.FC<AdminBookingsProps> = ({ title = 'All Bookings', d
                       onChange={(e) => setModalFollowUpDate(e.target.value)}
                     />
                   </div>
-                  <div className="col-md-6">
+                  <div className="col-md-4">
+                    <label className="form-label fs-14">Last Contacted</label>
+                    <p className="form-control-plaintext mb-0 pt-1">
+                      {selectedRequest.lastContactedAt ? formatShortDate(selectedRequest.lastContactedAt) : <em className="text-muted">Not recorded</em>}
+                    </p>
+                  </div>
+                  <div className="col-md-4">
                     <label className="form-label fs-14">Created</label>
                     <p className="form-control-plaintext mb-0 pt-1">
                       {selectedRequest.createdAt ? new Date(selectedRequest.createdAt).toLocaleString('en-GB') : '\u2014'}
                     </p>
-                  </div>
-                  <div className="col-12">
-                    <label className="form-label fs-14">Internal Notes</label>
-                    <textarea
-                      className="form-control"
-                      rows={3}
-                      placeholder="Admin notes..."
-                      value={modalInternalNotes}
-                      onChange={(e) => setModalInternalNotes(e.target.value)}
-                    />
                   </div>
                 </div>
               </div>

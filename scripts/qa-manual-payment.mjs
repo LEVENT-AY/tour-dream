@@ -798,6 +798,261 @@ if (featuredSvc2) {
   );
 }
 
+// 52. Admin detail modal sections (Sprint 16)
+check(
+  'Admin modal includes Customer section heading',
+  /Customer/.test(adminBookings.split('modal-body')[1]?.split('modal-footer')[0] || ''),
+  'Customer section not found in modal'
+);
+check(
+  'Admin modal includes Service Request section heading',
+  /Service Request/.test(adminBookings),
+  'Service Request section not found in modal'
+);
+check(
+  'Admin modal includes Operations section heading',
+  /Operations/.test(adminBookings),
+  'Operations section not found in modal'
+);
+check(
+  'Admin modal includes Payment Info section heading',
+  /Payment Info/.test(adminBookings),
+  'Payment Info section not found in modal'
+);
+check(
+  'Admin modal includes Internal Notes section heading',
+  /Internal Notes/.test(adminBookings),
+  'Internal Notes section not found in modal'
+);
+
+// 53. Copy request summary exists in modal
+check(
+  'Admin modal has "Copy summary" / "Copy request summary" action',
+  /copyRequestSummary/.test(adminBookings),
+  'copyRequestSummary not found'
+);
+check(
+  'copyRequestSummary includes customer name in summary',
+  /Customer:.*\$\{r\.customerName/.test(readFile('src/feature-module/admin-dashboard/pages/bookings.tsx')),
+  'customer name not in copyRequestSummary'
+);
+check(
+  'copyRequestSummary includes service title in summary',
+  /Service:.*\$\{r\.serviceTitle/.test(readFile('src/feature-module/admin-dashboard/pages/bookings.tsx')),
+  'service not in copyRequestSummary'
+);
+check(
+  'copyRequestSummary includes status in summary',
+  /Status:.*STATUS_LABELS/.test(readFile('src/feature-module/admin-dashboard/pages/bookings.tsx')),
+  'status not in copyRequestSummary'
+);
+check(
+  'copyRequestSummary includes payment context in summary',
+  /Payment:.*paymentFlow/.test(readFile('src/feature-module/admin-dashboard/pages/bookings.tsx')),
+  'payment not in copyRequestSummary'
+);
+
+// 54. Follow-up actions inside modal
+check(
+  'Admin modal has "Copy msg" follow-up action near customer phone',
+  /Copy msg/.test(adminBookings),
+  'Copy msg action not found in modal'
+);
+check(
+  'Admin modal WhatsApp link uses buildFollowUpMsg',
+  /buildFollowUpMsg/.test(adminBookings),
+  'buildFollowUpMsg not used in modal WhatsApp'
+);
+check(
+  'Copy follow-up button still exists in modal',
+  /copyFollowUp/.test(adminBookings),
+  'copyFollowUp missing from modal'
+);
+
+// 55. Modal uses readable labels for status/priority/payment
+check(
+  'Modal uses STATUS_LABELS for status display',
+  /STATUS_LABELS/.test(adminBookings),
+  'STATUS_LABELS not used in adminBookings'
+);
+check(
+  'Modal uses PRIORITY_BADGE for priority display',
+  /PRIORITY_BADGE/.test(adminBookings),
+  'PRIORITY_BADGE not used in adminBookings'
+);
+check(
+  'Modal uses PAYMENT_METHOD_LABELS for payment display',
+  /PAYMENT_METHOD_LABELS/.test(adminBookings),
+  'PAYMENT_METHOD_LABELS not used in adminBookings'
+);
+
+// 56. Missing value handling
+check(
+  'Modal handles missing customer name with fallback text',
+  /Customer name not provided/.test(adminBookings),
+  'customer name fallback not found'
+);
+check(
+  'Modal handles missing message with fallback text',
+  /No message provided/.test(adminBookings),
+  'message fallback not found'
+);
+check(
+  'Modal handles missing follow-up date with fallback text',
+  /No follow-up date set/.test(adminBookings),
+  'follow-up date fallback not found'
+);
+check(
+  'Modal handles unassigned with "Not assigned" text',
+  /Not assigned/.test(adminBookings),
+  'unassigned fallback not found'
+);
+check(
+  'Modal handles missing payment method with "Not selected"',
+  /Not selected/.test(adminBookings),
+  'payment method fallback not found'
+);
+check(
+  'Modal handles missing payment status with "Not requested"',
+  /Not requested/.test(adminBookings),
+  'payment status fallback not found'
+);
+
+// 57. Internal Notes UX
+check(
+  'Internal notes has updated placeholder about team-only visibility',
+  /not shown to customers/.test(adminBookings),
+  'internal notes team-only text not found'
+);
+check(
+  'Internal notes help text about admin-only visibility',
+  /visible only to the admin team/.test(adminBookings) || /only visible to the admin team/.test(adminBookings) || /These notes are/.test(adminBookings),
+  'internal notes admin-only help text not found'
+);
+
+// 58. Admin editable fields still present
+check(
+  'Modal still has status select',
+  /modalStatus/.test(adminBookings),
+  'modalStatus not found'
+);
+check(
+  'Modal still has priority select',
+  /modalPriority/.test(adminBookings),
+  'modalPriority not found'
+);
+check(
+  'Modal still has assignedTo select',
+  /modalAssignedTo/.test(adminBookings),
+  'modalAssignedTo not found'
+);
+check(
+  'Modal still has follow-up date input',
+  /modalFollowUpDate/.test(adminBookings),
+  'modalFollowUpDate not found'
+);
+check(
+  'Modal still has internal notes textarea',
+  /modalInternalNotes/.test(adminBookings),
+  'modalInternalNotes not found'
+);
+check(
+  'Modal still has save button',
+  /handleModalSave/.test(adminBookings),
+  'handleModalSave not found'
+);
+
+// 59. Last Contacted read-only in modal
+check(
+  'Modal shows Last Contacted read-only field',
+  /Last Contacted/.test(adminBookings),
+  'Last Contacted not shown in modal'
+);
+check(
+  'Last Contacted is read-only (no input)',
+  !/lastContactedAt.*form-control/.test(adminBookings),
+  'lastContactedAt appears editable'
+);
+
+// 60. No forbidden additions
+check(
+  'No file upload input in Admin Bookings',
+  !/type="file"/.test(adminBookings),
+  'file upload found'
+);
+check(
+  'No receipt upload in Admin Bookings',
+  !/receipt/i.test(adminBookings),
+  'receipt reference found'
+);
+check(
+  'No card fields in Admin Bookings',
+  !/card number/i.test(adminBookings),
+  'card number found'
+);
+check(
+  'No Stripe in Admin Bookings',
+  !/Stripe/i.test(adminBookings),
+  'Stripe found'
+);
+check(
+  'No checkout in Admin Bookings',
+  !/checkout/i.test(adminBookings),
+  'checkout found'
+);
+check(
+  'No Pay Now in Admin Bookings',
+  !/Pay Now/i.test(adminBookings),
+  'Pay Now found'
+);
+check(
+  'No new admin route added',
+  !/adminPaymentReview/.test(routesContent) && !/adminManualPayment/.test(routesContent),
+  'new admin payment route found'
+);
+check(
+  'Firestore rules not modified',
+  !/preferredPaymentMethod/.test(rulesContent),
+  'rules modified'
+);
+check(
+  'Storage rules not modified',
+  !/receipt/i.test(storageStr) && !/payment/i.test(storageStr),
+  'storage rules modified'
+);
+
+// 61. Existing features remain
+check(
+  'Existing payment method filter still present',
+  /paymentMethodFilter/.test(adminBookings),
+  'paymentMethodFilter missing'
+);
+check(
+  'Existing payment status filter still present',
+  /paymentStatusFilter/.test(adminBookings),
+  'paymentStatusFilter missing'
+);
+check(
+  'Existing follow-up filter still present',
+  /followUpFilter/.test(adminBookings),
+  'followUpFilter missing'
+);
+check(
+  'Existing summary chips still present',
+  /summaryCounts\.total/.test(adminBookings),
+  'summary chips missing'
+);
+check(
+  'Existing buildFollowUpMsg still present',
+  /buildFollowUpMsg/.test(adminBookings),
+  'buildFollowUpMsg missing'
+);
+check(
+  'Existing STATUS_BADGE map present',
+  /STATUS_BADGE/.test(readFile('src/feature-module/admin-dashboard/pages/bookings.tsx')),
+  'STATUS_BADGE not found'
+);
+
 // Summary
 console.log('\n=== Manual Payment QA Report ===\n');
 console.log(`Passed: ${ok.length}`);
