@@ -52,8 +52,7 @@ const FooterSection = () => {
                   <ImageWithBasePath src="assets/img/logo.svg" alt="logo" />
                 </Link>
                 <p className="text-white">
-                  Our mission is to offer you a seamless and enjoyable car
-                  rental experience. Whether you’re planning a road trip
+                  DreamsTour helps travelers explore Tunisia services and send requests for team follow-up.
                 </p>
               </div>
             </div>
@@ -67,29 +66,7 @@ const FooterSection = () => {
                   </span>
                   <div className="ms-2">
                     <p className="fs-14 mb-1 text-white">Customer Support</p>
-                    <div className="fw-medium text-light">+1 56589 54598</div>
-                  </div>
-                </div>
-              </div>
-              <div className="col">
-                <div className="d-flex align-items-center">
-                  <span className="avatar avatar-lg bg-secondary rounded-circle flex-shrink-0">
-                    <i className="isax isax-message-25 fs-24" />
-                  </span>
-                  <div className="ms-2">
-                    <p className="fs-14 mb-1 text-white">Drop Us an Email</p>
-                    <div className="fw-medium text-light">info@example.com</div>
-                  </div>
-                </div>
-              </div>
-              <div className="col">
-                <div className="d-flex align-items-center">
-                  <span className="avatar avatar-lg bg-teal rounded-circle flex-shrink-0">
-                    <i className="isax isax-message-25 fs-24" />
-                  </span>
-                  <div className="ms-2">
-                    <p className="fs-14 mb-1 text-white">Toll Free</p>
-                    <div className="fw-medium text-light">+1 56569 54698</div>
+                    <div className="fw-medium text-light">+216 56 000 000</div>
                   </div>
                 </div>
               </div>
@@ -104,33 +81,24 @@ const FooterSection = () => {
           <div className="footer-links d-none d-lg-block">
             <ul>
               <li>
-                <Link to="#">Home</Link>
+                <Link to={all_routes.allService1}>Home</Link>
               </li>
               <li>
-                <Link to={all_routes.hotelGrid}>Hotels</Link>
+                <Link to={all_routes.cruiseList}>Cruise</Link>
               </li>
               <li>
-                <Link to={all_routes.tourGrid}>Tours</Link>
+                <Link to={all_routes.busList}>Bus</Link>
               </li>
               <li>
-                <Link to={all_routes.carGrid}>Car Rentals</Link>
+                <Link to={all_routes.visaList}>Visa</Link>
               </li>
               <li>
-                <Link to={all_routes.cruiseGrid}>Cruise</Link>
+                <Link to={all_routes.guideGrid}>Guides</Link>
               </li>
               <li>
-                <Link to={all_routes.activityGrid}>Activities</Link>
+                <Link to={all_routes.contactUs}>Contact</Link>
               </li>
             </ul>
-          </div>
-          <div className="d-flex align-items-center gap-2 flex-wrap">
-            <span className="text-white">Available on</span>
-            <Link to="#" className="d-block">
-              <ImageWithBasePath src="assets/img/icons/googleplay-white.svg" alt="logo" />
-            </Link>
-            <Link to="#" className="d-block">
-              <ImageWithBasePath src="assets/img/icons/appstore-white.svg" alt="logo" />
-            </Link>
           </div>
         </div>
       </div>

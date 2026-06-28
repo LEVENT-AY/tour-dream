@@ -142,26 +142,26 @@ check(
   '<FeaturedServices /> not found in HomeServiceOne'
 );
 
-// 11. Hero section Search buttons point to Firestore-enabled list routes
+// 11. Hero section has clean Tunisia CTA (no fake search, no Newyork/USA)
 check(
-  'Cruise Search button uses cruiseList route',
-  /to=\{all_routes\.cruiseList\}[\s\S]*?Search/.test(homeContent),
-  'cruiseGrid still referenced in hero Search button'
+  'Hero section shows Explore Tunisia heading',
+  /Explore Tunisia Travel Services/.test(homeContent),
+  'Explore Tunisia heading not found in hero'
 );
 check(
-  'Bus Search button uses busList route',
-  /to=\{all_routes\.busList\}[\s\S]*?Search/.test(homeContent),
-  'busList not found in hero Bus Search button'
+  'Hero CTA links to cruiseList route',
+  /to=\{routes\.cruiseList\}/.test(homeContent),
+  'cruiseList route not found in hero CTA'
 );
 check(
-  'Visa Search button uses visaList route',
-  /to=\{all_routes\.visaList\}[\s\S]*?Search/.test(homeContent),
-  'visaGrid still referenced in hero Visa Search button'
+  'Hero section no longer contains Newyork or USA',
+  !/Newyork|USA/.test(homeContent),
+  'Newyork or USA still found in hero section'
 );
 check(
-  'Guide Search button uses guideGrid route',
-  /to=\{all_routes\.guideGrid\}[\s\S]*?Search/.test(homeContent),
-  'guideGrid not found in hero Guide Search button'
+  'Hero section no longer contains fake search tabs',
+  !/Flights|Hotels.*Cars.*Cruise.*Tour.*Bus.*Activity/.test(homeContent),
+  'Fake search tabs still present in hero'
 );
 
 // 13. Homepage localized copy checks
@@ -292,8 +292,8 @@ check(
 );
 check(
   'Recommended View All links to cruiseList',
-  /all_routes\.cruiseList[\s\S]*?View All Listings/.test(recomandedContent),
-  'View All Listings does not link to cruiseList'
+  /all_routes\.cruiseList[\s\S]*?View All Services|Explore Services/.test(recomandedContent),
+  'View All Services/Explore Services does not link to cruiseList'
 );
 
 // 19. Homepage CTA routes correct
@@ -565,6 +565,105 @@ check(
   /Send another request/.test(srFormContent),
   '"Send another request" button missing in success state'
 );
+
+// 38. FooterSection no longer contains template/fake content
+const footerSectionContent = readFile('src/feature-module/home-service-one/footerSection.tsx');
+check(
+  'FooterSection no longer has info@example.com',
+  !/info@example\.com/.test(footerSectionContent),
+  'info@example.com still present in footerSection'
+);
+check(
+  'FooterSection no longer has car rental mission copy',
+  !/car rental experience/.test(footerSectionContent),
+  'Car rental mission copy still present'
+);
+check(
+  'FooterSection no longer has Toll Free',
+  !/Toll Free/.test(footerSectionContent),
+  'Toll Free still present in footerSection'
+);
+check(
+  'FooterSection no longer has Google Play badges',
+  !/googleplay/.test(footerSectionContent),
+  'Google Play badges still present in footerSection'
+);
+check(
+  'FooterSection links focus on Cruise/Bus/Visa/Guide/Contact',
+  /\{all_routes\.cruiseList\}/.test(footerSectionContent),
+  'cruiseList link not found in footerSection nav'
+);
+
+// 39. Shared footer no longer contains non-Tunisia destinations
+const sharedFooterContent = readFile('src/core/common/footer/footer.tsx');
+check(
+  'Shared footer no longer has Newyork destination',
+  !/Newyork/.test(sharedFooterContent),
+  'Newyork still present in shared footer destinations'
+);
+check(
+  'Shared footer no longer has Hawai destination',
+  !/Hawai/.test(sharedFooterContent),
+  'Hawai still present in shared footer destinations'
+);
+check(
+  'Shared footer no longer has app store badges',
+  !/googleplay|appstore/.test(sharedFooterContent),
+  'App store badges still present in shared footer'
+);
+check(
+  'Shared footer no longer has payment card logos',
+  !/card-links|card-0[1-6]/.test(sharedFooterContent),
+  'Payment card logos still present in shared footer'
+);
+
+// 40. Testimonials no longer contain fake US names
+const testimonialContent = readFile('src/feature-module/home-service-one/testimonialSection.tsx');
+check(
+  'Testimonials section replaced with factual trust section',
+  /Why travelers use DreamsTour/.test(testimonialContent),
+  'Testimonials section still has fake content'
+);
+check(
+  'Testimonials no longer contain Michael Smith',
+  !/Michael Smith/.test(testimonialContent),
+  'Michael Smith still present in testimonials'
+);
+
+// 41. Recomanded no longer has $ prices
+const recomandedFile = readFile('src/feature-module/home-service-one/recomanded.tsx');
+check(
+  'Recomanded section no longer has $ prices',
+  !/\$450|\$850|\$300|\$700/.test(recomandedFile),
+  '$ prices still present in recomanded section'
+);
+
+// 42. LatestSection (client logos) removed
+const latestContent = readFile('src/feature-module/home-service-one/latestSection.tsx');
+check(
+  'LatestSection no longer has client logos slider',
+  !/clients-sec-eight|clientSliderTwo/.test(latestContent),
+  'Client logos slider still present'
+);
+
+// 43. Header navigation restored (Sprint 28B)
+const headerContent = readFile('src/core/common/header/header.tsx');
+check('Header contains Flight', /\{ label: "Flight"/.test(headerContent), 'Flight nav item missing');
+check('Header contains Hotel', /\{ label: "Hotel"/.test(headerContent), 'Hotel nav item missing');
+check('Header contains Car', /\{ label: "Car"/.test(headerContent), 'Car nav item missing');
+check('Header contains Resort', /\{ label: "Resort"/.test(headerContent), 'Resort nav item missing');
+check('Header contains Chalet', /\{ label: "Chalet"/.test(headerContent), 'Chalet nav item missing');
+check('Header contains Cruise', /\{ label: "Cruise"/.test(headerContent), 'Cruise nav item missing');
+check('Header contains Tour', /\{ label: "Tour"/.test(headerContent), 'Tour nav item missing');
+check('Header contains Bus', /\{ label: "Bus"/.test(headerContent), 'Bus nav item missing');
+check('Header contains Activity', /\{ label: "Activity"/.test(headerContent), 'Activity nav item missing');
+check('Header contains Visa', /\{ label: "Visa"/.test(headerContent), 'Visa nav item missing');
+check('Header contains Guide', /\{ label: "Guide"/.test(headerContent), 'Guide nav item missing');
+check('Header contains Contact', /\{ label: "Contact"/.test(headerContent), 'Contact nav item missing');
+check('Header does not contain USD dropdown', !/USD/.test(headerContent), 'USD dropdown still present');
+check('Header does not contain cart/payment checkout signals', !/(shopping.?cart|add.?to.?cart|checkout|isax-bag)/i.test(headerContent), 'Cart/checkout signals still present in header');
+check('Header does not contain Pay Now', !/Pay Now/.test(headerContent), 'Pay Now still present in header');
+check('Header does not contain Stripe/PayPal/payment logos', !/Stripe|PayPal/.test(headerContent), 'Stripe/PayPal still present in header');
 
 // Summary
 console.log('\n=== QA: Homepage Marketplace Discovery ===\n');

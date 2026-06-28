@@ -116,18 +116,17 @@ const Header = () => {
   const useFlatPublicHeaderNavigation = displayPathname !== "/index-10" && displayPathname !== "/index-12";
   const publicHeaderNavigation = [
     { label: "Home", url: routes.allService1 },
-    { label: "Flight", url: routes.flightList },
-    { label: "Hotel", url: routes.hotelMap },
-    { label: "Car", url: routes.carMap },
+    { label: "Flight", url: routes.flightGrid },
+    { label: "Hotel", url: routes.hotelGrid },
+    { label: "Car", url: routes.carGrid },
     { label: "Resort", url: routes.resortGrid },
     { label: "Chalet", url: routes.chaletGrid },
-    { label: "Cruise", url: routes.cruiseGrid },
-    { label: "Tour", url: routes.tourMap },
+    { label: "Cruise", url: routes.cruiseList },
+    { label: "Tour", url: routes.tourGrid },
     { label: "Bus", url: routes.busList },
-    { label: "Activity", url: routes.activityMap },
+    { label: "Activity", url: routes.activityGrid },
     { label: "Visa", url: routes.visaList },
     { label: "Guide", url: routes.guideGrid },
-    { label: "Pricing Plan", url: routes.pricingPlan },
     { label: "Contact", url: routes.contactUs },
   ];
   const currentPath = normalizeWebsiteSettingsPath(displayPathname) || displayPathname || "/";
@@ -137,8 +136,8 @@ const Header = () => {
   };
   const headerBrandLogo = "";
   const headerSiteName = "Logo";
-  const headerContactPhone = "+1 56565 56594";
-  const headerContactEmail = "info@example.com";
+  const headerContactPhone = "";
+  const headerContactEmail = "";
 
   const renderCustomNavigation = (item: HeaderNavigationItem, index: number, mobile = false) => {
     const url = normalizeWebsiteSettingsPath(item.url);
@@ -1735,32 +1734,7 @@ const Header = () => {
                       </li>
                     </ul>
                   </div>
-                  <div className="dropdown mb-2 me-3">
-                    <Link
-                      to="#"
-                      className="dropdown-toggle"
-                      data-bs-toggle="dropdown"
-                    >
-                      USD
-                    </Link>
-                    <ul className="dropdown-menu p-2 mt-2">
-                      <li>
-                        <Link className="dropdown-item rounded" to="#">
-                          USD
-                        </Link>
-                      </li>
-                      <li>
-                        <Link className="dropdown-item rounded" to="#">
-                          YEN
-                        </Link>
-                      </li>
-                      <li>
-                        <Link className="dropdown-item rounded" to="#">
-                          EURO
-                        </Link>
-                      </li>
-                    </ul>
-                  </div>
+
                   <div className="fav-dropdown mb-2">
                     <Link to={routes.wishlist} className="position-relative">
                       <i className="isax isax-heart" />
@@ -1844,32 +1818,7 @@ const Header = () => {
                       </li>
                     </ul>
                   </div>
-                  <div className="dropdown mb-2">
-                    <Link
-                      to="#"
-                      className="dropdown-toggle"
-                      data-bs-toggle="dropdown"
-                    >
-                      USD
-                    </Link>
-                    <ul className="dropdown-menu p-2 mt-2">
-                      <li>
-                        <Link className="dropdown-item rounded" to="#">
-                          USD
-                        </Link>
-                      </li>
-                      <li>
-                        <Link className="dropdown-item rounded" to="#">
-                          YEN
-                        </Link>
-                      </li>
-                      <li>
-                        <Link className="dropdown-item rounded" to="#">
-                          EURO
-                        </Link>
-                      </li>
-                    </ul>
-                  </div>
+
                 </div>
               </div>
             </div>
@@ -1906,32 +1855,7 @@ const Header = () => {
                   </Link>
                 </div>
                 <div className="d-flex align-items-center">
-                  <div className="dropdown mb-2 me-3">
-                    <Link
-                      to="#"
-                      className="dropdown-toggle"
-                      data-bs-toggle="dropdown"
-                    >
-                      USD
-                    </Link>
-                    <ul className="dropdown-menu p-2 mt-2">
-                      <li>
-                        <Link className="dropdown-item rounded" to="#">
-                          USD
-                        </Link>
-                      </li>
-                      <li>
-                        <Link className="dropdown-item rounded" to="#">
-                          YEN
-                        </Link>
-                      </li>
-                      <li>
-                        <Link className="dropdown-item rounded" to="#">
-                          EURO
-                        </Link>
-                      </li>
-                    </ul>
-                  </div>
+
                   <DarkButton />
                   <div className="fav-dropdown  me-3">
                     <Link to={routes.wishlist} className="position-relative">
@@ -2017,33 +1941,7 @@ const Header = () => {
                       </li>
                     </ul>
                   </div>
-                  <div className="dropdown">
-                    <Link
-                      to="#"
-                      className="dropdown-toggle p-2 py-1 rounded-pill fs-12 fw-medium"
-                      data-bs-toggle="dropdown"
-                      aria-expanded="false"
-                    >
-                      USD
-                    </Link>
-                    <ul className="dropdown-menu p-2 mt-2">
-                      <li>
-                        <Link className="dropdown-item rounded" to="#">
-                          USD
-                        </Link>
-                      </li>
-                      <li>
-                        <Link className="dropdown-item rounded" to="#">
-                          YEN
-                        </Link>
-                      </li>
-                      <li>
-                        <Link className="dropdown-item rounded" to="#">
-                          EURO
-                        </Link>
-                      </li>
-                    </ul>
-                  </div>
+
                 </div>
                 <div className="d-flex align-items-center flex-wrap">
                   <p className="d-flex align-items-center fs-14 mb-0 me-3 ">
@@ -2560,32 +2458,7 @@ const Header = () => {
                               </li>
                             </ul>
                           </div>
-                          <div className="dropdown">
-                            <Link
-                              to="#"
-                              className="dropdown-toggle bg-white border d-block"
-                              data-bs-toggle="dropdown"
-                            >
-                              USD
-                            </Link>
-                            <ul className="dropdown-menu p-2">
-                              <li>
-                                <Link className="dropdown-item rounded" to="#">
-                                  USD
-                                </Link>
-                              </li>
-                              <li>
-                                <Link className="dropdown-item rounded" to="#">
-                                  YEN
-                                </Link>
-                              </li>
-                              <li>
-                                <Link className="dropdown-item rounded" to="#">
-                                  EURO
-                                </Link>
-                              </li>
-                            </ul>
-                          </div>
+
                         </div>
                       </div>
                       <div>
@@ -3210,32 +3083,7 @@ const Header = () => {
                         </li>
                       </ul>
                     </div>
-                    <div className="dropdown me-3">
-                      <Link
-                        to="#"
-                        className="dropdown-toggle"
-                        data-bs-toggle="dropdown"
-                      >
-                        USD
-                      </Link>
-                      <ul className="dropdown-menu p-2 mt-2">
-                        <li>
-                          <Link className="dropdown-item rounded" to="#">
-                            USD
-                          </Link>
-                        </li>
-                        <li>
-                          <Link className="dropdown-item rounded" to="#">
-                            YEN
-                          </Link>
-                        </li>
-                        <li>
-                          <Link className="dropdown-item rounded" to="#">
-                            EURO
-                          </Link>
-                        </li>
-                      </ul>
-                    </div>
+
                     <div className="me-3">
                       <Link to={accountDashboardRoute}>
                         <i className="isax isax-user" />
@@ -3391,33 +3239,7 @@ const Header = () => {
                   </div>
                 ) : displayPathname === "/index-9" ? (
                   <div className="header-btn d-flex align-items-center">
-                    <div className="dropdown me-3">
-                      <Link
-                        to="#"
-                        className="dropdown-toggle"
-                        data-bs-toggle="dropdown"
-                        aria-expanded="false"
-                      >
-                        USD
-                      </Link>
-                      <ul className="dropdown-menu p-2 mt-2" style={{}}>
-                        <li>
-                          <Link className="dropdown-item rounded" to="#">
-                            USD
-                          </Link>
-                        </li>
-                        <li>
-                          <Link className="dropdown-item rounded" to="#">
-                            YEN
-                          </Link>
-                        </li>
-                        <li>
-                          <Link className="dropdown-item rounded" to="#">
-                            EURO
-                          </Link>
-                        </li>
-                      </ul>
-                    </div>
+
                     <div className="dropdown flag-dropdown me-3">
                       <Link
                         to="#"
@@ -3576,33 +3398,7 @@ const Header = () => {
                         </li>
                       </ul>
                     </div>
-                    <div className="dropdown me-2 d-none d-lg-block">
-                      <Link
-                        to="#"
-                        className="dropdown-toggle p-2 rounded-pill fs-12 fw-medium"
-                        data-bs-toggle="dropdown"
-                        aria-expanded="false"
-                      >
-                        USD
-                      </Link>
-                      <ul className="dropdown-menu p-2 mt-2">
-                        <li>
-                          <Link className="dropdown-item rounded" to="#">
-                            USD
-                          </Link>
-                        </li>
-                        <li>
-                          <Link className="dropdown-item rounded" to="#">
-                            YEN
-                          </Link>
-                        </li>
-                        <li>
-                          <Link className="dropdown-item rounded" to="#">
-                            EURO
-                          </Link>
-                        </li>
-                      </ul>
-                    </div>
+
                     <div className="me-3">
                       <Link to="#">
                         <i className="isax isax-user" />

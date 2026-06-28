@@ -43,8 +43,7 @@ const Footer = () => {
   const socialLinks = homepageSettings?.socialLinks || {};
   const hasSocialLinks = Object.values(socialLinks).some(Boolean);
   const footerText = homepageSettings?.footerText || 'Copyright 2026. All Rights Reserved,';
-  const contactPhone = homepageSettings?.contactPhone || '+1 56589 54598';
-  const contactEmail = homepageSettings?.contactEmail || 'info@example.com';
+  const contactPhone = homepageSettings?.contactPhone || '';
   const contactAddress = homepageSettings?.contactAddress || '';
 
   const renderSocialIcon = (platform: string) => {
@@ -97,25 +96,19 @@ const Footer = () => {
 
               <div className="col">
                 <div className="footer-widget">
-                  <h5>Company</h5>
+                  <h5>Marketplace</h5>
                   <ul className="footer-menu">
                     <li>
-                      <Link to={routes.about_us}>About Us</Link>
+                      <Link to={routes.cruiseList}>Cruises</Link>
                     </li>
                     <li>
-                      <Link to="#">Careers</Link>
+                      <Link to={routes.busList}>Buses</Link>
                     </li>
                     <li>
-                      <Link to={routes.blogGrid}>Blog</Link>
+                      <Link to={routes.visaList}>Visa Services</Link>
                     </li>
                     <li>
-                      <Link to="#">Affiliate Program</Link>
-                    </li>
-                    <li>
-                      <Link to={routes.addFlight}>Add Your Listing</Link>
-                    </li>
-                    <li>
-                      <Link to="#">Our Partners</Link>
+                      <Link to={routes.guideGrid}>Local Guides</Link>
                     </li>
                   </ul>
                 </div>
@@ -126,22 +119,19 @@ const Footer = () => {
                   <h5>Destinations</h5>
                   <ul className="footer-menu">
                     <li>
-                      <Link to="#">Hawai</Link>
+                      <Link to={routes.cruiseList}>Tunis</Link>
                     </li>
                     <li>
-                      <Link to="#">Istanbul</Link>
+                      <Link to={routes.cruiseList}>Sousse</Link>
                     </li>
                     <li>
-                      <Link to="#">San Diego</Link>
+                      <Link to={routes.cruiseList}>Hammamet</Link>
                     </li>
                     <li>
-                      <Link to="#">Belgium</Link>
+                      <Link to={routes.cruiseList}>Djerba</Link>
                     </li>
                     <li>
-                      <Link to="#">Los Angeles</Link>
-                    </li>
-                    <li>
-                      <Link to="#">Newyork</Link>
+                      <Link to={routes.cruiseList}>Sfax</Link>
                     </li>
                   </ul>
                 </div>
@@ -155,45 +145,10 @@ const Footer = () => {
                       <Link to={routes.contactUs}>Contact Us</Link>
                     </li>
                     <li>
-                      <Link to="#">Legal Notice</Link>
-                    </li>
-                    <li>
                       <Link to={routes.privacyPolicy}>Privacy Policy</Link>
                     </li>
                     <li>
                       <Link to={routes.termsConditions}>Terms and Conditions</Link>
-                    </li>
-                    <li>
-                      <Link to={routes.userChat}>Chat Support</Link>
-                    </li>
-                    <li>
-                      <Link to="#">Refund Policy</Link>
-                    </li>
-                  </ul>
-                </div>
-              </div>
-
-              <div className="col">
-                <div className="footer-widget">
-                  <h5>Services</h5>
-                  <ul className="footer-menu">
-                    <li>
-                      <Link to={routes.hotelGrid}>Hotel</Link>
-                    </li>
-                    <li>
-                      <Link to="#">Activity Finder</Link>
-                    </li>
-                    <li>
-                      <Link to={routes.flightGrid}>Flight Finder</Link>
-                    </li>
-                    <li>
-                      <Link to={routes.tourGrid}>Holiday Rental</Link>
-                    </li>
-                    <li>
-                      <Link to={routes.carGrid}>Car Rental</Link>
-                    </li>
-                    <li>
-                      <Link to={routes.tourDetails}>Holiday Packages</Link>
                     </li>
                   </ul>
                 </div>
@@ -213,21 +168,9 @@ const Footer = () => {
                   </div>
                 </div>
 
-                <div className="col-lg-6 col-xl-4 col-xxl-4">
-                  <div className="d-flex align-items-center justify-content-center flex-wrap">
-                    <h6 className="fs-14 fw-medium me-2 mb-2">Available on :</h6>
-                    <Link to="#" className="d-block mb-3 me-2">
-                      <ImageWithBasePath src="assets/img/icons/googleplay.svg" alt="logo" />
-                    </Link>
-                    <Link to="#" className="d-block mb-3">
-                      <ImageWithBasePath src="assets/img/icons/appstore.svg" alt="logo" />
-                    </Link>
-                  </div>
-                </div>
-
-                <div className="col-lg-12 col-xl-5 col-xxl-5">
+                <div className="col-lg-12 col-xl-9 col-xxl-9">
                   <div className="d-sm-flex align-items-center justify-content-center justify-content-xl-end">
-                    <div className="d-flex align-items-center justify-content-center justify-content-sm-start me-0 pe-0 me-sm-3 pe-sm-3 border-end mb-3">
+                    <div className="d-flex align-items-center justify-content-center justify-content-sm-start mb-3">
                       <span className="avatar avatar-lg bg-primary rounded-circle flex-shrink-0">
                         <i className="ti ti-headphones-filled fs-24" />
                       </span>
@@ -235,15 +178,6 @@ const Footer = () => {
                         <p className="mb-1">Customer Support</p>
                         <p className="fw-medium text-dark">{contactPhone}</p>
                         {contactAddress && <p className="mb-0 fs-13 text-muted">{contactAddress}</p>}
-                      </div>
-                    </div>
-                    <div className="d-flex align-items-center justify-content-center justify-content-sm-start mb-3">
-                      <span className="avatar avatar-lg bg-secondary rounded-circle flex-shrink-0">
-                        <i className="ti ti-message fs-24 text-gray-9" />
-                      </span>
-                      <div className="ms-2">
-                        <p className="mb-1">Drop Us an Email</p>
-                        <p className="fw-medium text-dark">{contactEmail}</p>
                       </div>
                     </div>
                   </div>
@@ -311,38 +245,9 @@ const Footer = () => {
                       )}
                     </ul>
                   </div>
-                  <ul className="card-links">
-                    <li>
-                      <Link to="#">
-                        <ImageWithBasePath src="assets/img/icons/card-01.svg" alt="img" />
-                      </Link>
-                    </li>
-                    <li>
-                      <Link to="#">
-                        <ImageWithBasePath src="assets/img/icons/card-02.svg" alt="img" />
-                      </Link>
-                    </li>
-                    <li>
-                      <Link to="#">
-                        <ImageWithBasePath src="assets/img/icons/card-03.svg" alt="img" />
-                      </Link>
-                    </li>
-                    <li>
-                      <Link to="#">
-                        <ImageWithBasePath src="assets/img/icons/card-04.svg" alt="img" />
-                      </Link>
-                    </li>
-                    <li>
-                      <Link to="#">
-                        <ImageWithBasePath src="assets/img/icons/card-05.svg" alt="img" />
-                      </Link>
-                    </li>
-                    <li>
-                      <Link to="#">
-                        <ImageWithBasePath src="assets/img/icons/card-06.svg" alt="img" />
-                      </Link>
-                    </li>
-                  </ul>
+                  <p className="fs-14 text-muted mb-0">
+                    No online card payment collected. All payments are manual after confirmation.
+                  </p>
                 </div>
               </div>
             </div>

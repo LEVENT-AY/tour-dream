@@ -59,7 +59,7 @@ const ContactUs = () => {
                                         </span>
                                         <div>
                                             <p className="fs-14 mb-0">Email Address</p>
-                                            <h6 className="text-gray-6">dreamtourinfo@example.com</h6>
+                                            <h6 className="text-gray-6">Contact us through the form</h6>
                                         </div>
                                     </div>
                                 </div>
