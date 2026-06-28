@@ -27,6 +27,7 @@ npm run dev:5174
 | [Project Status](PROJECT_STATUS.md) | Current state |
 | [Feature Map](FEATURE_MAP.md) | Architecture reference |
 | [Agent Rules](AGENT_RULES.md) | Dev agent conventions |
+| [Receipt Upload Planning](docs/RECEIPT_UPLOAD_PLANNING.md) | Future feature plan |
 
 ---
 
@@ -77,7 +78,7 @@ firebase deploy --only hosting
 
 ## What Is Intentionally Not Built
 
-- Receipt image / file upload
+- Receipt image / file upload ([planning doc](docs/RECEIPT_UPLOAD_PLANNING.md))
 - Stripe / card / checkout / payment gateway
 - Invoice / payout / finance system
 - Automated payment confirmation
