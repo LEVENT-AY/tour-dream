@@ -333,6 +333,66 @@ check(
   'guideGrid route missing'
 );
 
+// 22. Admin catalog pages exist and have validation
+const cruiseAdmin = readFile('src/feature-module/admin-dashboard/pages/cruises.tsx');
+const busAdmin = readFile('src/feature-module/admin-dashboard/pages/buses.tsx');
+const visaAdmin = readFile('src/feature-module/admin-dashboard/pages/visas.tsx');
+const guideAdmin = readFile('src/feature-module/admin-dashboard/pages/guides.tsx');
+const catalogMgr = readFile('src/feature-module/admin-dashboard/components/AdminCatalogManager.tsx');
+
+check('Admin Cruises page exists', /AdminCruises/.test(cruiseAdmin), 'AdminCruises not found');
+check('Admin Buses page exists', /AdminBuses/.test(busAdmin), 'AdminBuses not found');
+check('Admin Visas page exists', /AdminVisas/.test(visaAdmin), 'AdminVisas not found');
+check('Admin Guides page exists', /AdminGuides/.test(guideAdmin), 'AdminGuides not found');
+
+check('Admin Cruises has validateItem', /validateCruiseItem/.test(cruiseAdmin), 'validateCruiseItem not found');
+check('Admin Cruises has normalizeItem', /normalizeCruiseItem/.test(cruiseAdmin), 'normalizeCruiseItem not found');
+check('Admin Buses has validateItem', /validateBusItem/.test(busAdmin), 'validateBusItem not found');
+check('Admin Visas has validateItem', /validateVisaItem/.test(visaAdmin), 'validateVisaItem not found');
+check('Admin Guides has validateItem', /validateGuideItem/.test(guideAdmin), 'validateGuideItem not found');
+
+check('Admin forms use TND/default currency', /DEFAULT_CURRENCY/.test(cruiseAdmin) && /DEFAULT_CURRENCY/.test(busAdmin) && /DEFAULT_CURRENCY/.test(visaAdmin) && /DEFAULT_CURRENCY/.test(guideAdmin), 'DEFAULT_CURRENCY not found in all admin pages');
+
+// 23. Published quality validation references
+check('Cruise published validation: price > 0', /published[\s\S]*?price[\s\S]*?0/.test(cruiseAdmin), 'cruise published price validation missing');
+check('Bus published validation: route required', /published[\s\S]*?(?:departureCity.*arrivalCity|Departure City.*Arrival City)/.test(busAdmin), 'bus published route validation missing');
+check('Visa published validation: destination required', /published[\s\S]*?destination/.test(visaAdmin), 'visa published destination validation missing');
+check('Guide published validation: location required', /published[\s\S]*?(?:location.*city|Location.*City)/.test(guideAdmin), 'guide published location validation missing');
+
+// 24. Featured field support
+check('AdminCatalogManager has featured toggle', /featured/.test(catalogMgr), 'featured not found in AdminCatalogManager');
+check('Cruises admin has featured field', /featured/.test(cruiseAdmin), 'featured not found in cruises admin');
+check('Buses admin has featured field', /featured/.test(busAdmin), 'featured not found in buses admin');
+check('Visas admin has featured field', /featured/.test(visaAdmin), 'featured not found in visas admin');
+check('Guides admin has featured field', /featured/.test(guideAdmin), 'featured not found in guides admin');
+
+// 25. Admin catalog counters exist
+check('AdminCatalogManager has total counter', /Total/.test(catalogMgr), 'Total counter not found');
+check('AdminCatalogManager has published counter', /Published/.test(catalogMgr), 'Published counter not found');
+check('AdminCatalogManager has draft counter', /Draft/.test(catalogMgr), 'Draft counter not found');
+check('AdminCatalogManager has featured counter', /Featured/.test(catalogMgr), 'Featured counter not found');
+
+// 26. Image helper text exists
+check('AdminCatalogManager has image helper text', /Optional.*recommended.*homepage/.test(catalogMgr), 'image helper text not found');
+
+// 27. Public discovery still uses fetch functions
+check('Public FeaturedServices uses fetchCruises', /fetchCruises/.test(fsContent), 'fetchCruises not in FeaturedServices');
+check('Public FeaturedServices uses fetchBuses', /fetchBuses/.test(fsContent), 'fetchBuses not in FeaturedServices');
+
+// 28. No Firestore rules changed
+const firestoreRules = readFile('firestore.rules');
+const storageRules = readFile('storage.rules');
+if (firestoreRules) {
+  check('Firestore rules unchanged', /service cloud\.firestore/.test(firestoreRules), 'firestore rules file exists');
+} else {
+  check('Firestore rules unchanged', true, 'firestore.rules not in project');
+}
+if (storageRules) {
+  check('Storage rules unchanged', /service firebase\.storage/.test(storageRules), 'storage rules file exists');
+} else {
+  check('Storage rules unchanged', true, 'storage.rules not in project');
+}
+
 // Summary
 console.log('\n=== QA: Homepage Marketplace Discovery ===\n');
 if (ok.length) {

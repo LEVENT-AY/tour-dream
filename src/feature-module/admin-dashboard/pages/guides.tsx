@@ -121,6 +121,14 @@ const validateGuideItem = (item: Record<string, any>): string | null => {
   if (typeof item.price !== 'number' || Number.isNaN(item.price) || item.price < 0) {
     return 'Price must be a valid non-negative number.';
   }
+  if (item.published !== false) {
+    if (item.price <= 0) {
+      return 'Price must be greater than 0 for published records.';
+    }
+    if (!item.location && !item.city) {
+      return 'Location or City is required for published records.';
+    }
+  }
   if (typeof item.rating !== 'number' || Number.isNaN(item.rating) || item.rating < 0 || item.rating > 5) {
     return 'Rating must be a number between 0 and 5.';
   }

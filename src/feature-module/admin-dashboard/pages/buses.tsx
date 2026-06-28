@@ -114,6 +114,12 @@ const validateBusItem = (item: Record<string, any>): string | null => {
   if (typeof item.price !== 'number' || Number.isNaN(item.price) || item.price <= 0) {
     return 'Price must be a valid number greater than 0.';
   }
+  if (item.published !== false) {
+    const hasRoute = item.location || (item.departureCity && item.arrivalCity);
+    if (!hasRoute) {
+      return 'Departure City and Arrival City are required for published records.';
+    }
+  }
   if (typeof item.rating !== 'number' || Number.isNaN(item.rating) || item.rating < 0 || item.rating > 5) {
     return 'Rating must be a number between 0 and 5.';
   }

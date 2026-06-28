@@ -246,13 +246,21 @@ const AdminCatalogManager: React.FC<AdminCatalogManagerProps> = ({
     }
     if (field.type === 'image') {
       return (
+        <div>
           <ImageUpload
-          value={value || ''}
-          onChange={(url) => updateFormField(field.name, url)}
-          label={field.label}
-          storageFolder={adminUploadFolder}
-          inputTestId={`admin-image-upload-${field.name}`}
-        />
+            value={value || ''}
+            onChange={(url) => updateFormField(field.name, url)}
+            label={field.label}
+            storageFolder={adminUploadFolder}
+            inputTestId={`admin-image-upload-${field.name}`}
+          />
+          {!value && (
+            <div className="text-muted small mt-1">
+              <i className="isax isax-info-circle me-1" />
+              Optional, but recommended for homepage and public cards.
+            </div>
+          )}
+        </div>
       );
     }
     if (field.type === 'gallery') {
@@ -389,6 +397,41 @@ const AdminCatalogManager: React.FC<AdminCatalogManagerProps> = ({
 
       {pageError && <div className="alert alert-danger">{pageError}</div>}
       {pageSuccess && <div className="alert alert-success">{pageSuccess}</div>}
+
+      <div className="row g-3 mb-4">
+        <div className="col-md-3 col-6">
+          <div className="card bg-light border-0">
+            <div className="card-body text-center py-3">
+              <div className="fs-3 fw-bold">{items.length}</div>
+              <div className="small text-muted">Total</div>
+            </div>
+          </div>
+        </div>
+        <div className="col-md-3 col-6">
+          <div className="card bg-success bg-opacity-10 border-0">
+            <div className="card-body text-center py-3">
+              <div className="fs-3 fw-bold text-success">{items.filter((i) => i.published !== false).length}</div>
+              <div className="small text-muted">Published</div>
+            </div>
+          </div>
+        </div>
+        <div className="col-md-3 col-6">
+          <div className="card bg-secondary bg-opacity-10 border-0">
+            <div className="card-body text-center py-3">
+              <div className="fs-3 fw-bold text-secondary">{items.filter((i) => i.published === false).length}</div>
+              <div className="small text-muted">Draft</div>
+            </div>
+          </div>
+        </div>
+        <div className="col-md-3 col-6">
+          <div className="card bg-warning bg-opacity-10 border-0">
+            <div className="card-body text-center py-3">
+              <div className="fs-3 fw-bold text-warning">{items.filter((i) => i.featured === true).length}</div>
+              <div className="small text-muted">Featured</div>
+            </div>
+          </div>
+        </div>
+      </div>
 
       <div className="card">
         <div className="card-body p-0">
