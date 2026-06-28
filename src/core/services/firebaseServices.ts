@@ -586,6 +586,8 @@ export const deleteCatalogItem = async (collectionName: string, itemId: string):
 export type ServiceRequestStatus = "pending" | "contacted" | "confirmed" | "cancelled";
 export type ServiceType = "cruise" | "bus" | "visa" | "guide" | "tour" | "hotel" | "activity" | "other";
 export type ServiceRequestPriority = "low" | "normal" | "high" | "urgent";
+export type PreferredPaymentMethod = "not_sure" | "wafa_cash" | "bank_transfer";
+export type ManualPaymentStatus = "not_requested" | "pending_confirmation";
 
 export interface ServiceRequest {
   id?: string;
@@ -607,6 +609,9 @@ export interface ServiceRequest {
   lastContactedAt?: string;
   createdAt?: string;
   updatedAt?: string;
+  paymentFlow?: "manual";
+  paymentStatus?: ManualPaymentStatus;
+  preferredPaymentMethod?: PreferredPaymentMethod;
 }
 
 export const fetchServiceRequests = async (
@@ -679,6 +684,7 @@ export interface CreateServiceRequestInput {
   requestedDate?: string;
   guestsCount?: number;
   message?: string;
+  preferredPaymentMethod?: PreferredPaymentMethod;
 }
 
 export const createServiceRequest = async (
@@ -692,6 +698,8 @@ export const createServiceRequest = async (
     customerName: input.customerName,
     status: 'pending',
     source: 'public',
+    paymentFlow: 'manual',
+    paymentStatus: 'not_requested',
     createdAt: now,
     updatedAt: now,
   };
@@ -700,6 +708,7 @@ export const createServiceRequest = async (
   if (input.requestedDate) payload.requestedDate = input.requestedDate;
   if (typeof input.guestsCount === 'number') payload.guestsCount = input.guestsCount;
   if (input.message) payload.message = input.message;
+  if (input.preferredPaymentMethod) payload.preferredPaymentMethod = input.preferredPaymentMethod;
 
   const docRef = await addDoc(collection(db, 'serviceRequests'), payload);
   return docRef.id;

@@ -46,6 +46,7 @@ const CSV_HEADERS = [
   'createdAt','status','priority','serviceType','serviceTitle',
   'customerName','phone','email','requestedDate','guestsCount',
   'assignedTo','followUpDate','message','internalNotes',
+  'paymentFlow','paymentStatus','preferredPaymentMethod',
 ];
 
 const normalizePhone = (phone: string): string => phone.replace(/[^\d]/g, '');
@@ -525,6 +526,32 @@ const AdminBookings: React.FC<AdminBookingsProps> = ({ title = 'All Bookings', d
                     <h6 className="text-muted mb-1">Message</h6>
                     <p className="mb-0" style={{ whiteSpace: 'pre-wrap' }}>{selectedRequest.message || '\u2014'}</p>
                   </div>
+                  {(selectedRequest.paymentFlow || selectedRequest.preferredPaymentMethod) && (
+                    <div className="col-12">
+                      <hr className="my-2" />
+                      <h6 className="text-muted mb-2">Payment Info</h6>
+                      <div className="row g-2">
+                        {selectedRequest.paymentFlow && (
+                          <div className="col-md-4">
+                            <span className="fs-13 text-muted">Flow</span>
+                            <p className="mb-0 text-capitalize">{selectedRequest.paymentFlow}</p>
+                          </div>
+                        )}
+                        {selectedRequest.paymentStatus && (
+                          <div className="col-md-4">
+                            <span className="fs-13 text-muted">Status</span>
+                            <p className="mb-0 text-capitalize">{selectedRequest.paymentStatus.replace(/_/g, ' ')}</p>
+                          </div>
+                        )}
+                        {selectedRequest.preferredPaymentMethod && (
+                          <div className="col-md-4">
+                            <span className="fs-13 text-muted">Preferred Method</span>
+                            <p className="mb-0 text-capitalize">{selectedRequest.preferredPaymentMethod.replace(/_/g, ' ')}</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
                   <div className="col-12">
                     <hr className="my-2" />
                     <h6 className="text-muted mb-2">Admin Fields</h6>
