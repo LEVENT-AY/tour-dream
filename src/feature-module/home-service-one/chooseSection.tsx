@@ -1,13 +1,10 @@
-
-
 const ChooseSection = () => {
   return (
     <>
-  {/* why choose */}
   <section className="section why-choose-sec">
     <div className="container">
       <div className="section-header-eight wow fadeInUp">
-        <h2>Why Choose Us</h2>
+        <h2>Why Choose DreamsTour</h2>
       </div>
       <div className="row row-gap-4 wow fadeInUp">
         <div className="col-lg-3 col-md-6 d-flex">
@@ -16,23 +13,25 @@ const ChooseSection = () => {
               <i className="isax isax-map5 fs-24" />
             </span>
             <div className="text-white mb-2 home-eight-title">
-              Exceptional Service
+              Tunisia-Focused
             </div>
             <p className="mb-0 text-white">
-              Our dedicated team prioritizes your comfort and satisfaction,
+              Every service we offer is centered on Tunisia. From Mediterranean
+              cruises to Sahara desert tours, we know the destination.
             </p>
           </div>
         </div>
         <div className="col-lg-3 col-md-6 d-flex">
           <div className="why-choose-item w-100">
             <span className="avatar avatar-xl bg-info rounded-circle flex-shrink-0 mb-3">
-              <i className="isax isax-location-tick5 fs-24" />
+              <i className="isax isax-people5 fs-24" />
             </span>
             <div className="text-white mb-2 home-eight-title">
-              Prime Locations
+              Human Follow-Up
             </div>
             <p className="mb-0 text-white">
-              Enjoy easy access to local attractions, dining, entertainment.
+              No automated chatbots. A real team member reviews your request and
+              follows up personally to help plan your trip.
             </p>
           </div>
         </div>
@@ -42,23 +41,25 @@ const ChooseSection = () => {
               <i className="isax isax-ticket-star5 fs-24" />
             </span>
             <div className="text-white mb-2 home-eight-title">
-              Quality Accommodations
+              Flexible Requests
             </div>
             <p className="mb-0 text-white">
-              Our rooms and facilities are designed with your needs in mind.
+              Not sure what you need? Send a request and we will work with you
+              to tailor services that match your preferences and budget.
             </p>
           </div>
         </div>
         <div className="col-lg-3 col-md-6 d-flex">
           <div className="why-choose-item w-100">
             <span className="avatar avatar-xl bg-teal rounded-circle flex-shrink-0 mb-3">
-              <i className="isax isax-timer-15 fs-24" />
+              <i className="isax isax-category-25 fs-24" />
             </span>
             <div className="text-white mb-2 home-eight-title">
-              Personalized Experience
+              Multiple Categories
             </div>
             <p className="mb-0 text-white">
-              We tailor our services to meet your preferences, making your stay.
+              Cruises, intercity buses, visa guidance, and local guides — find
+              everything for your Tunisia journey in one place.
             </p>
           </div>
         </div>
@@ -72,10 +73,10 @@ const ChooseSection = () => {
       >
         <div className="slide-list d-flex">
           <div className="support-item">
-            <h3>Explore</h3>
+            <h3>Explore Tunisia</h3>
           </div>
           <div className="support-item">
-            <h3>Experience</h3>
+            <h3>Plan Your Trip</h3>
           </div>
         </div>
       </div>

@@ -167,7 +167,7 @@ const FeaturedServices = () => {
             />{" "}
             Services
           </h2>
-          <p className="text-muted">Hand-picked services for your next adventure</p>
+          <p className="text-muted">Real services from Tunisia. Send a request and our team will follow up — no online payment required.</p>
         </div>
 
         {results.map(({ key, items }) => {

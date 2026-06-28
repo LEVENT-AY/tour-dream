@@ -5,12 +5,11 @@ import { all_routes } from "../router/all_routes";
 const ExperienceSection = () => {
   return (
     <>
-      {/* destinations */}
       <section className="section destinations-sec">
         <div className="container">
           <div className="section-header-eight wow fadeInUp">
             <h2>
-              Experience Iconic <br />{" "}
+              Explore Tunisian <br />{" "}
               <ImageWithBasePath
                 src="./assets/img/bg/heading-bg-02.png"
                 alt="img"
@@ -21,94 +20,94 @@ const ExperienceSection = () => {
           <div className="row">
             <div className="col-lg-3">
               <div className="location-wrap wow zoomIn">
-                <Link to={all_routes.hotelGrid}>
+                <Link to={all_routes.cruiseList}>
                   <ImageWithBasePath
                     src="assets/img/destination/destination-48.jpg"
                     alt="Img"
                   />
                 </Link>
                 <div className="loc-name-bottom">
-                  <h3 className="mb-1 home-eight-title">Denmark</h3>
+                  <h3 className="mb-1 home-eight-title">Tunis</h3>
                 </div>
-                <Link to={all_routes.hotelGrid} className="loc-view-bottom">
+                <Link to={all_routes.cruiseList} className="loc-view-bottom">
                   <i className="isax isax-arrow-right-1" />
                 </Link>
               </div>
               <div className="location-wrap wow zoomIn">
-                <Link to={all_routes.hotelGrid}>
+                <Link to={all_routes.cruiseList}>
                   <ImageWithBasePath
                     src="assets/img/destination/destination-49.jpg"
                     alt="Img"
                   />
                 </Link>
                 <div className="loc-name-bottom">
-                  <h3 className="mb-1 home-eight-title">Indonesia</h3>
+                  <h3 className="mb-1 home-eight-title">Sousse</h3>
                 </div>
-                <Link to={all_routes.hotelGrid} className="loc-view-bottom">
+                <Link to={all_routes.cruiseList} className="loc-view-bottom">
                   <i className="isax isax-arrow-right-1" />
                 </Link>
               </div>
             </div>
             <div className="col-lg-4">
               <div className="location-wrap wow zoomIn">
-                <Link to={all_routes.hotelGrid}>
+                <Link to={all_routes.cruiseList}>
                   <ImageWithBasePath
                     src="assets/img/destination/destination-50.jpg"
                     alt="Img"
                   />
                 </Link>
                 <div className="loc-name-bottom">
-                  <h3 className="mb-1 home-eight-title">Romania</h3>
+                  <h3 className="mb-1 home-eight-title">Hammamet</h3>
                 </div>
-                <Link to={all_routes.hotelGrid} className="loc-view-bottom">
+                <Link to={all_routes.cruiseList} className="loc-view-bottom">
                   <i className="isax isax-arrow-right-1" />
                 </Link>
               </div>
             </div>
             <div className="col-lg-5">
               <div className="location-wrap wow zoomIn">
-                <Link to={all_routes.hotelGrid}>
+                <Link to={all_routes.cruiseList}>
                   <ImageWithBasePath
                     src="assets/img/destination/destination-51.jpg"
                     alt="Img"
                   />
                 </Link>
                 <div className="loc-name-bottom">
-                  <h3 className="mb-1 home-eight-title">Mexico</h3>
+                  <h3 className="mb-1 home-eight-title">Djerba</h3>
                 </div>
-                <Link to={all_routes.hotelGrid} className="loc-view-bottom">
+                <Link to={all_routes.cruiseList} className="loc-view-bottom">
                   <i className="isax isax-arrow-right-1" />
                 </Link>
               </div>
               <div className="row">
                 <div className="col-md-6">
                   <div className="location-wrap wow zoomIn">
-                    <Link to={all_routes.hotelGrid}>
+                    <Link to={all_routes.cruiseList}>
                       <ImageWithBasePath
                         src="assets/img/destination/destination-52.jpg"
                         alt="Img"
                       />
                     </Link>
                     <div className="loc-name-bottom">
-                      <h3 className="mb-1 home-eight-title">Germany</h3>
+                      <h3 className="mb-1 home-eight-title">Sfax</h3>
                     </div>
-                    <Link to={all_routes.hotelGrid} className="loc-view-bottom">
+                    <Link to={all_routes.cruiseList} className="loc-view-bottom">
                       <i className="isax isax-arrow-right-1" />
                     </Link>
                   </div>
                 </div>
                 <div className="col-md-6">
                   <div className="location-wrap wow zoomIn">
-                    <Link to={all_routes.hotelGrid}>
+                    <Link to={all_routes.cruiseList}>
                       <ImageWithBasePath
                         src="assets/img/destination/destination-53.jpg"
                         alt="Img"
                       />
                     </Link>
                     <div className="loc-name-bottom">
-                      <h3 className="mb-1 home-eight-title">Belgium</h3>
+                      <h3 className="mb-1 home-eight-title">Tozeur</h3>
                     </div>
-                    <Link to={all_routes.hotelGrid} className="loc-view-bottom">
+                    <Link to={all_routes.cruiseList} className="loc-view-bottom">
                       <i className="isax isax-arrow-right-1" />
                     </Link>
                   </div>
@@ -117,14 +116,13 @@ const ExperienceSection = () => {
             </div>
           </div>
           <div className="text-center mt-2 wow fadeInUp">
-            <Link to="#" className="btn btn-primary">
+            <Link to={all_routes.cruiseList} className="btn btn-primary">
               View All Destinations
               <i className="isax isax-arrow-right-3 ms-2" />
             </Link>
           </div>
         </div>
       </section>
-      {/* destinations */}
     </>
   );
 };

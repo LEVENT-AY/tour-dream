@@ -1,15 +1,15 @@
 import ImageWithBasePath from "../../core/common/imageWithBasePath";
 import { Link } from "react-router-dom";
+import { all_routes } from "../router/all_routes";
 
 const Recomanded = () => {
   return (
     <>
-      {/* recommended */}
       <section className="section recommended-sec">
         <div className="container">
           <div className="section-header-eight wow fadeInUp">
             <h2>
-              Exclusive Recommended <br />{" "}
+              Popular Tunisia <br />{" "}
               <ImageWithBasePath
                 src="./assets/img/bg/heading-bg-03.png"
                 alt="img"
@@ -21,7 +21,7 @@ const Recomanded = () => {
             <div className="col-lg-3 col-md-6">
               <div className="recommended-list-item wow fadeInUp">
                 <div className="recommended-img">
-                  <Link to="#" tabIndex={0}>
+                  <Link to={all_routes.cruiseList} tabIndex={0}>
                     <ImageWithBasePath
                       src="assets/img/destination/destination-54.jpg"
                       className="img-fluid"
@@ -54,16 +54,16 @@ const Recomanded = () => {
                     <span className="fs-14 text-gray-5">67 Reviews</span>
                   </div>
                   <div className="mb-1 home-eight-title text-dark">
-                    <Link to="#">Serene Bay</Link>
+                    <Link to={all_routes.cruiseList}>Medina Walk</Link>
                   </div>
-                  <span>Bold Street, Liverpool</span>
+                  <span>Tunis Medina</span>
                 </div>
               </div>
             </div>
             <div className="col-lg-3 col-md-6">
               <div className="recommended-list-item wow fadeInUp">
                 <div className="recommended-img">
-                  <Link to="#" tabIndex={0}>
+                  <Link to={all_routes.cruiseList} tabIndex={0}>
                     <ImageWithBasePath
                       src="assets/img/destination/destination-55.jpg"
                       className="img-fluid"
@@ -96,16 +96,16 @@ const Recomanded = () => {
                     <span className="fs-14 text-gray-5">42 Reviews</span>
                   </div>
                   <div className="mb-1 home-eight-title text-dark">
-                    <Link to="#">Coastal Retreat</Link>
+                    <Link to={all_routes.cruiseList}>Sahara Escape</Link>
                   </div>
-                  <span>Highway 1, Malibu</span>
+                  <span>Douz, Sahara Desert</span>
                 </div>
               </div>
             </div>
             <div className="col-lg-3 col-md-6">
               <div className="recommended-list-item wow fadeInUp">
                 <div className="recommended-img">
-                  <Link to="#" tabIndex={0}>
+                  <Link to={all_routes.cruiseList} tabIndex={0}>
                     <ImageWithBasePath
                       src="assets/img/destination/destination-56.jpg"
                       className="img-fluid"
@@ -137,16 +137,16 @@ const Recomanded = () => {
                     <span className="fs-14 text-gray-5">30 Reviews</span>
                   </div>
                   <div className="mb-1 home-eight-title text-dark">
-                    <Link to="#">Mountain Escape</Link>
+                    <Link to={all_routes.cruiseList}>Coastal Ride</Link>
                   </div>
-                  <span>Ridge Road, Denver</span>
+                  <span>Hammamet Coast</span>
                 </div>
               </div>
             </div>
             <div className="col-lg-3 col-md-6">
               <div className="recommended-list-item wow fadeInUp">
                 <div className="recommended-img">
-                  <Link to="#" tabIndex={0}>
+                  <Link to={all_routes.cruiseList} tabIndex={0}>
                     <ImageWithBasePath
                       src="assets/img/destination/destination-57.jpg"
                       className="img-fluid"
@@ -178,22 +178,21 @@ const Recomanded = () => {
                     <span className="fs-14 text-gray-5">55 Reviews</span>
                   </div>
                   <div className="mb-1 home-eight-title text-dark">
-                    <Link to="#">Urban Oasis</Link>
+                    <Link to={all_routes.cruiseList}>Djerba Retreat</Link>
                   </div>
-                  <span>City Center, New York</span>
+                  <span>Djerba Island</span>
                 </div>
               </div>
             </div>
           </div>
           <div className="text-center mt-4 pt-2 wow fadeInUp">
-            <Link to="#" className="btn btn-primary">
+            <Link to={all_routes.cruiseList} className="btn btn-primary">
               View All Listings
               <i className="isax isax-arrow-right-3 ms-2" />
             </Link>
           </div>
         </div>
       </section>
-      {/* recommended */}
     </>
   );
 };

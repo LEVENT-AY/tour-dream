@@ -1,204 +1,83 @@
-import { useEffect, useRef, useState } from "react";
 import ImageWithBasePath from "../../core/common/imageWithBasePath";
-import CountUp from "react-countup";
+
 const DeliverySection = () => {
-  const sectionRef = useRef<HTMLElement | null>(null);
-  const [startCounter, setStartCounter] = useState(false);
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const entry = entries[0];
-
-        if (entry.isIntersecting) {
-          setStartCounter(true);
-          observer.disconnect(); // run only once
-        }
-      },
-      {
-        threshold: 0.3, // 30% visible
-      },
-    );
-
-    if (sectionRef.current) {
-      observer.observe(sectionRef.current);
-    }
-
-    return () => {
-      observer.disconnect();
-    };
-  }, []);
   return (
     <>
-      {/* deliver section */}
-      <section className="deliver-sec" ref={sectionRef}>
+      <section className="section how-it-works-sec">
         <div className="container">
-          <div className="row row-gap-4 align-items-center mb-4">
-            <div className="col-lg-6">
-              <div className="section-header-eight mb-0 text-start wow fadeInUp">
-                <h2>Compassionate patient care to deliver the best</h2>
-              </div>
-            </div>
-            <div className="col-lg-6 wow fadeInUp">
-              <span>
-                With over two decades of excellence in cardiac care, We are at
-                the forefront of cardiovascular medicine. Our team of highly
-                skilled cardiologists combines.
-              </span>
-              <div className="d-flex align-items-center mt-4 flex-wrap">
-                <div className="avatar-list-stacked avatar-group-md me-2">
-                  <span className="avatar avatar-rounded">
-                    <ImageWithBasePath
-                      className="border border-white"
-                      src="assets/img/users/user-01.jpg"
-                      alt="img"
-                    />
-                  </span>
-                  <span className="avatar avatar-rounded">
-                    <ImageWithBasePath
-                      className="border border-white"
-                      src="assets/img/users/user-04.jpg"
-                      alt="img"
-                    />
-                  </span>
-                  <span className="avatar avatar-rounded">
-                    <ImageWithBasePath
-                      className="border border-white"
-                      src="assets/img/users/user-06.jpg"
-                      alt="img"
-                    />
-                  </span>
-                  <span className="avatar avatar-rounded">
-                    <ImageWithBasePath
-                      className="border border-white"
-                      src="assets/img/users/user-07.jpg"
-                      alt="img"
-                    />
-                  </span>
-                </div>
-                <div>
-                  <p className="fs-16 mb-0 text-dark">
-                    More than 4.9K clients reviews
-                  </p>
-                </div>
-              </div>
-            </div>
+          <div className="section-header-eight wow fadeInUp">
+            <h2>
+              How It{" "}
+              <ImageWithBasePath
+                src="./assets/img/bg/heading-bg-03.png"
+                alt="img"
+              />{" "}
+              Works
+            </h2>
+            <p className="text-muted">
+              Getting started with DreamsTour is simple
+            </p>
           </div>
           <div className="row row-gap-4">
-            <div className="col-lg-6 d-flex">
-              <div className="deliver-img d-flex w-100 wow zoomIn">
-                <ImageWithBasePath
-                  src="assets/img/tours/tours-36.jpg"
-                  className="img-fluid"
-                  alt="img"
-                />
+            <div className="col-lg-3 col-md-6 d-flex">
+              <div className="why-choose-item w-100">
+                <span className="avatar avatar-xl bg-primary rounded-circle flex-shrink-0 mb-3">
+                  <i className="isax isax-search-normal-1 fs-24" />
+                </span>
+                <div className="text-white mb-2 home-eight-title">
+                  1. Explore Services
+                </div>
+                <p className="mb-0 text-white">
+                  Browse cruises, bus trips, visa support, and local guides
+                  across Tunisia. Find what suits your travel needs.
+                </p>
               </div>
             </div>
-            <div className="col-lg-3 d-flex">
-              <div className="deliver-img d-flex w-100 wow zoomIn">
-                <ImageWithBasePath
-                  src="assets/img/tours/tours-37.jpg"
-                  className="img-fluid"
-                  alt="img"
-                />
+            <div className="col-lg-3 col-md-6 d-flex">
+              <div className="why-choose-item w-100">
+                <span className="avatar avatar-xl bg-info rounded-circle flex-shrink-0 mb-3">
+                  <i className="isax isax-message-text-1 fs-24" />
+                </span>
+                <div className="text-white mb-2 home-eight-title">
+                  2. Send a Request
+                </div>
+                <p className="mb-0 text-white">
+                  Fill out a simple request form on any service page. No online
+                  payment needed — just tell us what you are looking for.
+                </p>
               </div>
             </div>
-            <div className="col-lg-3 d-flex">
-              <div className="deliver-img d-flex w-100 wow zoomIn">
-                <ImageWithBasePath
-                  src="assets/img/tours/tours-38.jpg"
-                  className="img-fluid"
-                  alt="img"
-                />
+            <div className="col-lg-3 col-md-6 d-flex">
+              <div className="why-choose-item w-100">
+                <span className="avatar avatar-xl bg-cyan rounded-circle flex-shrink-0 mb-3">
+                  <i className="isax isax-profile-tick fs-24" />
+                </span>
+                <div className="text-white mb-2 home-eight-title">
+                  3. Team Contacts You
+                </div>
+                <p className="mb-0 text-white">
+                  Our team reviews your request and reaches out personally to
+                  discuss options, answer questions, and refine your plan.
+                </p>
               </div>
             </div>
-          </div>
-          <div className="statistics-sec wow fadeInUp">
-            <div className="row row-gap-4">
-              <div className="col-xl-3 col-md-6">
-                <div className="statistics-count">
-                  <div className="text-white mb-1 fs-18 fw-normal">
-                    Providers Registered
-                  </div>
-                  <h3>
-                    {startCounter && (
-                      <>
-                        <CountUp
-                          start={0}
-                          end={12}
-                          duration={5}
-                          className="counter"
-                        />
-                        +
-                      </>
-                    )}
-                  </h3>
+            <div className="col-lg-3 col-md-6 d-flex">
+              <div className="why-choose-item w-100">
+                <span className="avatar avatar-xl bg-teal rounded-circle flex-shrink-0 mb-3">
+                  <i className="isax isax-calendar-tick fs-24" />
+                </span>
+                <div className="text-white mb-2 home-eight-title">
+                  4. Confirm Details
                 </div>
-              </div>
-              <div className="col-xl-3 col-md-6">
-                <div className="statistics-count">
-                  <div className="text-white mb-1 fs-18 fw-normal">
-                    Clients Globally
-                  </div>
-                  <h3>
-                    {startCounter && (
-                      <>
-                        <CountUp
-                          start={0}
-                          end={15000}
-                          duration={5}
-                          className="counter"
-                        />
-                        +
-                      </>
-                    )}
-                  </h3>
-                </div>
-              </div>
-              <div className="col-xl-3 col-md-6">
-                <div className="statistics-count">
-                  <div className="text-white mb-1 fs-18 fw-normal">
-                    Destinations Worldwide
-                  </div>
-                  <h3>
-                    {startCounter && (
-                      <>
-                        <CountUp
-                          start={0}
-                          end={98}
-                          duration={5}
-                          className="counter"
-                        />
-                        +
-                      </>
-                    )}
-                  </h3>
-                </div>
-              </div>
-              <div className="col-xl-3 col-md-6">
-                <div className="statistics-count">
-                  <div className="text-white mb-1 fs-18 fw-normal">
-                    Services
-                  </div>
-                  <h3>
-                    {startCounter && (
-                      <>
-                        <CountUp
-                          start={0}
-                          end={20}
-                          duration={5}
-                          className="counter"
-                        />
-                        +
-                      </>
-                    )}
-                  </h3>
-                </div>
+                <p className="mb-0 text-white">
+                  Once everything is clear, confirm your booking details with
+                  our team. We handle the rest so you can enjoy your trip.
+                </p>
               </div>
             </div>
           </div>
         </div>
       </section>
-      {/* deliver section */}
     </>
   );
 };
