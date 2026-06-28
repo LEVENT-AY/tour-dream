@@ -1015,7 +1015,7 @@ export const HOME_TEMPLATE_INVENTORY: HomeTemplateInventoryItem[] = [
     component: "HomeServiceOne",
     category: "general",
     group: "recommended",
-    shell: { header: "shared", footer: "shared" },
+    shell: { header: "shared", footer: "local" },
     description: "Original canonical home with the full all-services travel shell.",
     safeForCanonicalHome: true,
   },

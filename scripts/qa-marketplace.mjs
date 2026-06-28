@@ -665,6 +665,18 @@ check('Header does not contain cart/payment checkout signals', !/(shopping.?cart
 check('Header does not contain Pay Now', !/Pay Now/.test(headerContent), 'Pay Now still present in header');
 check('Header does not contain Stripe/PayPal/payment logos', !/Stripe|PayPal/.test(headerContent), 'Stripe/PayPal still present in header');
 
+// 44. Duplicate light footer removed (Sprint 28C hotfix)
+const footerSectionFile = readFile('src/feature-module/home-service-one/footerSection.tsx');
+check('FooterSection contains dark footer mission copy', /DreamsTour helps travelers explore Tunisia services/.test(footerSectionFile), 'Dark footer mission copy missing');
+check('FooterSection does not contain Pages column from light footer', !/Pages.*Marketplace.*Destinations.*Support/.test(footerSectionFile), 'Pages/Marketplace columns still in FooterSection');
+check('FooterSection does not contain light footer white card', !/bg-white/.test(footerSectionFile), 'White card section still in FooterSection');
+check('FooterSection does not contain duplicate customer support card', !/second.*Customer Support|Customer Support.*second/.test(footerSectionFile), 'Duplicate customer support still in FooterSection');
+check('FooterSection does not contain QA Footer text', !/QA Footer/.test(footerSectionFile), 'QA Footer text still present');
+check('FooterSection does not contain QA Site text', !/QA Site/.test(footerSectionFile), 'QA Site text still present');
+// Verify shell config no longer uses shared footer for home-service-one
+const firebaseServicesFile = readFile('src/core/services/firebaseServices.ts');
+check('HomeServiceOne shell footer is local (not shared)', /home-service-one[\s\S]*?shell:\s*\{[\s\S]*?footer:\s*"local"/.test(firebaseServicesFile), 'Shell footer still set to shared');
+
 // Summary
 console.log('\n=== QA: Homepage Marketplace Discovery ===\n');
 if (ok.length) {

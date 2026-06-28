@@ -77,13 +77,13 @@ async function main() {
   const settingsRef = db.collection('siteSettings').doc('homepage');
   const beforeSnap = await settingsRef.get();
 
-  const testSiteName = `QA Site ${Date.now()}`;
+  const testSiteName = `Test Site ${Date.now()}`;
   const testHeroTitle = `QA Hero ${Date.now()}`;
   const testHeroSubtitle = 'Website settings public binding smoke.';
   const testHeroImage = 'assets/img/banner/banner-02.jpg';
   const testCtaLabel = 'QA Explore';
   const testCtaLink = '/tour/tour-grid';
-  const testFooterText = `QA Footer ${Date.now()}`;
+  const testFooterText = `Smoke Footer ${Date.now()}`;
   const testContactEmail = 'qa@example.com';
   const testContactPhone = '+1 555 555 0101';
   const testHeaderMenu = 'QA Menu';
