@@ -29,6 +29,25 @@ const STATUS_LABELS: Record<string, string> = {
   cancelled: 'Cancelled',
 };
 
+const PAYMENT_METHOD_LABELS: Record<string, string> = {
+  wafa_cash: 'Wafa Cash',
+  bank_transfer: 'Bank transfer',
+  not_sure: 'Not sure yet',
+};
+
+const PAYMENT_METHOD_FILTER_OPTIONS = [
+  { value: 'all', label: 'All payment methods' },
+  { value: 'wafa_cash', label: 'Wafa Cash' },
+  { value: 'bank_transfer', label: 'Bank transfer' },
+  { value: 'not_sure', label: 'Not sure yet' },
+  { value: 'none', label: 'No preference' },
+];
+
+const PAYMENT_STATUS_OPTIONS = [
+  { value: 'all', label: 'All statuses' },
+  { value: 'not_requested', label: 'Not requested' },
+];
+
 interface TabItem {
   key: ServiceRequestStatus | 'all';
   label: string;
@@ -88,6 +107,8 @@ const AdminBookings: React.FC<AdminBookingsProps> = ({ title = 'All Bookings', d
   const [assignmentFilter, setAssignmentFilter] = useState<'all' | 'unassigned' | 'assigned' | 'mine'>('all');
   const [currentAdminEmail, setCurrentAdminEmail] = useState<string | null>(null);
   const [showCustomAssigned, setShowCustomAssigned] = useState(false);
+  const [paymentMethodFilter, setPaymentMethodFilter] = useState<string>('all');
+  const [paymentStatusFilter, setPaymentStatusFilter] = useState<string>('all');
 
   const [selectedRequest, setSelectedRequest] = useState<ServiceRequest | null>(null);
   const [modalStatus, setModalStatus] = useState<ServiceRequestStatus>('pending');
@@ -138,8 +159,18 @@ const AdminBookings: React.FC<AdminBookingsProps> = ({ title = 'All Bookings', d
     if (assignmentFilter === 'unassigned') result = result.filter((r) => !r.assignedTo);
     if (assignmentFilter === 'assigned') result = result.filter((r) => !!r.assignedTo);
     if (assignmentFilter === 'mine') result = result.filter((r) => r.assignedTo === currentAdminEmail);
+    if (paymentMethodFilter !== 'all') {
+      result = result.filter((r) => {
+        const pm = r.preferredPaymentMethod;
+        if (paymentMethodFilter === 'none') return !pm;
+        return pm === paymentMethodFilter;
+      });
+    }
+    if (paymentStatusFilter !== 'all') {
+      result = result.filter((r) => r.paymentStatus === paymentStatusFilter);
+    }
     return result;
-  }, [allRequests, activeTab, search, assignmentFilter, currentAdminEmail]);
+  }, [allRequests, activeTab, search, assignmentFilter, currentAdminEmail, paymentMethodFilter, paymentStatusFilter]);
 
   const changeStatus = async (id: string, status: ServiceRequestStatus) => {
     setUpdatingId(id);
@@ -196,14 +227,43 @@ const AdminBookings: React.FC<AdminBookingsProps> = ({ title = 'All Bookings', d
     }
   };
 
+  const buildFollowUpMsg = useCallback((r: ServiceRequest): string => {
+    let msg = `Hi ${r.customerName || 'there'}, this is DreamsTour following up on your request for "${r.serviceTitle || 'a service'}".`;
+    if (r.requestedDate) msg += ` You requested ${r.requestedDate}.`;
+    if (r.preferredPaymentMethod === 'wafa_cash') {
+      msg += ' Our team will confirm availability and then send Wafa Cash instructions.';
+    } else if (r.preferredPaymentMethod === 'bank_transfer') {
+      msg += ' Our team will confirm availability and then send bank transfer instructions.';
+    } else {
+      msg += ' Our team will confirm availability and help you choose the best manual payment method.';
+    }
+    return msg;
+  }, []);
+
   const copyFollowUp = useCallback(async (r: ServiceRequest) => {
-    const msg = `Hi ${r.customerName || 'there'}, this is DreamsTour following up on your request for "${r.serviceTitle || 'a service'}".${r.requestedDate ? ` You requested ${r.requestedDate}.` : ''} Please let us know if you have any questions.`;
+    const msg = buildFollowUpMsg(r);
     try {
       await navigator.clipboard.writeText(msg);
       setCopyFeedback(r.id!);
       setTimeout(() => setCopyFeedback(null), 2000);
     } catch { /* clipboard not available */ }
-  }, []);
+  }, [buildFollowUpMsg]);
+
+  const readablePaymentValue = (r: ServiceRequest, field: string): string => {
+    if (field === 'preferredPaymentMethod') {
+      const val = (r as any)[field];
+      return PAYMENT_METHOD_LABELS[val] || val ? val.replace(/_/g, ' ') : '';
+    }
+    if (field === 'paymentStatus') {
+      const val = (r as any)[field];
+      if (!val) return '';
+      return val === 'not_requested' ? 'Not requested' : val.replace(/_/g, ' ');
+    }
+    if (field === 'paymentFlow') {
+      return (r as any)[field] === 'manual' ? 'Manual' : (r as any)[field] || '';
+    }
+    return (r as any)[field];
+  };
 
   const exportCSV = useCallback(() => {
     const esc = (v: unknown) => `"${String(v ?? '').replace(/"/g, '""')}"`;
@@ -212,6 +272,7 @@ const AdminBookings: React.FC<AdminBookingsProps> = ({ title = 'All Bookings', d
         if (h === 'guestsCount') return esc(r.guestsCount ?? '');
         if (h === 'phone') return esc(r.customerPhone);
         if (h === 'email') return esc(r.customerEmail);
+        if (h.startsWith('payment')) return esc(readablePaymentValue(r, h));
         return esc((r as any)[h]);
       }).join(',')
     );
@@ -288,6 +349,29 @@ const AdminBookings: React.FC<AdminBookingsProps> = ({ title = 'All Bookings', d
         )}
       </div>
 
+      <div className="d-flex flex-wrap gap-2 mb-3 align-items-center">
+        <span className="fs-14 text-muted me-1">Payment:</span>
+        {PAYMENT_METHOD_FILTER_OPTIONS.map((opt) => (
+          <button
+            key={opt.value}
+            className={`btn btn-sm ${paymentMethodFilter === opt.value ? 'btn-primary' : 'btn-outline-secondary'}`}
+            onClick={() => setPaymentMethodFilter(opt.value)}
+          >
+            {opt.label}
+          </button>
+        ))}
+        <span className="text-muted mx-1">|</span>
+        {PAYMENT_STATUS_OPTIONS.map((opt) => (
+          <button
+            key={opt.value}
+            className={`btn btn-sm ${paymentStatusFilter === opt.value ? 'btn-primary' : 'btn-outline-secondary'}`}
+            onClick={() => setPaymentStatusFilter(opt.value)}
+          >
+            {opt.label}
+          </button>
+        ))}
+      </div>
+
       <div className="card mb-4">
         <div className="card-body d-flex flex-wrap gap-3 align-items-center">
           <div className="flex-grow-1" style={{ minWidth: '240px' }}>
@@ -319,20 +403,21 @@ const AdminBookings: React.FC<AdminBookingsProps> = ({ title = 'All Bookings', d
                   <th>Created</th>
                   <th>Status</th>
                   <th>Assigned</th>
+                  <th>Payment</th>
                   <th className="text-end">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {loading ? (
                   <tr>
-                    <td colSpan={9} className="text-center py-4">
+                    <td colSpan={10} className="text-center py-4">
                       <span className="spinner-border spinner-border-sm text-primary me-2" />
                       Loading...
                     </td>
                   </tr>
                 ) : filtered.length === 0 ? (
                   <tr>
-                    <td colSpan={9} className="text-center py-4 text-muted">
+                    <td colSpan={10} className="text-center py-4 text-muted">
                       {emptyMessage()}
                     </td>
                   </tr>
@@ -369,7 +454,7 @@ const AdminBookings: React.FC<AdminBookingsProps> = ({ title = 'All Bookings', d
                                   {r.customerPhone}
                                 </a>
                                 <a
-                                  href={`https://wa.me/${normalizePhone(r.customerPhone)}?text=${encodeURIComponent(`Hi ${r.customerName || ''}, this is DreamsTour following up on your request for "${r.serviceTitle || ''}".`)}`}
+                                  href={`https://wa.me/${normalizePhone(r.customerPhone)}?text=${encodeURIComponent(buildFollowUpMsg(r))}`}
                                   target="_blank"
                                   rel="noopener noreferrer"
                                   className="text-success text-decoration-none"
@@ -417,6 +502,24 @@ const AdminBookings: React.FC<AdminBookingsProps> = ({ title = 'All Bookings', d
                             <span className="text-nowrap">{r.assignedTo}</span>
                           ) : (
                             <span className="badge bg-light text-muted">Unassigned</span>
+                          )}
+                        </td>
+                        <td>
+                          {r.paymentFlow === 'manual' && (
+                            <div className="d-flex flex-column gap-1">
+                              <span className="badge bg-light text-dark fs-10 fw-normal text-nowrap">Manual</span>
+                              {r.preferredPaymentMethod && (
+                                <span className="badge bg-info bg-opacity-10 text-dark fs-10 fw-normal text-nowrap border border-info border-opacity-25">
+                                  {PAYMENT_METHOD_LABELS[r.preferredPaymentMethod] || r.preferredPaymentMethod.replace(/_/g, ' ')}
+                                </span>
+                              )}
+                              {!r.preferredPaymentMethod && (
+                                <span className="badge bg-light text-muted fs-10 fw-normal">Not selected</span>
+                              )}
+                            </div>
+                          )}
+                          {!r.paymentFlow && (
+                            <span className="text-muted fs-12">{'\u2014'}</span>
                           )}
                         </td>
                         <td className="text-end text-nowrap">
@@ -500,7 +603,7 @@ const AdminBookings: React.FC<AdminBookingsProps> = ({ title = 'All Bookings', d
                             {selectedRequest.customerPhone}
                           </a>
                           <a
-                            href={`https://wa.me/${normalizePhone(selectedRequest.customerPhone)}?text=${encodeURIComponent(`Hi ${selectedRequest.customerName || ''}, this is DreamsTour following up on your request for "${selectedRequest.serviceTitle || ''}".`)}`}
+                            href={`https://wa.me/${normalizePhone(selectedRequest.customerPhone)}?text=${encodeURIComponent(buildFollowUpMsg(selectedRequest))}`}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="text-success"
@@ -526,32 +629,27 @@ const AdminBookings: React.FC<AdminBookingsProps> = ({ title = 'All Bookings', d
                     <h6 className="text-muted mb-1">Message</h6>
                     <p className="mb-0" style={{ whiteSpace: 'pre-wrap' }}>{selectedRequest.message || '\u2014'}</p>
                   </div>
-                  {(selectedRequest.paymentFlow || selectedRequest.preferredPaymentMethod) && (
-                    <div className="col-12">
-                      <hr className="my-2" />
-                      <h6 className="text-muted mb-2">Payment Info</h6>
-                      <div className="row g-2">
-                        {selectedRequest.paymentFlow && (
-                          <div className="col-md-4">
-                            <span className="fs-13 text-muted">Flow</span>
-                            <p className="mb-0 text-capitalize">{selectedRequest.paymentFlow}</p>
-                          </div>
-                        )}
-                        {selectedRequest.paymentStatus && (
-                          <div className="col-md-4">
-                            <span className="fs-13 text-muted">Status</span>
-                            <p className="mb-0 text-capitalize">{selectedRequest.paymentStatus.replace(/_/g, ' ')}</p>
-                          </div>
-                        )}
-                        {selectedRequest.preferredPaymentMethod && (
-                          <div className="col-md-4">
-                            <span className="fs-13 text-muted">Preferred Method</span>
-                            <p className="mb-0 text-capitalize">{selectedRequest.preferredPaymentMethod.replace(/_/g, ' ')}</p>
-                          </div>
-                        )}
+                  <div className="col-12">
+                    <hr className="my-2" />
+                    <h6 className="text-muted mb-2">Payment Info</h6>
+                    <div className="row g-2">
+                      <div className="col-md-4">
+                        <span className="fs-13 text-muted">Flow</span>
+                        <p className="mb-0">{selectedRequest.paymentFlow === 'manual' ? 'Manual' : selectedRequest.paymentFlow || '\u2014'}</p>
+                      </div>
+                      <div className="col-md-4">
+                        <span className="fs-13 text-muted">Status</span>
+                        <p className="mb-0">{selectedRequest.paymentStatus === 'not_requested' ? 'Not requested' : selectedRequest.paymentStatus ? selectedRequest.paymentStatus.replace(/_/g, ' ') : '\u2014'}</p>
+                      </div>
+                      <div className="col-md-4">
+                        <span className="fs-13 text-muted">Preferred Method</span>
+                        <p className="mb-0">{selectedRequest.preferredPaymentMethod ? (PAYMENT_METHOD_LABELS[selectedRequest.preferredPaymentMethod] || selectedRequest.preferredPaymentMethod.replace(/_/g, ' ')) : 'Not selected'}</p>
                       </div>
                     </div>
-                  )}
+                    <p className="fs-12 text-muted mt-2 mb-0">
+                      Manual payment is confirmed by the team after availability confirmation. No card payment is collected on the website.
+                    </p>
+                  </div>
                   <div className="col-12">
                     <hr className="my-2" />
                     <h6 className="text-muted mb-2">Admin Fields</h6>

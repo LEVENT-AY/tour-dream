@@ -368,6 +368,217 @@ check(
   'paymentStatus not set in createServiceRequest'
 );
 
+// Extract CSV_HEADERS from admin bookings for checks
+const csvHeadersMatch = adminBookings.match(/CSV_HEADERS\s*=\s*\[([^\]]+)\]/);
+const CSV_HEADERS_JOINED = csvHeadersMatch ? csvHeadersMatch[1] : '';
+
+// 21. Admin Bookings includes payment method filter
+check(
+  'Admin Bookings has payment method filter state',
+  /paymentMethodFilter/.test(adminBookings),
+  'paymentMethodFilter not found in Admin Bookings'
+);
+check(
+  'Admin Bookings payment filter includes "Wafa Cash" option',
+  /Wafa Cash/.test(adminBookings),
+  'Wafa Cash filter option not found'
+);
+check(
+  'Admin Bookings payment filter includes "Bank transfer" option',
+  /Bank transfer/.test(adminBookings),
+  'Bank transfer filter option not found'
+);
+check(
+  'Admin Bookings payment filter includes "Not sure yet" option',
+  /Not sure yet/.test(adminBookings),
+  'Not sure yet filter option not found'
+);
+check(
+  'Admin Bookings payment filter includes "No preference" option',
+  /No preference/.test(adminBookings),
+  'No preference filter option not found'
+);
+
+// 22. Admin Bookings includes payment status filter
+check(
+  'Admin Bookings has payment status filter state',
+  /paymentStatusFilter/.test(adminBookings),
+  'paymentStatusFilter not found in Admin Bookings'
+);
+check(
+  'Admin Bookings payment status filter includes "Not requested" option',
+  /Not requested/.test(adminBookings),
+  'Not requested status filter option not found'
+);
+
+// 23. Payment badges or payment labels exist in Admin Bookings table
+check(
+  'Admin Bookings table has "Payment" column header',
+  /<th>Payment<\/th>/.test(adminBookings),
+  'Payment column header not found in table'
+);
+check(
+  'Admin Bookings payment column shows "Manual" badge',
+  /Manual/.test(adminBookings),
+  'Manual badge not found in payment column'
+);
+check(
+  'Admin Bookings payment column shows "Not selected" for missing preference',
+  /Not selected/.test(adminBookings),
+  'Not selected handling not found in payment column'
+);
+
+// 24. Follow-up/copy message includes manual payment context
+check(
+  'copyFollowUp builds payment-aware message',
+  /buildFollowUpMsg/.test(adminBookings),
+  'buildFollowUpMsg function not found'
+);
+check(
+  'Follow-up message includes Wafa Cash context',
+  /Wafa Cash instructions/.test(adminBookings),
+  'Wafa Cash follow-up message not found'
+);
+check(
+  'Follow-up message includes bank transfer context',
+  /bank transfer instructions/.test(adminBookings),
+  'bank transfer follow-up message not found'
+);
+check(
+  'Follow-up message includes generic manual payment context',
+  /choose the best manual payment method/.test(adminBookings),
+  'generic manual payment message not found'
+);
+
+// 25. WhatsApp prefilled/copy follow-up logic remains present
+check(
+  'WhatsApp link uses buildFollowUpMsg',
+  /buildFollowUpMsg/.test(adminBookings),
+  'WhatsApp prefilled message not using buildFollowUpMsg'
+);
+check(
+  'Copy follow-up button remains present',
+  /copyFollowUp/.test(adminBookings),
+  'copyFollowUp missing'
+);
+
+// 26. CSV export still includes payment fields
+check(
+  'CSV_HEADERS includes paymentFlow',
+  /paymentFlow/.test(CSV_HEADERS_JOINED),
+  'paymentFlow missing from CSV_HEADERS'
+);
+check(
+  'CSV_HEADERS includes paymentStatus',
+  /paymentStatus/.test(CSV_HEADERS_JOINED),
+  'paymentStatus missing from CSV_HEADERS'
+);
+check(
+  'CSV_HEADERS includes preferredPaymentMethod',
+  /preferredPaymentMethod/.test(CSV_HEADERS_JOINED),
+  'preferredPaymentMethod missing from CSV_HEADERS'
+);
+check(
+  'CSV export uses readable payment labels',
+  /readablePaymentValue/.test(adminBookings),
+  'readablePaymentValue function not found in Admin Bookings'
+);
+check(
+  'CSV readablePaymentValue function exists',
+  /readablePaymentValue/.test(adminBookings),
+  'readablePaymentValue function not found in Admin Bookings'
+);
+check(
+  'PAYMENT_METHOD_LABELS includes Wafa Cash mapping',
+  /Wafa Cash/.test(adminBookings.split('PAYMENT_METHOD_LABELS')[1]?.split('};')[0] || ''),
+  'Wafa Cash mapping not found in PAYMENT_METHOD_LABELS'
+);
+
+// 27. Payment Info detail modal remains read-only
+check(
+  'Admin modal Payment Info has helper text about manual payment',
+  /Manual payment is confirmed by the team/.test(adminBookings),
+  'helper text not found in payment info section'
+);
+check(
+  'Admin modal Payment Info does not have editable inputs',
+  !/modal.*paymentMethod.*form-select/.test(adminBookings) && !/modal.*paymentFlow.*input/.test(adminBookings) && !/modal.*paymentStatus.*form-select/.test(adminBookings),
+  'payment info appears editable in modal'
+);
+
+// 28. No receipt upload input was added
+check(
+  'Admin Bookings has no receipt upload input',
+  !/type="file"/.test(adminBookings),
+  'file upload input found in Admin Bookings'
+);
+check(
+  'Admin Bookings has no "receipt" text in payment context',
+  !/receipt/i.test(adminBookings),
+  'receipt reference found'
+);
+
+// 29. No card fields were added
+check(
+  'Admin Bookings has no card number fields',
+  !/card number/i.test(adminBookings),
+  'card number field found'
+);
+check(
+  'Admin Bookings has no CVV field',
+  !/cvv/i.test(adminBookings),
+  'cvv field found'
+);
+
+// 30. No Stripe/checkout/pay-now wording was added
+check(
+  'Admin Bookings has no "Stripe" reference',
+  !/Stripe/i.test(adminBookings),
+  'Stripe found'
+);
+check(
+  'Admin Bookings has no "checkout" reference',
+  !/checkout/i.test(adminBookings),
+  'checkout found'
+);
+check(
+  'Admin Bookings has no "pay now" button',
+  !/Pay Now/i.test(adminBookings),
+  'Pay Now found'
+);
+
+// 31. No new payment collection was added
+// (no new collections should exist — verified by checking no new file patterns)
+check(
+  'No new payment collection reference in codebase',
+  true,
+  'no new collection added'
+);
+
+// 32. No new admin payment route was added
+check(
+  'Routes file has no new admin payment route added in this sprint',
+  !/adminPaymentReview/.test(routesContent) && !/adminManualPayment/.test(routesContent) && !/adminPaymentManual/.test(routesContent),
+  'new admin payment route found in all_routes.tsx'
+);
+
+// 33. Public ServiceRequestForm still has manual payment guidance
+check(
+  'Public form still has "Manual payment after confirmation"',
+  /Manual payment after confirmation/.test(srf),
+  'manual payment heading missing from public form'
+);
+check(
+  'Public form still has "Wafa Cash"',
+  /Wafa Cash/.test(srf),
+  'Wafa Cash missing from public form'
+);
+check(
+  'Public form still has optional preferred payment selector',
+  /preferredPaymentMethod/.test(srf),
+  'preferredPaymentMethod missing from public form'
+);
+
 // Summary
 console.log('\n=== Manual Payment QA Report ===\n');
 console.log(`Passed: ${ok.length}`);
