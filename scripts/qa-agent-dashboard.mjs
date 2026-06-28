@@ -369,7 +369,109 @@ check(
   'Thomas Lawler still in agentPlantModal'
 );
 
-// 22. No new parallel agent dashboard route
+// 22. Visa booking page wired to real data
+const visaContent = readFile('src/feature-module/agent-dashboard/Booking/visa-booking/visaBooking.tsx');
+check(
+  'Visa booking imports fetchAgentBookings',
+  /fetchAgentBookings/.test(visaContent),
+  'fetchAgentBookings not imported in visaBooking'
+);
+check(
+  'Visa booking uses useAuth',
+  /useAuth/.test(visaContent),
+  'useAuth not used in visaBooking'
+);
+check(
+  'Visa booking filters by itemType visa',
+  /itemType.*visa/.test(visaContent),
+  'itemType visa filter not found in visaBooking'
+);
+check(
+  'Visa booking has no static booking count',
+  !/No of Booking :/.test(visaContent),
+  'static booking count still present in visaBooking'
+);
+
+// 23. Activities booking page wired to real data
+const activitiesContent = readFile('src/feature-module/agent-dashboard/Booking/activities-booking/activitiesBooking.tsx');
+check(
+  'Activities booking imports fetchAgentBookings',
+  /fetchAgentBookings/.test(activitiesContent),
+  'fetchAgentBookings not imported in activitiesBooking'
+);
+check(
+  'Activities booking uses useAuth',
+  /useAuth/.test(activitiesContent),
+  'useAuth not used in activitiesBooking'
+);
+check(
+  'Activities booking filters by itemType activity',
+  /itemType.*activity/.test(activitiesContent),
+  'itemType activity filter not found in activitiesBooking'
+);
+check(
+  'Activities booking has no static booking count',
+  !/No of Booking :/.test(activitiesContent),
+  'static booking count still present in activitiesBooking'
+);
+check(
+  'Activities booking no "not configured" alert',
+  !/not configured/.test(activitiesContent),
+  'not configured alert still present in activitiesBooking'
+);
+
+// 24. Guide booking page wired to real data
+const guideContent = readFile('src/feature-module/agent-dashboard/Booking/guide-booking/guideBooking.tsx');
+check(
+  'Guide booking imports fetchAgentBookings',
+  /fetchAgentBookings/.test(guideContent),
+  'fetchAgentBookings not imported in guideBooking'
+);
+check(
+  'Guide booking uses useAuth',
+  /useAuth/.test(guideContent),
+  'useAuth not used in guideBooking'
+);
+check(
+  'Guide booking filters by itemType guide',
+  /itemType.*guide/.test(guideContent),
+  'itemType guide filter not found in guideBooking'
+);
+check(
+  'Guide booking has no static booking count',
+  !/No of Booking :/.test(guideContent),
+  'static booking count still present in guideBooking'
+);
+check(
+  'Guide booking no "not configured" alert',
+  !/not configured/.test(guideContent),
+  'not configured alert still present in guideBooking'
+);
+
+// 25. Cancellation request page wired to real data
+const cancelContent = readFile('src/feature-module/agent-dashboard/Booking/cancellation-request/cancellationRequest.tsx');
+check(
+  'Cancellation request imports fetchAgentBookings',
+  /fetchAgentBookings/.test(cancelContent),
+  'fetchAgentBookings not imported in cancellationRequest'
+);
+check(
+  'Cancellation request uses useAuth',
+  /useAuth/.test(cancelContent),
+  'useAuth not used in cancellationRequest'
+);
+check(
+  'Cancellation request filters by cancelled/canceled status',
+  /\b(cancelled|'canceled')\b/.test(cancelContent),
+  'cancelled/canceled status filter not found in cancellationRequest'
+);
+check(
+  'Cancellation request has no static booking count',
+  !/No of Booking :/.test(cancelContent),
+  'static booking count still present in cancellationRequest'
+);
+
+// 26. No new parallel agent dashboard route
 check(
   'No new parallel dashboard route created',
   agentDashboardRoutes === 1,

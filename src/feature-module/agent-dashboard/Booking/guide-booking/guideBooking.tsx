@@ -1,925 +1,194 @@
+import { useEffect, useState } from 'react';
 import { all_routes } from '../../../router/all_routes';
 import Breadcrumb from '../../../../core/common/Breadcrumb/breadcrumb';
 import Sidebar from '../../sidebar/sidebar';
-import { Link } from 'react-router-dom';
-import ImageWithBasePath from '../../../../core/common/imageWithBasePath';
 import PredefinedDateRanges from '../../../../core/common/range-picker/datePicker';
+import { Link } from 'react-router-dom';
+import Table from "../../../../core/common/dataTable/index";
 import AgentGuideBookingModal from './guideBookingModal';
+import { useAuth } from '../../../../core/contexts/AuthContext';
+import { fetchAgentBookings, bookingStatusDisplay } from '../../../../core/services/agentServices';
+import type { Booking } from '../../../../core/services/firebaseServices';
 
 const AgentGuideBooking = () => {
-      const routes = all_routes;
-      //Breadcrumb Data
-      const breadcrumbs = [
-          {
-              label: 'My Bookings',
-              active: false,
-              link: routes.home1
-          },
-          {
-              label: 'My Bookings',
-              active: true,
-          },
-          {
-              label: 'Guide Bookings',
-              active: true,
-          },
-      ];
-  return (
-    <>
-    <Breadcrumb title="My Bookings" breadcrumbs={breadcrumbs} backgroundClass="breadcrumb-bg-04" />
-     {/* Page Wrapper */}
-  <div className="content">
-    <div className="container">
-      <div className="row">
-        {/* Sidebar */}
-        <div className="col-xl-3 col-lg-4 theiaStickySidebar">
-          <Sidebar/>
-        </div>
-        {/* /Sidebar */}
-        {/* Hotel Booking */}
-        <div className="col-xl-9 col-lg-8">
-          {/* Booking Header */}
-          <div className="card booking-header">
-            <div className="card-body header-content d-flex align-items-center justify-content-between flex-wrap ">
-              <div>
-                <h6>Guide Bookings</h6>
-                <p className="fs-14 text-gray-6 fw-normal">
-                  No of Bookings : 150
-                </p>
-              </div>
-              <div className="d-flex align-items-center flex-wrap">
-                <div className="input-icon-start position-relative">
-                  <span className="icon-addon">
-                    <i className="isax isax-calendar-edit fs-14" />
-                  </span>
-                  <PredefinedDateRanges/>
+
+    const routes = all_routes;
+    const { userProfile } = useAuth();
+    const [bookings, setBookings] = useState<Booking[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+
+    const breadcrumbs = [
+        {
+            label: 'Guide Bookings',
+            active: false,
+            link: routes.home1
+        },
+        {
+            label: 'Guide Bookings',
+            active: true,
+        },
+    ];
+
+    const loadBookings = async () => {
+        if (!userProfile?.uid) return;
+        setLoading(true);
+        setError(null);
+        try {
+            const data = await fetchAgentBookings(userProfile.uid);
+            setBookings(data.filter((b) => b.itemType === 'guide'));
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'Failed to load bookings');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        loadBookings();
+    }, [userProfile?.uid]);
+
+    const data = bookings.map((booking) => {
+        const status = bookingStatusDisplay(booking.status);
+        return {
+            id: booking.id,
+            action: status.action,
+            guideName: booking.itemTitle || '—',
+            tourName: booking.itemType || '—',
+            bookedBy: booking.userName || booking.userEmail || 'Customer',
+            bookedLocation: booking.userEmail || '',
+            pricing: new Intl.NumberFormat(undefined, { style: 'currency', currency: booking.currency || 'USD' }).format(
+                typeof booking.totalAmount === 'number' ? booking.totalAmount : booking.price || 0
+            ),
+            bookedOn: booking.createdAt ? new Date(booking.createdAt).toLocaleDateString() : '—',
+            date: booking.createdAt || '',
+            status: status.label,
+            badge: status.badge,
+            raw: booking,
+        };
+    });
+
+    const columns = [
+        {
+            title: "ID",
+            dataIndex: "id",
+            key: "id",
+            render: (_text: any, render: any) => (
+                <Link to="#" className="link-primary fw-medium" data-bs-toggle="modal" data-bs-target={`#${render.action}`}>
+                    #{render.id?.slice(-6).toUpperCase()}
+                </Link>
+            ),
+            sorter: (a: any, b: any) => String(a.id).length - String(b.id).length,
+        },
+        {
+            title: "Guide",
+            dataIndex: "guideName",
+            key: "guideName",
+            render: (_text: any, render: any) => (
+                <div>
+                    <p className="text-dark mb-0 fw-medium fs-14">{render.guideName}</p>
+                    <span className="fs-14 fw-normal text-gray-6">{render.tourName}</span>
                 </div>
-              </div>
-            </div>
-          </div>
-          {/* /Booking Header */}
-          {/* Car-Booking List */}
-          <div className="card hotel-list">
-            <div className="card-body p-0">
-              <div className="list-header d-flex align-items-center justify-content-between flex-wrap">
-                <h6 className="">Booking List</h6>
-                <div className="d-flex align-items-center flex-wrap">
-                  <div className="input-icon-start  me-2 position-relative">
-                    <span className="icon-addon">
-                      <i className="isax isax-search-normal-1 fs-14" />
-                    </span>
-                    <input
-                      type="text"
-                      className="form-control"
-                      placeholder="Search"
-                    />
-                  </div>
-                  <div className="dropdown me-3">
-                    <Link
-                      to="#"
-                      className="dropdown-toggle text-gray-6 btn  rounded border d-inline-flex align-items-center"
-                      data-bs-toggle="dropdown"
-                      aria-expanded="false"
-                    >
-                      Tour Type
+            ),
+            sorter: (a: any, b: any) => String(a.guideName).length - String(b.guideName).length,
+        },
+        {
+            title: "Booked By",
+            dataIndex: "bookedBy",
+            key: "bookedBy",
+            render: (_text: any, render: any) => (
+                <>
+                    <h6 className="fs-14 mb-1">{render.bookedBy}</h6>
+                    <span className="fs-14 fw-normal text-gray-6">{render.bookedLocation}</span>
+                </>
+            ),
+            sorter: (a: any, b: any) => String(a.bookedBy).length - String(b.bookedBy).length,
+        },
+        {
+            title: "Pricing",
+            dataIndex: "pricing",
+            key: "pricing",
+            sorter: (a: any, b: any) => String(a.pricing).length - String(b.pricing).length,
+        },
+        {
+            title: "Booked on",
+            dataIndex: "bookedOn",
+            key: "bookedOn",
+            sorter: (a: any, b: any) => String(a.date).length - String(b.date).length,
+        },
+        {
+            title: "Status",
+            dataIndex: "status",
+            render: (text: any, render: any) => (
+                <span className={`badge rounded-pill d-inline-flex align-items-center fs-10 ${text === 'Upcoming' ? 'badge-info' : text === 'Pending' ? 'badge-secondary' : text === 'Cancelled' ? 'badge-danger' : text === 'Completed' ? 'badge-success' : ''}`}>
+                    <i className="fa-solid fa-circle fs-5 me-1" />
+                    {render.status}
+                </span>
+            ),
+            sorter: (a: any, b: any) => String(a.status).length - String(b.status).length,
+        },
+        {
+            title: "",
+            dataIndex: "action",
+            render: (_text: any, render: any) => (
+                <div className="d-flex align-items-center">
+                    <Link to="#" data-bs-toggle="modal" data-bs-target={`#${render.action}`}>
+                        <i className="isax isax-eye" />
                     </Link>
-                    <ul className="dropdown-menu dropdown-menu-end p-3">
-                      <li>
-                        <Link to="#" className="dropdown-item rounded-1">
-                          Adventure Tourism
-                        </Link>
-                      </li>
-                      <li>
-                        <Link to="#" className="dropdown-item rounded-1">
-                          Escorted Tour
-                        </Link>
-                      </li>
-                      <li>
-                        <Link to="#" className="dropdown-item rounded-1">
-                          Ground Tour
-                        </Link>
-                      </li>
-                    </ul>
-                  </div>
-                  <div className="dropdown me-3">
-                    <Link
-                      to="#"
-                      className="dropdown-toggle text-gray-6 btn  rounded border d-inline-flex align-items-center"
-                      data-bs-toggle="dropdown"
-                      aria-expanded="false"
-                    >
-                      Status
-                    </Link>
-                    <ul className="dropdown-menu dropdown-menu-end p-3">
-                      <li>
-                        <Link to="#" className="dropdown-item rounded-1">
-                          Upcoming
-                        </Link>
-                      </li>
-                      <li>
-                        <Link to="#" className="dropdown-item rounded-1">
-                          Pending
-                        </Link>
-                      </li>
-                      <li>
-                        <Link to="#" className="dropdown-item rounded-1">
-                          Cancelled
-                        </Link>
-                      </li>
-                      <li>
-                        <Link to="#" className="dropdown-item rounded-1">
-                          Completed
-                        </Link>
-                      </li>
-                    </ul>
-                  </div>
-                  <div className="d-flex align-items-center sort-by">
-                    <span className="fs-14 text-gray-9 fw-medium">
-                      Sort By :
-                    </span>
-                    <div className="dropdown">
-                      <Link
-                        to="#"
-                        className="dropdown-toggle text-gray-6 btn  rounded d-inline-flex align-items-center"
-                        data-bs-toggle="dropdown"
-                        aria-expanded="false"
-                      >
-                        Recommended
-                      </Link>
-                      <ul className="dropdown-menu dropdown-menu-end p-3">
-                        <li>
-                          <Link to="#" className="dropdown-item rounded-1">
-                            Recently Added
-                          </Link>
-                        </li>
-                        <li>
-                          <Link to="#" className="dropdown-item rounded-1">
-                            Ascending
-                          </Link>
-                        </li>
-                        <li>
-                          <Link to="#" className="dropdown-item rounded-1">
-                            Desending
-                          </Link>
-                        </li>
-                        <li>
-                          <Link to="#" className="dropdown-item rounded-1">
-                            Last Month
-                          </Link>
-                        </li>
-                        <li>
-                          <Link to="#" className="dropdown-item rounded-1">
-                            Last 7 Days
-                          </Link>
-                        </li>
-                      </ul>
+                </div>
+            ),
+            sorter: (a: any, b: any) => String(a.action).length - String(b.action).length,
+        },
+    ];
+
+    return (
+        <div>
+            <Breadcrumb title="Guide Bookings" breadcrumbs={breadcrumbs} backgroundClass="breadcrumb-bg-04" />
+            <div className="content">
+                <div className="container">
+                    <div className="row">
+                        <div className="col-xl-3 col-lg-4">
+                            <Sidebar />
+                        </div>
+                        <div className="col-xl-9 col-lg-8 theiaStickySidebar">
+                            <div className="card booking-header border-0">
+                                <div className="card-body header-content d-flex align-items-center justify-content-between flex-wrap">
+                                    <div>
+                                        <h6 className="mb-1">Guide Bookings</h6>
+                                        <p className="fs-14 text-gray-6 fw-normal">
+                                            {loading ? 'Loading...' : `${bookings.length} booking${bookings.length !== 1 ? 's' : ''}`}
+                                        </p>
+                                    </div>
+                                    <div className="d-flex align-items-center flex-wrap">
+                                        <div className="input-icon-start position-relative">
+                                            <span className="icon-addon"><i className="isax isax-calendar-edit fs-14" /></span>
+                                            <PredefinedDateRanges />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {error && <div className="alert alert-danger">{error}</div>}
+                            <div className="card hotel-list">
+                                <div className="card-body p-0">
+                                    <div className="list-header d-flex align-items-center justify-content-between flex-wrap">
+                                        <h6>Booking List</h6>
+                                        <div className="d-flex align-items-center flex-wrap">
+                                            <div className="input-icon-start me-2 position-relative">
+                                                <span className="icon-addon"><i className="isax isax-search-normal-1 fs-14" /></span>
+                                                <input type="text" className="form-control" placeholder="Search" />
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <Table dataSource={data} columns={columns} Selection={false} />
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                  </div>
                 </div>
-              </div>
-              {/* Hotel List */}
-              <div className="custom-datatable-filter table-responsive">
-                <table className="table datatable">
-                  <thead className="thead-light">
-                    <tr>
-                      <th>ID</th>
-                      <th>Guide &amp; Tour</th>
-                      <th>Booked By</th>
-                      <th>Days</th>
-                      <th>Pricing</th>
-                      <th>Booked on</th>
-                      <th>Status</th>
-                      <th />
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr>
-                      <td>
-                        <Link
-                          to="#"
-                          className="link-primary fw-medium"
-                          data-bs-toggle="modal"
-                          data-bs-target="#upcoming"
-                        >
-                          #GB-1245
-                        </Link>
-                      </td>
-                      <td>
-                        <div className="d-flex align-items-center">
-                          <Link
-                            to={routes.guideDetails}
-                            className="avatar avatar-lg"
-                          >
-                            <ImageWithBasePath
-                              src="assets/img/users/user-11.jpg"
-                              className="img-fluid rounded-circle"
-                              alt="img"
-                            />
-                          </Link>
-                          <div className="ms-2">
-                            <p className="text-dark mb-0 fw-medium fs-14">
-                              <Link to={routes.guideDetails}>Micheal John</Link>
-                            </p>
-                            <span className="fs-14 fw-normal text-gray-6">
-                              Joy Jubilee Jamboree
-                            </span>
-                          </div>
-                        </div>
-                      </td>
-                      <td>
-                        <div className="d-flex align-items-center">
-                          <div className="ms-2">
-                            <p className="text-dark mb-0 fw-medium fs-14">
-                              <Link to={routes.guideDetails}>Lynwood Dickens</Link>
-                            </p>
-                            <span className="fs-14 fw-normal text-gray-6">
-                              Texas
-                            </span>
-                          </div>
-                        </div>
-                      </td>
-                      <td>4 Days, 3 Nights</td>
-                      <td>$500</td>
-                      <td>15 May 2026</td>
-                      <td>
-                        <span className="badge badge-info rounded-pill d-inline-flex align-items-center fs-10">
-                          <i className="fa-solid fa-circle fs-5 me-1" />
-                          Upcoming
-                        </span>
-                      </td>
-                      <td>
-                        <div className="d-flex align-items-center">
-                          <Link
-                            to="#"
-                            data-bs-toggle="modal"
-                            data-bs-target="#upcoming"
-                          >
-                            <i className="isax isax-eye" />
-                          </Link>
-                        </div>
-                      </td>
-                    </tr>
-                    <tr>
-                      <td>
-                        <Link
-                          to="#"
-                          className="link-primary fw-medium"
-                          data-bs-toggle="modal"
-                          data-bs-target="#upcoming"
-                        >
-                          #GB-3215
-                        </Link>
-                      </td>
-                      <td>
-                        <div className="d-flex align-items-center">
-                          <Link
-                            to={routes.guideDetails}
-                            className="avatar avatar-lg"
-                          >
-                            <ImageWithBasePath
-                              src="assets/img/users/user-28.jpg"
-                              className="img-fluid rounded-circle"
-                              alt="img"
-                            />
-                          </Link>
-                          <div className="ms-2">
-                            <p className="text-dark mb-0 fw-medium fs-14">
-                              <Link to={routes.guideDetails}>Daiyanna leo</Link>
-                            </p>
-                            <span className="fs-14 fw-normal text-gray-6">
-                              LaughFest Carnival
-                            </span>
-                          </div>
-                        </div>
-                      </td>
-                      <td>
-                        <div className="d-flex align-items-center">
-                          <div className="ms-2">
-                            <p className="text-dark mb-0 fw-medium fs-14">
-                              <Link to={routes.guideDetails}>James Osborne</Link>
-                            </p>
-                            <span className="fs-14 fw-normal text-gray-6">
-                              California
-                            </span>
-                          </div>
-                        </div>
-                      </td>
-                      <td>3 Days, 2 Nights</td>
-                      <td>$300</td>
-                      <td>10 May 2026</td>
-                      <td>
-                        <span className="badge badge-info rounded-pill d-inline-flex align-items-center fs-10">
-                          <i className="fa-solid fa-circle fs-5 me-1" />
-                          Upcoming
-                        </span>
-                      </td>
-                      <td>
-                        <div className="d-flex align-items-center">
-                          <Link
-                            to="#"
-                            data-bs-toggle="modal"
-                            data-bs-target="#upcoming"
-                          >
-                            <i className="isax isax-eye" />
-                          </Link>
-                        </div>
-                      </td>
-                    </tr>
-                    <tr>
-                      <td>
-                        <Link
-                          to="#"
-                          className="link-primary fw-medium"
-                          data-bs-toggle="modal"
-                          data-bs-target="#upcoming"
-                        >
-                          #GB-4581
-                        </Link>
-                      </td>
-                      <td>
-                        <div className="d-flex align-items-center">
-                          <Link
-                            to={routes.guideDetails}
-                            className="avatar avatar-lg"
-                          >
-                            <ImageWithBasePath
-                              src="assets/img/users/user-12.jpg"
-                              className="img-fluid rounded-circle"
-                              alt="img"
-                            />
-                          </Link>
-                          <div className="ms-2">
-                            <p className="text-dark mb-0 fw-medium fs-14">
-                              <Link to={routes.guideDetails}>David Josebeb</Link>
-                            </p>
-                            <span className="fs-14 fw-normal text-gray-6">
-                              PlayPalooza Part
-                            </span>
-                          </div>
-                        </div>
-                      </td>
-                      <td>
-                        <div className="d-flex align-items-center">
-                          <div className="ms-2">
-                            <p className="text-dark mb-0 fw-medium fs-14">
-                              <Link to={routes.guideDetails}>James Osborne</Link>
-                            </p>
-                            <span className="fs-14 fw-normal text-gray-6">
-                              California
-                            </span>
-                          </div>
-                        </div>
-                      </td>
-                      <td>2 Days, 1 Night</td>
-                      <td>$320</td>
-                      <td>04 May 2026</td>
-                      <td>
-                        <span className="badge badge-info rounded-pill d-inline-flex align-items-center fs-10">
-                          <i className="fa-solid fa-circle fs-5 me-1" />
-                          Upcoming
-                        </span>
-                      </td>
-                      <td>
-                        <div className="d-flex align-items-center">
-                          <Link
-                            to="#"
-                            data-bs-toggle="modal"
-                            data-bs-target="#upcoming"
-                          >
-                            <i className="isax isax-eye" />
-                          </Link>
-                        </div>
-                      </td>
-                    </tr>
-                    <tr>
-                      <td>
-                        <Link
-                          to="#"
-                          className="link-primary fw-medium"
-                          data-bs-toggle="modal"
-                          data-bs-target="#completed"
-                        >
-                          #GB-6545
-                        </Link>
-                      </td>
-                      <td>
-                        <div className="d-flex align-items-center">
-                          <Link
-                            to={routes.guideDetails}
-                            className="avatar avatar-lg"
-                          >
-                            <ImageWithBasePath
-                              src="assets/img/users/user-29.jpg"
-                              className="img-fluid rounded-circle"
-                              alt="img"
-                            />
-                          </Link>
-                          <div className="ms-2">
-                            <p className="text-dark mb-0 fw-medium fs-14">
-                              <Link to={routes.guideDetails}>Alene Downing</Link>
-                            </p>
-                            <span className="fs-14 fw-normal text-gray-6">
-                              Florida
-                            </span>
-                          </div>
-                        </div>
-                      </td>
-                      <td>
-                        <div className="d-flex align-items-center">
-                          <div className="ms-2">
-                            <p className="text-dark mb-0 fw-medium fs-14">
-                              <Link to={routes.guideDetails}>Alene Downing</Link>
-                            </p>
-                            <span className="fs-14 fw-normal text-gray-6">
-                              Florida
-                            </span>
-                          </div>
-                        </div>
-                      </td>
-                      <td>5 Days, 4 Nights</td>
-                      <td>$400</td>
-                      <td>25 Apr 2026</td>
-                      <td>
-                        <span className="badge badge-success rounded-pill d-inline-flex align-items-center fs-10">
-                          <i className="fa-solid fa-circle fs-5 me-1" />
-                          Completed
-                        </span>
-                      </td>
-                      <td>
-                        <div className="d-flex align-items-center">
-                          <Link
-                            to="#"
-                            data-bs-toggle="modal"
-                            data-bs-target="#completed"
-                          >
-                            <i className="isax isax-eye" />
-                          </Link>
-                        </div>
-                      </td>
-                    </tr>
-                    <tr>
-                      <td>
-                        <Link
-                          to="#"
-                          className="link-primary fw-medium"
-                          data-bs-toggle="modal"
-                          data-bs-target="#upcoming"
-                        >
-                          #GB-3256
-                        </Link>
-                      </td>
-                      <td>
-                        <div className="d-flex align-items-center">
-                          <Link
-                            to={routes.guideDetails}
-                            className="avatar avatar-lg"
-                          >
-                            <ImageWithBasePath
-                              src="assets/img/users/user-13.jpg"
-                              className="img-fluid rounded-circle"
-                              alt="img"
-                            />
-                          </Link>
-                          <div className="ms-2">
-                            <p className="text-dark mb-0 fw-medium fs-14">
-                              <Link to={routes.guideDetails}>Adam Hook</Link>
-                            </p>
-                            <span className="fs-14 fw-normal text-gray-6">
-                              Whimsy Wonderland
-                            </span>
-                          </div>
-                        </div>
-                      </td>
-                      <td>
-                        <div className="d-flex align-items-center">
-                          <div className="ms-2">
-                            <p className="text-dark mb-0 fw-medium fs-14">
-                              <Link to={routes.guideDetails}>Carol Gardner</Link>
-                            </p>
-                            <span className="fs-14 fw-normal text-gray-6">
-                              Georgia
-                            </span>
-                          </div>
-                        </div>
-                      </td>
-                      <td>3 Days, 2 Nights</td>
-                      <td>$520</td>
-                      <td>17 Apr 2026</td>
-                      <td>
-                        <span className="badge badge-info rounded-pill d-inline-flex align-items-center fs-10">
-                          <i className="fa-solid fa-circle fs-5 me-1" />
-                          Upcoming
-                        </span>
-                      </td>
-                      <td>
-                        <div className="d-flex align-items-center">
-                          <Link
-                            to="#"
-                            data-bs-toggle="modal"
-                            data-bs-target="#upcoming"
-                          >
-                            <i className="isax isax-eye" />
-                          </Link>
-                        </div>
-                      </td>
-                    </tr>
-                    <tr>
-                      <td>
-                        <Link
-                          to="#"
-                          className="link-primary fw-medium"
-                          data-bs-toggle="modal"
-                          data-bs-target="#cancelled"
-                        >
-                          #GB-3654
-                        </Link>
-                      </td>
-                      <td>
-                        <div className="d-flex align-items-center">
-                          <Link
-                            to={routes.guideDetails}
-                            className="avatar avatar-lg"
-                          >
-                            <ImageWithBasePath
-                              src="assets/img/users/user-30.jpg"
-                              className="img-fluid rounded-circle"
-                              alt="img"
-                            />
-                          </Link>
-                          <div className="ms-2">
-                            <p className="text-dark mb-0 fw-medium fs-14">
-                              <Link to={routes.guideDetails}>Dianne Russell</Link>
-                            </p>
-                            <span className="fs-14 fw-normal text-gray-6">
-                              Giggles &amp; Games Gala
-                            </span>
-                          </div>
-                        </div>
-                      </td>
-                      <td>
-                        <div className="d-flex align-items-center">
-                          <div className="ms-2">
-                            <p className="text-dark mb-0 fw-medium fs-14">
-                              <Link to={routes.guideDetails}>Enrique Archer</Link>
-                            </p>
-                            <span className="fs-14 fw-normal text-gray-6">
-                              Las Vegas
-                            </span>
-                          </div>
-                        </div>
-                      </td>
-                      <td>4 Days, 3 Nights</td>
-                      <td>$400</td>
-                      <td>02 Apr 2026</td>
-                      <td>
-                        <span className="badge badge-primary rounded-pill d-inline-flex align-items-center fs-10">
-                          <i className="fa-solid fa-circle fs-5 me-1" />
-                          Cancelled
-                        </span>
-                      </td>
-                      <td>
-                        <div className="d-flex align-items-center">
-                          <Link
-                            to="#"
-                            data-bs-toggle="modal"
-                            data-bs-target="#cancelled"
-                          >
-                            <i className="isax isax-eye" />
-                          </Link>
-                        </div>
-                      </td>
-                    </tr>
-                    <tr>
-                      <td>
-                        <Link
-                          to="#"
-                          className="link-primary fw-medium"
-                          data-bs-toggle="modal"
-                          data-bs-target="#completed"
-                        >
-                          #GB-1458
-                        </Link>
-                      </td>
-                      <td>
-                        <div className="d-flex align-items-center">
-                          <Link
-                            to={routes.guideDetails}
-                            className="avatar avatar-lg"
-                          >
-                            <ImageWithBasePath
-                              src="assets/img/users/user-14.jpg"
-                              className="img-fluid rounded-circle"
-                              alt="img"
-                            />
-                          </Link>
-                          <div className="ms-2">
-                            <p className="text-dark mb-0 fw-medium fs-14">
-                              <Link to={routes.guideDetails}>Albert Flores</Link>
-                            </p>
-                            <span className="fs-14 fw-normal text-gray-6">
-                              Fitness Frenzy
-                            </span>
-                          </div>
-                        </div>
-                      </td>
-                      <td>
-                        <div className="d-flex align-items-center">
-                          <div className="ms-2">
-                            <p className="text-dark mb-0 fw-medium fs-14">
-                              <Link to={routes.guideDetails}>Weston Carrasco</Link>
-                            </p>
-                            <span className="fs-14 fw-normal text-gray-6">
-                              Texas
-                            </span>
-                          </div>
-                        </div>
-                      </td>
-                      <td>2 Days, 1 Night</td>
-                      <td>$280</td>
-                      <td>20 Mar 2026</td>
-                      <td>
-                        <span className="badge badge-success rounded-pill d-inline-flex align-items-center fs-10">
-                          <i className="fa-solid fa-circle fs-5 me-1" />
-                          Completed
-                        </span>
-                      </td>
-                      <td>
-                        <div className="d-flex align-items-center">
-                          <Link
-                            to="#"
-                            data-bs-toggle="modal"
-                            data-bs-target="#completed"
-                          >
-                            <i className="isax isax-eye" />
-                          </Link>
-                        </div>
-                      </td>
-                    </tr>
-                    <tr>
-                      <td>
-                        <Link
-                          to="#"
-                          className="link-primary fw-medium"
-                          data-bs-toggle="modal"
-                          data-bs-target="#completed"
-                        >
-                          #GB-6589
-                        </Link>
-                      </td>
-                      <td>
-                        <div className="d-flex align-items-center">
-                          <Link
-                            to={routes.guideDetails}
-                            className="avatar avatar-lg"
-                          >
-                            <ImageWithBasePath
-                              src="assets/img/users/user-35.jpg"
-                              className="img-fluid rounded-circle"
-                              alt="img"
-                            />
-                          </Link>
-                          <div className="ms-2">
-                            <p className="text-dark mb-0 fw-medium fs-14">
-                              <Link to={routes.guideDetails}>Eleanor Pena</Link>
-                            </p>
-                            <span className="fs-14 fw-normal text-gray-6">
-                              Foodie Fiesta
-                            </span>
-                          </div>
-                        </div>
-                      </td>
-                      <td>
-                        <div className="d-flex align-items-center">
-                          <div className="ms-2">
-                            <p className="text-dark mb-0 fw-medium fs-14">
-                              <Link to={routes.guideDetails}>Bonnie Coleman</Link>
-                            </p>
-                            <span className="fs-14 fw-normal text-gray-6">
-                              California
-                            </span>
-                          </div>
-                        </div>
-                      </td>
-                      <td>3 Days, 2 Nights</td>
-                      <td>$350</td>
-                      <td>10 Mar 2026</td>
-                      <td>
-                        <span className="badge badge-success rounded-pill d-inline-flex align-items-center fs-10">
-                          <i className="fa-solid fa-circle fs-5 me-1" />
-                          Completed
-                        </span>
-                      </td>
-                      <td>
-                        <div className="d-flex align-items-center">
-                          <Link
-                            to="#"
-                            data-bs-toggle="modal"
-                            data-bs-target="#completed"
-                          >
-                            <i className="isax isax-eye" />
-                          </Link>
-                        </div>
-                      </td>
-                    </tr>
-                    <tr>
-                      <td>
-                        <Link
-                          to="#"
-                          className="link-primary fw-medium"
-                          data-bs-toggle="modal"
-                          data-bs-target="#completed"
-                        >
-                          #GB-2315
-                        </Link>
-                      </td>
-                      <td>
-                        <div className="d-flex align-items-center">
-                          <Link
-                            to={routes.guideDetails}
-                            className="avatar avatar-lg"
-                          >
-                            <ImageWithBasePath
-                              src="assets/img/users/user-15.jpg"
-                              className="img-fluid rounded-circle"
-                              alt="img"
-                            />
-                          </Link>
-                          <div className="ms-2">
-                            <p className="text-dark mb-0 fw-medium fs-14">
-                              <Link to={routes.guideDetails}>Bessie Cooper</Link>
-                            </p>
-                            <span className="fs-14 fw-normal text-gray-6">
-                              Dare DevCon
-                            </span>
-                          </div>
-                        </div>
-                      </td>
-                      <td>
-                        <div className="d-flex align-items-center">
-                          <div className="ms-2">
-                            <p className="text-dark mb-0 fw-medium fs-14">
-                              <Link to={routes.guideDetails}>Aurora Conklin</Link>
-                            </p>
-                            <span className="fs-14 fw-normal text-gray-6">
-                              Georgia
-                            </span>
-                          </div>
-                        </div>
-                      </td>
-                      <td>4 Days, 3 Nights</td>
-                      <td>$510</td>
-                      <td>15 Feb 2026</td>
-                      <td>
-                        <span className="badge badge-success rounded-pill d-inline-flex align-items-center fs-10">
-                          <i className="fa-solid fa-circle fs-5 me-1" />
-                          Completed
-                        </span>
-                      </td>
-                      <td>
-                        <div className="d-flex align-items-center">
-                          <Link
-                            to="#"
-                            data-bs-toggle="modal"
-                            data-bs-target="#completed"
-                          >
-                            <i className="isax isax-eye" />
-                          </Link>
-                        </div>
-                      </td>
-                    </tr>
-                    <tr>
-                      <td>
-                        <Link
-                          to="#"
-                          className="link-primary fw-medium"
-                          data-bs-toggle="modal"
-                          data-bs-target="#completed"
-                        >
-                          #GB-5414
-                        </Link>
-                      </td>
-                      <td>
-                        <div className="d-flex align-items-center">
-                          <Link
-                            to={routes.guideDetails}
-                            className="avatar avatar-lg"
-                          >
-                            <ImageWithBasePath
-                              src="assets/img/users/user-16.jpg"
-                              className="img-fluid rounded-circle"
-                              alt="img"
-                            />
-                          </Link>
-                          <div className="ms-2">
-                            <p className="text-dark mb-0 fw-medium fs-14">
-                              <Link to={routes.guideDetails}>Kristin Watson</Link>
-                            </p>
-                            <span className="fs-14 fw-normal text-gray-6">
-                              Innovation Ignited
-                            </span>
-                          </div>
-                        </div>
-                      </td>
-                      <td>
-                        <div className="d-flex align-items-center">
-                          <div className="ms-2">
-                            <p className="text-dark mb-0 fw-medium fs-14">
-                              <Link to={routes.guideDetails}>Robin Banks</Link>
-                            </p>
-                            <span className="fs-14 fw-normal text-gray-6">
-                              Las Vegas
-                            </span>
-                          </div>
-                        </div>
-                      </td>
-                      <td>5 Days, 4 Nights</td>
-                      <td>$600</td>
-                      <td>22 Jan 2026</td>
-                      <td>
-                        <span className="badge badge-success rounded-pill d-inline-flex align-items-center fs-10">
-                          <i className="fa-solid fa-circle fs-5 me-1" />
-                          Completed
-                        </span>
-                      </td>
-                      <td>
-                        <div className="d-flex align-items-center">
-                          <Link
-                            to="#"
-                            data-bs-toggle="modal"
-                            data-bs-target="#completed"
-                          >
-                            <i className="isax isax-eye" />
-                          </Link>
-                        </div>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-              {/* /Hotel List */}
             </div>
-          </div>
-          {/* /Car-Booking List */}
-          <div className="table-paginate d-flex justify-content-between align-items-center flex-wrap row-gap-3">
-            <div className="value d-flex align-items-center">
-              <span>Show</span>
-              <select>
-                <option>5</option>
-                <option>10</option>
-                <option>20</option>
-              </select>
-              <span>entries</span>
-            </div>
-            <div className="d-flex align-items-center justify-content-center">
-              <Link to="#">
-                <span className="me-3">
-                  <i className="isax isax-arrow-left-2" />
-                </span>
-              </Link>
-              <nav aria-label="Page navigation">
-                <ul className="paginations d-flex justify-content-center align-items-center">
-                  <li className="page-item me-2">
-                    <Link
-                      className="page-link-1 active d-flex justify-content-center align-items-center "
-                      to="#"
-                    >
-                      1
-                    </Link>
-                  </li>
-                  <li className="page-item me-2">
-                    <Link
-                      className="page-link-1 d-flex justify-content-center align-items-center"
-                      to="#"
-                    >
-                      2
-                    </Link>
-                  </li>
-                  <li className="page-item ">
-                    <Link
-                      className="page-link-1 d-flex justify-content-center align-items-center"
-                      to="#"
-                    >
-                      3
-                    </Link>
-                  </li>
-                </ul>
-              </nav>
-              <Link to="#">
-                <span className="ms-3">
-                  <i className="isax isax-arrow-right-3" />
-                </span>
-              </Link>
-            </div>
-          </div>
+            <AgentGuideBookingModal />
         </div>
-        {/* /Hotel Booking */}
-      </div>
-    </div>
-  </div>
-  {/* /Page Wrapper */}
-  <AgentGuideBookingModal/>
-    </>
-  )
+    )
 }
 
 export default AgentGuideBooking

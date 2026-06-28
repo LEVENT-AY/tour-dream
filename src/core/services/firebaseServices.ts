@@ -1355,10 +1355,10 @@ export interface Booking {
   itemTitle: string;
   itemImage?: string;
   name?: string;
-  itemType: "tour" | "hotel" | "car" | "flight" | "bus" | "visa" | "cruise" | "activity" | "activities" | "resort" | "chalet";
+  itemType: "tour" | "hotel" | "car" | "flight" | "bus" | "visa" | "cruise" | "activity" | "activities" | "resort" | "chalet" | "guide";
   title?: string;
   listingId?: string;
-  listingType?: "tour" | "hotel" | "car" | "flight" | "bus" | "visa" | "cruise" | "activity" | "activities" | "resort" | "chalet";
+  listingType?: "tour" | "hotel" | "car" | "flight" | "bus" | "visa" | "cruise" | "activity" | "activities" | "resort" | "chalet" | "guide";
   assignmentScope?: "agent" | "admin";
   price?: number;
   totalAmount?: number;
