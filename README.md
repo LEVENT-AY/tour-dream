@@ -1,69 +1,94 @@
-# React + TypeScript + Vite
+# DreamsTour / Tour Tunisia
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Firestore-backed Tunisia travel marketplace for cruises, buses, visas, and guides, with public request flow, manual payment preference/reference, Admin Bookings CRM, and Agent Dashboard real booking data.
 
-Currently, two official plugins are available:
+**Live app:** <https://tour-tunisi.web.app>
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+---
 
-## Expanding the ESLint configuration
+## Quick Start
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default tseslint.config([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      ...tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      ...tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      ...tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm install
+npm run build
+npm run dev:5174
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+---
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## Production Docs
 
-export default tseslint.config([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+| Document | Audience |
+|----------|----------|
+| [Production Launch Checklist](docs/PRODUCTION_LAUNCH_CHECKLIST.md) | Owner / admin |
+| [Admin Training Notes](docs/ADMIN_TRAINING_NOTES.md) | Non-technical team |
+| [Workflows](docs/WORKFLOWS.md) | Developer workflow |
+| [Demo Checklist](docs/MANUAL_DEMO_CHECKLIST.md) | Demo / smoke test |
+| [Project Status](PROJECT_STATUS.md) | Current state |
+| [Feature Map](FEATURE_MAP.md) | Architecture reference |
+| [Agent Rules](AGENT_RULES.md) | Dev agent conventions |
+
+---
+
+## Current Production State
+
+- Homepage discovery is Firestore-powered (FeaturedServices).
+- Public list/detail pages for cruises, buses, visas, guides are Firestore-backed.
+- ServiceRequestForm writes to `serviceRequests` collection.
+- Manual payment method preference + optional payment reference (informational only).
+- Admin Bookings CRM is operational: filters, modal, WhatsApp, CSV, status lifecycle.
+- Agent Dashboard uses real booking data (no fake invoices/payouts).
+- No online card payment is collected.
+
+---
+
+## Commands
+
+```bash
+# Build
+npm run build
+
+# QA suites
+npm run qa:service-requests    # 69 checks
+npm run qa:marketplace          # 108 checks
+npm run qa:agent-dashboard      # 83 checks
+npm run qa:manual-payment       # 273 checks
+
+# Deploy hosting only
+firebase deploy --only hosting
 ```
+
+**Total QA baseline:** 533 passing checks.
+
+---
+
+## Key Constraints
+
+- No fake seed data.
+- No checkout / payment gateway.
+- No receipt upload yet.
+- No invoice / payout / finance system yet.
+- Do not create a new Agent Dashboard.
+- Do not change Firestore/Storage rules unless the sprint explicitly requires it.
+- Do not add new dependencies.
+- Deploy hosting only when app/public files changed.
+
+---
+
+## What Is Intentionally Not Built
+
+- Receipt image / file upload
+- Stripe / card / checkout / payment gateway
+- Invoice / payout / finance system
+- Automated payment confirmation
+- Activity / audit log collection
+- Real notification sending (email, SMS)
+- Dynamic per-page SEO titles
+- Multi-language support
+- Customer dashboard
+
+---
+
+## License
+
+Private — DreamsTour Tunisia
