@@ -440,7 +440,73 @@ check(
   'react-helmet found in package.json'
 );
 
-// 32. Public CTAs do not include "Pay Now" or "checkout" wording
+// 32. Detail page not-found copy is user-friendly
+const cruiseDetails = readFile('src/feature-module/curise/curise-details/FirestoreCruiseDetails.tsx');
+const busDetails = readFile('src/feature-module/bus/bus-details/FirestoreBusDetails.tsx');
+const visaDetails = readFile('src/feature-module/visa/visa-details/FirestoreVisaDetails.tsx');
+const guideDetails = readFile('src/feature-module/guide/guide-Details/FirestoreGuideDetails.tsx');
+check(
+  'Cruise detail not-found copy uses friendly message',
+  /could not be found or is no longer available/.test(cruiseDetails),
+  'cruise not-found copy not updated'
+);
+check(
+  'Bus detail not-found copy uses friendly message',
+  /could not be found or is no longer available/.test(busDetails),
+  'bus not-found copy not updated'
+);
+check(
+  'Visa detail not-found copy uses friendly message',
+  /could not be found or is no longer available/.test(visaDetails),
+  'visa not-found copy not updated'
+);
+check(
+  'Guide detail not-found copy uses friendly message',
+  /could not be found or is no longer available/.test(guideDetails),
+  'guide not-found copy not updated'
+);
+check(
+  'Cruise detail no-ID shows friendly message with back link',
+  /Service link is missing/.test(cruiseDetails),
+  'cruise no-ID missing friendly message'
+);
+check(
+  'Bus detail no-ID shows friendly message with back link',
+  /Service link is missing/.test(busDetails),
+  'bus no-ID missing friendly message'
+);
+check(
+  'Visa detail no-ID shows friendly message with back link',
+  /Service link is missing/.test(visaDetails),
+  'visa no-ID missing friendly message'
+);
+check(
+  'Guide detail no-ID shows friendly message with back link',
+  /Service link is missing/.test(guideDetails),
+  'guide no-ID missing friendly message'
+);
+check(
+  'Cruise detail no-ID has Back to Cruises button',
+  /Back to Cruises/.test(cruiseDetails),
+  'cruise no-ID back button missing'
+);
+check(
+  'Bus detail no-ID has Back to Buses button',
+  /Back to Buses/.test(busDetails),
+  'bus no-ID back button missing'
+);
+check(
+  'Visa detail no-ID has Back to Visas button',
+  /Back to Visas/.test(visaDetails),
+  'visa no-ID back button missing'
+);
+check(
+  'Guide detail no-ID has Back to Guides button',
+  /Back to Guides/.test(guideDetails),
+  'guide no-ID back button missing'
+);
+
+// 33. Public CTAs do not include "Pay Now" or "checkout" wording
 check(
   'Homepage does not contain "Pay Now"',
   !/Pay Now/.test(homeContent + fsContent + deliveryContent + chooseContent),

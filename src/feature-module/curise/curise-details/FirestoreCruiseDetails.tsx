@@ -66,7 +66,12 @@ const FirestoreCruiseDetails = () => {
   }, [cruiseId]);
 
   if (!cruiseId) {
-    return null;
+    return (
+      <div className="alert alert-info mb-4">
+        <p className="mb-2">Service link is missing. Please return to the service list and choose an option.</p>
+        <Link to={routes.cruiseList} className="btn btn-primary btn-sm">Back to Cruises</Link>
+      </div>
+    );
   }
 
   if (loading) {
@@ -85,7 +90,7 @@ const FirestoreCruiseDetails = () => {
     return (
       <div className="alert alert-warning mb-4">
         <p className="mb-2">
-          The selected cruise could not be found or is not published yet.
+          This cruise could not be found or is no longer available. You can return to the service list and choose another option.
         </p>
         <Link to={routes.cruiseList} className="btn btn-primary btn-sm">
           Back to Cruises

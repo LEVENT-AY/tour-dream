@@ -19,7 +19,6 @@ interface FormState {
 }
 
 const PAYMENT_METHOD_OPTIONS: { value: PreferredPaymentMethod; label: string }[] = [
-  { value: 'not_sure', label: 'Not sure yet' },
   { value: 'wafa_cash', label: 'Wafa Cash' },
   { value: 'bank_transfer', label: 'Bank transfer' },
 ];

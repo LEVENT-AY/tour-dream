@@ -1586,6 +1586,29 @@ if (invoicesContent) {
   check('Invoices page not found', true, 'invoices.tsx does not exist');
 }
 
+// Sprint 22: ServiceRequestForm payment dropdown fix
+const srForm = readFile('src/core/common/service-request/ServiceRequestForm.tsx');
+check(
+  'PAYMENT_METHOD_OPTIONS no longer contains duplicate not_sure',
+  !/value: 'not_sure'/.test(srForm),
+  'not_sure still present in PAYMENT_METHOD_OPTIONS'
+);
+check(
+  'Payment method dropdown placeholder "Not sure yet" still exists',
+  /Not sure yet/.test(srForm),
+  'placeholder "Not sure yet" missing'
+);
+check(
+  'Payment method dropdown still renders wafa_cash',
+  /value: 'wafa_cash'/.test(srForm),
+  'wafa_cash option missing'
+);
+check(
+  'Payment method dropdown still renders bank_transfer',
+  /value: 'bank_transfer'/.test(srForm),
+  'bank_transfer option missing'
+);
+
 // Summary
 console.log('\n=== Manual Payment QA Report ===\n');
 console.log(`Passed: ${ok.length}`);
