@@ -48,6 +48,13 @@ const PAYMENT_STATUS_OPTIONS = [
   { value: 'not_requested', label: 'Not requested' },
 ];
 
+const FOLLOWUP_FILTER_OPTIONS = [
+  { value: 'all', label: 'All requests' },
+  { value: 'needs_followup', label: 'Needs follow-up' },
+  { value: 'overdue_today', label: 'Today / Overdue' },
+  { value: 'no_date', label: 'No follow-up date' },
+] as const;
+
 interface TabItem {
   key: ServiceRequestStatus | 'all';
   label: string;
@@ -64,7 +71,7 @@ const TABS: TabItem[] = [
 const CSV_HEADERS = [
   'createdAt','status','priority','serviceType','serviceTitle',
   'customerName','phone','email','requestedDate','guestsCount',
-  'assignedTo','followUpDate','message','internalNotes',
+  'assignedTo','followUpDate','lastContactedAt','message','internalNotes',
   'paymentFlow','paymentStatus','preferredPaymentMethod',
 ];
 
@@ -109,6 +116,7 @@ const AdminBookings: React.FC<AdminBookingsProps> = ({ title = 'All Bookings', d
   const [showCustomAssigned, setShowCustomAssigned] = useState(false);
   const [paymentMethodFilter, setPaymentMethodFilter] = useState<string>('all');
   const [paymentStatusFilter, setPaymentStatusFilter] = useState<string>('all');
+  const [followUpFilter, setFollowUpFilter] = useState<string>('all');
 
   const [selectedRequest, setSelectedRequest] = useState<ServiceRequest | null>(null);
   const [modalStatus, setModalStatus] = useState<ServiceRequestStatus>('pending');
@@ -169,8 +177,23 @@ const AdminBookings: React.FC<AdminBookingsProps> = ({ title = 'All Bookings', d
     if (paymentStatusFilter !== 'all') {
       result = result.filter((r) => r.paymentStatus === paymentStatusFilter);
     }
+    if (followUpFilter !== 'all') {
+      const today = todayStr();
+      result = result.filter((r) => {
+        if (followUpFilter === 'needs_followup') {
+          return !!r.followUpDate && r.status !== 'confirmed' && r.status !== 'cancelled';
+        }
+        if (followUpFilter === 'overdue_today') {
+          return !!r.followUpDate && r.status !== 'confirmed' && r.status !== 'cancelled' && r.followUpDate <= today;
+        }
+        if (followUpFilter === 'no_date') {
+          return !r.followUpDate;
+        }
+        return true;
+      });
+    }
     return result;
-  }, [allRequests, activeTab, search, assignmentFilter, currentAdminEmail, paymentMethodFilter, paymentStatusFilter]);
+  }, [allRequests, activeTab, search, assignmentFilter, currentAdminEmail, paymentMethodFilter, paymentStatusFilter, followUpFilter]);
 
   const changeStatus = async (id: string, status: ServiceRequestStatus) => {
     setUpdatingId(id);
@@ -228,14 +251,35 @@ const AdminBookings: React.FC<AdminBookingsProps> = ({ title = 'All Bookings', d
   };
 
   const buildFollowUpMsg = useCallback((r: ServiceRequest): string => {
-    let msg = `Hi ${r.customerName || 'there'}, this is DreamsTour following up on your request for "${r.serviceTitle || 'a service'}".`;
-    if (r.requestedDate) msg += ` You requested ${r.requestedDate}.`;
-    if (r.preferredPaymentMethod === 'wafa_cash') {
-      msg += ' Our team will confirm availability and then send Wafa Cash instructions.';
-    } else if (r.preferredPaymentMethod === 'bank_transfer') {
-      msg += ' Our team will confirm availability and then send bank transfer instructions.';
+    const name = r.customerName || 'there';
+    const service = r.serviceTitle || 'a service';
+    let msg = `Hello ${name}, `;
+    if (r.status === 'confirmed') {
+      msg += `your request for "${service}" is confirmed.`;
+    } else if (r.status === 'contacted') {
+      msg += `we are following up on your request for "${service}".`;
+    } else if (r.status === 'pending') {
+      msg += `your request for "${service}" has been received. Our team is checking availability.`;
     } else {
-      msg += ' Our team will confirm availability and help you choose the best manual payment method.';
+      msg += `your request for "${service}" has been received.`;
+    }
+    if (r.requestedDate) msg += ` You requested ${r.requestedDate}.`;
+    if (r.status !== 'confirmed') {
+      if (r.preferredPaymentMethod === 'wafa_cash') {
+        msg += ' After confirmation, we will send Wafa Cash instructions.';
+      } else if (r.preferredPaymentMethod === 'bank_transfer') {
+        msg += ' After confirmation, we will send bank transfer instructions.';
+      } else {
+        msg += ' Our team will confirm availability and help you choose the best manual payment method.';
+      }
+    } else {
+      if (r.preferredPaymentMethod === 'wafa_cash') {
+        msg += ' We will send Wafa Cash instructions for the manual payment step.';
+      } else if (r.preferredPaymentMethod === 'bank_transfer') {
+        msg += ' We will share bank transfer instructions for the manual payment step.';
+      } else {
+        msg += ' We will contact you with manual payment instructions.';
+      }
     }
     return msg;
   }, []);
@@ -249,10 +293,10 @@ const AdminBookings: React.FC<AdminBookingsProps> = ({ title = 'All Bookings', d
     } catch { /* clipboard not available */ }
   }, [buildFollowUpMsg]);
 
-  const readablePaymentValue = (r: ServiceRequest, field: string): string => {
+  const readableCsvValue = (r: ServiceRequest, field: string): string => {
     if (field === 'preferredPaymentMethod') {
       const val = (r as any)[field];
-      return PAYMENT_METHOD_LABELS[val] || val ? val.replace(/_/g, ' ') : '';
+      return PAYMENT_METHOD_LABELS[val] || (val ? val.replace(/_/g, ' ') : '');
     }
     if (field === 'paymentStatus') {
       const val = (r as any)[field];
@@ -261,6 +305,15 @@ const AdminBookings: React.FC<AdminBookingsProps> = ({ title = 'All Bookings', d
     }
     if (field === 'paymentFlow') {
       return (r as any)[field] === 'manual' ? 'Manual' : (r as any)[field] || '';
+    }
+    if (field === 'priority') {
+      return r.priority || 'normal';
+    }
+    if (field === 'assignedTo') {
+      return r.assignedTo || 'Unassigned';
+    }
+    if (field === 'lastContactedAt' || field === 'followUpDate') {
+      return (r as any)[field] || '';
     }
     return (r as any)[field];
   };
@@ -272,7 +325,7 @@ const AdminBookings: React.FC<AdminBookingsProps> = ({ title = 'All Bookings', d
         if (h === 'guestsCount') return esc(r.guestsCount ?? '');
         if (h === 'phone') return esc(r.customerPhone);
         if (h === 'email') return esc(r.customerEmail);
-        if (h.startsWith('payment')) return esc(readablePaymentValue(r, h));
+        if (h.startsWith('payment') || h === 'priority' || h === 'assignedTo' || h === 'lastContactedAt') return esc(readableCsvValue(r, h));
         return esc((r as any)[h]);
       }).join(',')
     );
@@ -286,20 +339,49 @@ const AdminBookings: React.FC<AdminBookingsProps> = ({ title = 'All Bookings', d
     URL.revokeObjectURL(url);
   }, [filtered]);
 
+  const summaryCounts = useMemo(() => {
+    const total = allRequests.length;
+    const pending = allRequests.filter((r) => r.status === 'pending').length;
+    const unassigned = allRequests.filter((r) => !r.assignedTo).length;
+    const needsFollowUp = allRequests.filter((r) => !!r.followUpDate && r.status !== 'confirmed' && r.status !== 'cancelled').length;
+    const manualPayment = allRequests.filter((r) => r.paymentFlow === 'manual').length;
+    return { total, pending, unassigned, needsFollowUp, manualPayment };
+  }, [allRequests]);
+
   const emptyMessage = () => {
-    if (search.trim()) return 'No requests match your search.';
+    if (search.trim()) return 'No requests match your search. Try clearing payment, follow-up, or status filters.';
     if (activeTab !== 'all') return `No ${STATUS_LABELS[activeTab]?.toLowerCase() || ''} requests found.`;
+    if (followUpFilter !== 'all') return 'No requests match these follow-up filters.';
+    if (paymentMethodFilter !== 'all' || paymentStatusFilter !== 'all') return 'No requests match these payment filters.';
     return 'No service requests yet. Requests from the public will appear here.';
   };
 
   return (
     <div>
-      <div className="d-flex flex-wrap align-items-center justify-content-between mb-4">
+      <div className="d-flex flex-wrap align-items-center justify-content-between mb-2">
         <h3 className="mb-0">{title}</h3>
         <button className="btn btn-sm btn-light" onClick={exportCSV} title="Export visible rows as CSV">
           <i className="isax isax-export me-1" />
           Export CSV
         </button>
+      </div>
+
+      <div className="d-flex flex-wrap gap-2 mb-3">
+        <span className="badge bg-light text-dark fs-13 fw-normal px-3 py-2 border">
+          Total: <strong>{summaryCounts.total}</strong>
+        </span>
+        <span className="badge bg-warning bg-opacity-10 text-dark fs-13 fw-normal px-3 py-2 border border-warning border-opacity-25">
+          Pending: <strong>{summaryCounts.pending}</strong>
+        </span>
+        <span className="badge bg-light text-muted fs-13 fw-normal px-3 py-2 border">
+          Unassigned: <strong>{summaryCounts.unassigned}</strong>
+        </span>
+        <span className="badge bg-info bg-opacity-10 text-dark fs-13 fw-normal px-3 py-2 border border-info border-opacity-25">
+          Needs follow-up: <strong>{summaryCounts.needsFollowUp}</strong>
+        </span>
+        <span className="badge bg-light text-dark fs-13 fw-normal px-3 py-2 border">
+          Manual: <strong>{summaryCounts.manualPayment}</strong>
+        </span>
       </div>
 
       <div className="mb-3">
@@ -372,6 +454,19 @@ const AdminBookings: React.FC<AdminBookingsProps> = ({ title = 'All Bookings', d
         ))}
       </div>
 
+      <div className="d-flex flex-wrap gap-2 mb-3 align-items-center">
+        <span className="fs-14 text-muted me-1">Follow-up:</span>
+        {FOLLOWUP_FILTER_OPTIONS.map((opt) => (
+          <button
+            key={opt.value}
+            className={`btn btn-sm ${followUpFilter === opt.value ? 'btn-primary' : 'btn-outline-secondary'}`}
+            onClick={() => setFollowUpFilter(opt.value)}
+          >
+            {opt.label}
+          </button>
+        ))}
+      </div>
+
       <div className="card mb-4">
         <div className="card-body d-flex flex-wrap gap-3 align-items-center">
           <div className="flex-grow-1" style={{ minWidth: '240px' }}>
@@ -402,6 +497,7 @@ const AdminBookings: React.FC<AdminBookingsProps> = ({ title = 'All Bookings', d
                   <th>Message</th>
                   <th>Created</th>
                   <th>Status</th>
+                  <th>Follow-up</th>
                   <th>Assigned</th>
                   <th>Payment</th>
                   <th className="text-end">Actions</th>
@@ -410,14 +506,14 @@ const AdminBookings: React.FC<AdminBookingsProps> = ({ title = 'All Bookings', d
               <tbody>
                 {loading ? (
                   <tr>
-                    <td colSpan={10} className="text-center py-4">
+                    <td colSpan={11} className="text-center py-4">
                       <span className="spinner-border spinner-border-sm text-primary me-2" />
                       Loading...
                     </td>
                   </tr>
                 ) : filtered.length === 0 ? (
                   <tr>
-                    <td colSpan={10} className="text-center py-4 text-muted">
+                    <td colSpan={11} className="text-center py-4 text-muted">
                       {emptyMessage()}
                     </td>
                   </tr>
@@ -498,8 +594,29 @@ const AdminBookings: React.FC<AdminBookingsProps> = ({ title = 'All Bookings', d
                           </select>
                         </td>
                         <td>
+                          <div className="d-flex flex-column gap-1">
+                            {r.followUpDate ? (
+                              <span className={`fs-12 text-nowrap ${isOverdue(r) ? 'text-danger fw-medium' : isDueToday(r) ? 'text-info fw-medium' : ''}`}>
+                                {formatShortDate(r.followUpDate)}
+                                {isOverdue(r) && <span className="badge bg-danger ms-1 fs-10">Overdue</span>}
+                                {isDueToday(r) && <span className="badge bg-info ms-1 fs-10">Today</span>}
+                              </span>
+                            ) : (
+                              <span className="text-muted fs-12">{'\u2014'}</span>
+                            )}
+                            {r.lastContactedAt && (
+                              <span className="fs-12 text-muted" title="Last contacted">
+                                Contacted: {formatShortDate(r.lastContactedAt)}
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                        <td>
                           {r.assignedTo ? (
-                            <span className="text-nowrap">{r.assignedTo}</span>
+                            <div className="d-flex flex-column">
+                              <span className="text-nowrap">{r.assignedTo}</span>
+                              <span className="badge bg-success bg-opacity-10 text-success fs-10 fw-normal mt-1" style={{ width: 'fit-content' }}>Assigned</span>
+                            </div>
                           ) : (
                             <span className="badge bg-light text-muted">Unassigned</span>
                           )}

@@ -479,14 +479,9 @@ check(
   'preferredPaymentMethod missing from CSV_HEADERS'
 );
 check(
-  'CSV export uses readable payment labels',
-  /readablePaymentValue/.test(adminBookings),
-  'readablePaymentValue function not found in Admin Bookings'
-);
-check(
-  'CSV readablePaymentValue function exists',
-  /readablePaymentValue/.test(adminBookings),
-  'readablePaymentValue function not found in Admin Bookings'
+  'CSV export uses readable CSV value function',
+  /readableCsvValue/.test(adminBookings),
+  'readableCsvValue function not found in Admin Bookings'
 );
 check(
   'PAYMENT_METHOD_LABELS includes Wafa Cash mapping',
@@ -578,6 +573,230 @@ check(
   /preferredPaymentMethod/.test(srf),
   'preferredPaymentMethod missing from public form'
 );
+
+// 34. Follow-up filter exists
+check(
+  'Admin Bookings has follow-up filter state',
+  /followUpFilter/.test(adminBookings),
+  'followUpFilter state not found'
+);
+check(
+  'Admin Bookings has "Needs follow-up" filter option',
+  /Needs follow-up/.test(adminBookings),
+  'Needs follow-up filter option not found'
+);
+check(
+  'Admin Bookings has "Today / Overdue" filter option',
+  /Today \/ Overdue/.test(adminBookings),
+  'Today/Overdue filter option not found'
+);
+check(
+  'Admin Bookings has "No follow-up date" filter option',
+  /No follow-up date/.test(adminBookings),
+  'No follow-up date filter option not found'
+);
+
+// 35. Summary chips exist
+check(
+  'Admin Bookings has summary chips (Total)',
+  /summaryCounts\.total/.test(adminBookings),
+  'Total summary chip not found'
+);
+check(
+  'Admin Bookings has summary chips (Pending)',
+  /summaryCounts\.pending/.test(adminBookings),
+  'Pending summary chip not found'
+);
+check(
+  'Admin Bookings has summary chips (Unassigned)',
+  /summaryCounts\.unassigned/.test(adminBookings),
+  'Unassigned summary chip not found'
+);
+check(
+  'Admin Bookings has summary chips (Needs follow-up)',
+  /summaryCounts\.needsFollowUp/.test(adminBookings),
+  'Needs follow-up summary chip not found'
+);
+check(
+  'Admin Bookings has summary chips (Manual)',
+  /summaryCounts\.manualPayment/.test(adminBookings),
+  'Manual summary chip not found'
+);
+
+// 36. Operational badges exist
+check(
+  'Admin Bookings has "Follow-up" column header',
+  /<th>Follow-up<\/th>/.test(adminBookings),
+  'Follow-up column header not found'
+);
+check(
+  'Admin Bookings follow-up column shows Overdue badge',
+  /Overdue/.test(adminBookings),
+  'Overdue badge not found in follow-up column'
+);
+check(
+  'Admin Bookings follow-up column shows Today badge',
+  /Today/.test(adminBookings),
+  'Today badge not found in follow-up column'
+);
+check(
+  'Admin Bookings follow-up column shows Contacted date',
+  /Last contacted/.test(adminBookings) || /Contacted/.test(adminBookings),
+  'lastContactedAt display not found in follow-up column'
+);
+
+// 37. Assigned/Unassigned visibility
+check(
+  'Admin Bookings assigned column shows "Assigned" badge',
+  /Assigned/.test(adminBookings),
+  'Assigned badge not found'
+);
+check(
+  'Admin Bookings assigned column shows "Unassigned" badge',
+  /Unassigned/.test(adminBookings),
+  'Unassigned badge not found'
+);
+
+// 38. Priority visibility remains
+check(
+  'Admin Bookings priority badge column exists',
+  /PRIORITY_BADGE/.test(adminBookings),
+  'PRIORITY_BADGE mapping not found'
+);
+
+// 39. buildFollowUpMsg still exists and is status-aware
+check(
+  'buildFollowUpMsg still exists',
+  /buildFollowUpMsg/.test(adminBookings),
+  'buildFollowUpMsg not found'
+);
+check(
+  'Follow-up message includes confirmed status context',
+  /is confirmed/.test(adminBookings),
+  'confirmed status context not found in follow-up message'
+);
+check(
+  'Follow-up message includes pending/checking availability context',
+  /checking availability/.test(adminBookings),
+  'availability check context not found in follow-up message'
+);
+
+// 40. WhatsApp prefilled links still use buildFollowUpMsg
+check(
+  'WhatsApp link uses buildFollowUpMsg',
+  /buildFollowUpMsg/.test(adminBookings),
+  'WhatsApp prefilled not using buildFollowUpMsg'
+);
+
+// 41. Copy follow-up button still exists
+check(
+  'Copy follow-up button exists',
+  /copyFollowUp/.test(adminBookings),
+  'copyFollowUp missing'
+);
+
+// 42. CSV export still exists and has updated fields
+check(
+  'CSV export function exists',
+  /exportCSV/.test(adminBookings),
+  'exportCSV missing'
+);
+check(
+  'CSV_HEADERS includes lastContactedAt',
+  /lastContactedAt/.test(CSV_HEADERS_JOINED),
+  'lastContactedAt missing from CSV_HEADERS'
+);
+check(
+  'CSV export uses readableCsvValue',
+  /readableCsvValue/.test(adminBookings),
+  'readableCsvValue function not found'
+);
+check(
+  'CSV readableCsvValue handles priority as "normal" default',
+  /priority.*normal/.test(adminBookings),
+  'priority default not handled in readableCsvValue'
+);
+
+// 43. Payment Info remains read-only
+check(
+  'Admin modal Payment Info has helper text',
+  /Manual payment is confirmed by the team/.test(adminBookings),
+  'helper text missing'
+);
+
+// 44. No receipt upload
+check(
+  'No file upload input in Admin Bookings',
+  !/type="file"/.test(adminBookings),
+  'file upload found'
+);
+
+// 45. No card fields
+check(
+  'No card number field in Admin Bookings',
+  !/card number/i.test(adminBookings),
+  'card number found'
+);
+
+// 46. No Stripe/checkout/pay-now
+check(
+  'No Stripe in Admin Bookings',
+  !/Stripe/i.test(adminBookings),
+  'Stripe found'
+);
+check(
+  'No checkout in Admin Bookings',
+  !/checkout/i.test(adminBookings),
+  'checkout found'
+);
+
+// 47. No new payment collection or route
+check(
+  'No new admin payment route added',
+  !/adminPaymentReview/.test(routesContent) && !/adminManualPayment/.test(routesContent),
+  'new admin payment route found'
+);
+
+// 48. Firestore and Storage rules not modified
+check(
+  'Firestore rules not modified (no preferredPaymentMethod in rules)',
+  !/preferredPaymentMethod/.test(rulesContent),
+  'rules modified'
+);
+check(
+  'Storage rules not modified',
+  !/receipt/i.test(storageStr) && !/payment/i.test(storageStr),
+  'storage rules modified'
+);
+
+// 49. Public ServiceRequestForm remains intact
+check(
+  'Public form has manual payment heading',
+  /Manual payment after confirmation/.test(srf),
+  'manual payment heading missing'
+);
+check(
+  'Public form has preferredPaymentMethod',
+  /preferredPaymentMethod/.test(srf),
+  'preferredPaymentMethod missing'
+);
+
+// 50. Agent Dashboard routes remain intact
+check(
+  'Agent dashboard route still exists',
+  /agentDashboard/.test(routesContent),
+  'agentDashboard route missing'
+);
+
+// 51. Marketplace homepage discovery remains intact
+const featuredSvc2 = readFile('src/feature-module/home/components/FeaturedServices.tsx');
+if (featuredSvc2) {
+  check(
+    'FeaturedServices imports fetchCruises',
+    /fetchCruises/.test(featuredSvc2),
+    'fetchCruises missing'
+  );
+}
 
 // Summary
 console.log('\n=== Manual Payment QA Report ===\n');
