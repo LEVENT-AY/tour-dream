@@ -237,72 +237,6 @@ check(
   'Multiple Categories not found'
 );
 
-// 16. Experience destinations localized to Tunisia
-const experienceContent = readFile('src/feature-module/home-service-one/experienceSection.tsx');
-check(
-  'Experience section heading mentions Tunisian Destinations',
-  /Explore Tunisian/.test(experienceContent),
-  'heading not updated to Tunisia'
-);
-check(
-  'Experience section uses Tunisian city names',
-  /Tunis/.test(experienceContent) && /Sousse/.test(experienceContent) && /Hammamet/.test(experienceContent),
-  'Tunisian city names not found in experienceSection'
-);
-
-// 17. Guide section localized to Tunisia
-const guideSectionContent = readFile('src/feature-module/home-service-one/guideSection.tsx');
-check(
-  'Guide section heading mentions Local Tunisian',
-  /Local Tunisian/.test(guideSectionContent),
-  'heading not updated to Tunisia'
-);
-check(
-  'Guide section uses Tunisian guide names',
-  /Ahmed Ben Ali/.test(guideSectionContent) && /Salma Mansouri/.test(guideSectionContent),
-  'Tunisian guide names not found'
-);
-check(
-  'Guide cards link to guideGrid route',
-  /all_routes\.guideGrid/.test(guideSectionContent),
-  'guideGrid route not found in guideSection links'
-);
-check(
-  'Guide View All links to guideGrid',
-  /all_routes\.guideGrid[\s\S]*?View All Guides/.test(guideSectionContent),
-  'View All Guides does not link to guideGrid'
-);
-
-// 18. Recommended tours localized to Tunisia
-const recomandedContent = readFile('src/feature-module/home-service-one/recomanded.tsx');
-check(
-  'Recommended section heading mentions Tunisia',
-  /Popular Tunisia/.test(recomandedContent),
-  'heading not updated to Tunisia'
-);
-check(
-  'Recommended section uses Tunisian tour names',
-  /Medina Walk/.test(recomandedContent) && /Sahara Escape/.test(recomandedContent),
-  'Tunisian tour names not found'
-);
-check(
-  'Recommended tour cards link to cruiseList',
-  /all_routes\.cruiseList/.test(recomandedContent),
-  'cruiseList route not found in recomanded links'
-);
-check(
-  'Recommended View All links to cruiseList',
-  /all_routes\.cruiseList[\s\S]*?View All Services|Explore Services/.test(recomandedContent),
-  'View All Services/Explore Services does not link to cruiseList'
-);
-
-// 19. Homepage CTA routes correct
-check(
-  'Experience View All destinations links to cruiseList',
-  /all_routes\.cruiseList[\s\S]*?View All Destinations/.test(experienceContent),
-  'View All Destinations does not link to cruiseList'
-);
-
 // 20. No old broken cruiseGrid/visaGrid links remain in homepage
 check(
   'No cruiseGrid references remain in HomeServiceOne',
@@ -411,24 +345,73 @@ check(
   'meta description not updated'
 );
 
-// 30. Homepage section alt text is descriptive (no generic "img"/"Img")
-const guideAltContent = readFile('src/feature-module/home-service-one/guideSection.tsx');
-const expAltContent = readFile('src/feature-module/home-service-one/experienceSection.tsx');
-const recomAltContent = readFile('src/feature-module/home-service-one/recomanded.tsx');
+// 30. Emergency Visual Reset - header topbar removed
+const headerContentCheck = readFile('src/core/common/header/header.tsx');
 check(
-  'Guide section uses descriptive alt text (not generic "img")',
-  !/ alt="img"/.test(guideAltContent),
-  'guide section still has generic alt="img"'
+  'Header no longer shows Toll Free in topbar',
+  !/Toll Free/.test(headerContentCheck),
+  'Toll Free still present in header topbar'
 );
 check(
-  'Experience section uses descriptive alt text (not "Img")',
-  !/ alt="Img"/.test(expAltContent),
-  'experience section still has alt="Img"'
+  'Header no longer shows Email in topbar',
+  !/Email :/.test(headerContentCheck),
+  'Email : still present in header topbar'
 );
 check(
-  'Recomanded section uses descriptive alt text (not generic "img")',
-  !/ alt="img"/.test(recomAltContent),
-  'recomanded section still has generic alt="img"'
+  'Header no longer has header-topbar CSS (all topbars removed)',
+  !/header-topbar/.test(headerContentCheck),
+  'header-topbar CSS class still present in header'
+);
+check(
+  'Header no longer has wishlist cart counter in topbar',
+  !/count-icon.*0/.test(headerContentCheck),
+  'Cart counter still present in header topbar'
+);
+check(
+  'Homepage no longer imports ExperienceSection',
+  !/ExperienceSection/.test(homeContent),
+  'ExperienceSection still present in HomeServiceOne'
+);
+check(
+  'Homepage no longer imports Recomanded section',
+  !/Recomanded/.test(homeContent),
+  'Recomanded still present in HomeServiceOne'
+);
+check(
+  'Homepage no longer imports GuideSection',
+  !/GuideSection/.test(homeContent),
+  'GuideSection still present in HomeServiceOne'
+);
+const footerSectionContentEarly = readFile('src/feature-module/home-service-one/footerSection.tsx');
+check(
+  'FooterSection no longer has "Subscribe to our Newsletter"',
+  !/Subscribe to our Newsletter/.test(footerSectionContentEarly),
+  'Newsletter subscription still present in FooterSection'
+);
+check(
+  'ChooseSection no longer has EXPLORE TUNISIA background text',
+  !/EXPLORE TUNISIA/.test(chooseContent),
+  'EXPLORE TUNISIA background text still present in ChooseSection'
+);
+check(
+  'ChooseSection no longer has PLAN YOUR TRIP background text',
+  !/PLAN YOUR TRIP/.test(chooseContent),
+  'PLAN YOUR TRIP background text still present in ChooseSection'
+);
+check(
+  'Homepage no longer contains "612 x 700" dimensions',
+  !/612\s*x\s*700/.test(homeContent),
+  '"612 x 700" still found in homepage sections'
+);
+check(
+  'Homepage no longer contains "Popular Tunisia Tours"',
+  !/Popular Tunisia Tours/.test(homeContent),
+  '"Popular Tunisia Tours" still found in HomeServiceOne'
+);
+check(
+  'Homepage no longer contains "Local Tunisian Guides"',
+  !/Local Tunisian Guides/.test(homeContent),
+  '"Local Tunisian Guides" still found in HomeServiceOne'
 );
 
 // 31. No SEO dependency (react-helmet) added
@@ -630,14 +613,6 @@ check(
   'Michael Smith still present in testimonials'
 );
 
-// 41. Recomanded no longer has $ prices
-const recomandedFile = readFile('src/feature-module/home-service-one/recomanded.tsx');
-check(
-  'Recomanded section no longer has $ prices',
-  !/\$450|\$850|\$300|\$700/.test(recomandedFile),
-  '$ prices still present in recomanded section'
-);
-
 // 42. LatestSection (client logos) removed
 const latestContent = readFile('src/feature-module/home-service-one/latestSection.tsx');
 check(
@@ -676,6 +651,13 @@ check('FooterSection does not contain QA Site text', !/QA Site/.test(footerSecti
 // Verify shell config no longer uses shared footer for home-service-one
 const firebaseServicesFile = readFile('src/core/services/firebaseServices.ts');
 check('HomeServiceOne shell footer is local (not shared)', /home-service-one[\s\S]*?shell:\s*\{[\s\S]*?footer:\s*"local"/.test(firebaseServicesFile), 'Shell footer still set to shared');
+
+// 45. Firestore Data Cleanup Report exists (Sprint 29)
+check(
+  'Firestore data cleanup report exists',
+  fileExists('docs/FIRESTORE_DATA_CLEANUP_REPORT.md'),
+  'FIRESTORE_DATA_CLEANUP_REPORT.md not found'
+);
 
 // Summary
 console.log('\n=== QA: Homepage Marketplace Discovery ===\n');

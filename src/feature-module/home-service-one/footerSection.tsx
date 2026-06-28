@@ -15,35 +15,7 @@ const FooterSection = () => {
         className="footer-bg"
       />
       <div className="container">
-        <div className="footer-subscribe">
-          <div className="row row-gap-3">
-            <div className="col-lg-7">
-              <div>
-                <h2 className="text-white">Subscribe to our Newsletter</h2>
-                <span className="text-white">
-                  Just sign up and we'll send you a notification by email.
-                </span>
-              </div>
-            </div>
-            <div className="col-lg-5">
-              <div className="footer-input">
-                <div className="input-group align-items-center justify-content-center">
-                  <span className="input-group-text px-1">
-                    <i className="isax isax-message-favorite5" />
-                  </span>
-                  <input
-                    type="email"
-                    className="form-control"
-                    placeholder="Enter Email Address"
-                  />
-                  <button type="submit" className="btn btn-primary btn-md">
-                    Subscribe
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+
         <div className="row align-items-center row-gap-3">
           <div className="col-md-5">
             <div className="footer-about">

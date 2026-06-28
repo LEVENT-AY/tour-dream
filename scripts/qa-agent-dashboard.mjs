@@ -478,6 +478,14 @@ check(
   'extra agent dashboard routes found'
 );
 
+// Invalid Date fallback check (Sprint 29)
+const agentDashboardFile = readFile('src/feature-module/agent-dashboard/dashboard/agentDashboard.tsx');
+check(
+  'Agent Dashboard handles Invalid Date with fallback',
+  /isNaN\(d\.getTime\(\)\)\s*\?\s*'Date not recorded'/.test(agentDashboardFile),
+  'Invalid Date fallback not found in agentDashboard.tsx'
+);
+
 // Summary
 console.log('\n=== Agent Dashboard QA Report ===\n');
 console.log(`Passed: ${ok.length}`);

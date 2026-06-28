@@ -519,9 +519,11 @@ const AgentDashboard = () => {
                             chalets: { badge: 'badge-soft-info', label: 'Chalet' },
                           };
                           const info = badgeMap[item.collection] || { badge: 'badge-soft-secondary', label: item.collection };
-                          const createdDate = item.createdAt
-                            ? new Date(item.createdAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: '2-digit' })
-                            : '—';
+                          const createdDate = (() => {
+                            if (!item.createdAt) return '—';
+                            const d = new Date(item.createdAt);
+                            return isNaN(d.getTime()) ? 'Date not recorded' : d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: '2-digit' });
+                          })();
                           return (
                             <div key={item.id} className={`d-flex justify-content-between align-items-center${idx < stats.listings.recentListings.length - 1 ? ' mb-4' : ''}`}>
                               <div className="d-flex align-items-center">

@@ -65,22 +65,7 @@ const ChooseSection = () => {
         </div>
       </div>
     </div>
-    <div className="why-choose-explore overflow-hidden">
-      <div
-        className="horizontal-slide d-flex"
-        data-direction="right"
-        data-speed="slow"
-      >
-        <div className="slide-list d-flex">
-          <div className="support-item">
-            <h3>Explore Tunisia</h3>
-          </div>
-          <div className="support-item">
-            <h3>Plan Your Trip</h3>
-          </div>
-        </div>
-      </div>
-    </div>
+
   </section>
   {/* why choose */}
 </>

@@ -3,10 +3,7 @@ import { Link } from "react-router-dom";
 
 import { all_routes } from "../router/all_routes";
 import FeaturedServices from "./FeaturedServices";
-import ExperienceSection from "./experienceSection";
-import Recomanded from "./recomanded";
 import DeliverySection from "./deliverySection";
-import GuideSection from "./guideSection";
 import TestimonialSection from "./testimonialSection";
 import ChooseSection from "./chooseSection";
 import LatestSection from "./latestSection";
@@ -72,10 +69,7 @@ const HomeServiceOne = () => {
       </section>
 
       <FeaturedServices />
-      <ExperienceSection />
-      <Recomanded />
       <DeliverySection />
-      <GuideSection />
       <TestimonialSection />
       <ChooseSection />
       <LatestSection />
