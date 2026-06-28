@@ -15,6 +15,7 @@ interface FormState {
   guestsCount: string;
   message: string;
   preferredPaymentMethod: PreferredPaymentMethod | '';
+  paymentReference: string;
 }
 
 const PAYMENT_METHOD_OPTIONS: { value: PreferredPaymentMethod; label: string }[] = [
@@ -36,6 +37,7 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({
     guestsCount: '',
     message: '',
     preferredPaymentMethod: '',
+    paymentReference: '',
   });
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState<string | null>(null);
@@ -100,8 +102,12 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({
         guestsCount: form.guestsCount ? Number(form.guestsCount) : undefined,
         message: form.message.trim() || undefined,
         preferredPaymentMethod: form.preferredPaymentMethod || undefined,
+        paymentReference: form.paymentReference.trim() || undefined,
       });
-      setSuccess('Your request has been sent! Our team will review it and contact you shortly. Availability and payment instructions will be confirmed manually.');
+      const refProvided = !!form.paymentReference.trim();
+      setSuccess(refProvided
+        ? 'Your request has been sent! Our team will review your request and payment reference, then contact you to confirm availability and payment instructions.'
+        : 'Your request has been sent! Our team will review it and contact you shortly. Availability and payment instructions will be confirmed manually.');
       setForm({
         customerName: '',
         customerEmail: '',
@@ -110,6 +116,7 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({
         guestsCount: '',
         message: '',
         preferredPaymentMethod: '',
+        paymentReference: '',
       });
     } catch (err) {
       console.error('Error submitting service request:', err);
@@ -260,6 +267,24 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({
                 </select>
                 <small className="text-muted">
                   Tell us how you prefer to pay once your request is confirmed. No payment is collected now.
+                </small>
+              </div>
+              <div className="mb-3">
+                <label htmlFor="paymentReference" className="form-label fs-14">
+                  Payment reference or note <span className="text-muted fw-normal">(optional)</span>
+                </label>
+                <textarea
+                  id="paymentReference"
+                  name="paymentReference"
+                  className="form-control"
+                  rows={2}
+                  maxLength={300}
+                  placeholder="Example: transfer reference, Wafa Cash code, or a short payment note"
+                  value={form.paymentReference}
+                  onChange={handleChange}
+                />
+                <small className="text-muted">
+                  If you already have a Wafa Cash or bank transfer reference, you can add it here. Do not enter card details.
                 </small>
               </div>
               <div className="mb-3">

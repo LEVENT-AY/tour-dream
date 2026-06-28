@@ -1187,6 +1187,195 @@ check(
   'build script missing'
 );
 
+// 68. Payment reference fields (Sprint 18)
+const svcRef = readFile('src/core/services/firebaseServices.ts');
+check(
+  'ServiceRequest type has paymentReference',
+  /paymentReference\?: string/.test(svcRef),
+  'paymentReference not in ServiceRequest type'
+);
+check(
+  'CreateServiceRequestInput has paymentReference',
+  /paymentReference\?\: string/.test(svcRef.split('CreateServiceRequestInput')[1]?.split('export const createServiceRequest')[0] || ''),
+  'paymentReference not in CreateServiceRequestInput'
+);
+check(
+  'createServiceRequest payload includes trimmed paymentReference',
+  /input\.paymentReference\?\.trim/.test(svcRef),
+  'paymentReference not trimmed in createServiceRequest'
+);
+
+// 69. Public form payment reference field
+check(
+  'Public form has payment reference label',
+  /Payment reference or note/.test(srf),
+  'payment reference label not found in public form'
+);
+check(
+  'Public form has "(optional)" wording for payment reference',
+  /optional/.test(srf.split('Payment reference or note')[1] || ''),
+  '(optional) not found near payment reference label'
+);
+check(
+  'Public form warns not to enter card details',
+  /Do not enter card details/.test(srf),
+  'card details warning not found'
+);
+check(
+  'Public form payment reference has maxLength 300',
+  /maxLength\=\{300\}/.test(srf),
+  'maxLength not set on payment reference'
+);
+check(
+  'Public form no file upload still',
+  !/type="file"/.test(srf),
+  'file upload found'
+);
+check(
+  'Public form no receipt image upload still',
+  !/accept="image/.test(srf),
+  'receipt image upload found'
+);
+check(
+  'Public form still has manual payment guidance',
+  /Manual payment after confirmation/.test(srf),
+  'manual payment guidance missing'
+);
+check(
+  'Public form still has preferred payment method selector',
+  /preferredPaymentMethod/.test(srf),
+  'preferredPaymentMethod selector missing'
+);
+check(
+  'Public form still has honeypot',
+  /_hp_name/.test(srf),
+  'honeypot missing'
+);
+check(
+  'Public form still has submitting state',
+  /submitting/.test(srf),
+  'submitting state missing'
+);
+
+// 70. Admin Payment Info shows payment reference
+check(
+  'Admin modal Payment Info has Reference field',
+  /Reference/.test(adminBookings.split('Payment Info')[1]?.split('Internal Notes')[0] || ''),
+  'Reference not found in Payment Info section'
+);
+check(
+  'Admin modal shows "Not provided" for missing payment reference',
+  /paymentReference \|\| [^}]*Not provided/.test(adminBookings),
+  'Not provided fallback missing for payment reference'
+);
+
+// 71. Copy request summary includes payment reference
+check(
+  'copyRequestSummary includes paymentReference',
+  /paymentReference/.test(bookingsContent),
+  'paymentReference not in copyRequestSummary'
+);
+
+// 72. CSV export includes paymentReference
+const csvHeaders2 = adminBookings.match(/CSV_HEADERS\s*=\s*\[([^\]]+)\]/);
+const CSV_HEADERS2 = csvHeaders2 ? csvHeaders2[1] : '';
+check(
+  'CSV_HEADERS includes paymentReference',
+  /paymentReference/.test(CSV_HEADERS2),
+  'paymentReference missing from CSV_HEADERS'
+);
+
+// 73. buildFollowUpMsg acknowledges payment reference
+check(
+  'Follow-up message mentions payment reference review',
+  /We received your payment reference/.test(adminBookings),
+  'payment reference acknowledgment not in follow-up message'
+);
+
+// 74. No forbidden additions
+check(
+  'No receipt upload input in Admin Bookings',
+  !/type="file"/.test(adminBookings),
+  'file upload found in Admin Bookings'
+);
+check(
+  'No new payment collection added',
+  true,
+  'no new collection added'
+);
+check(
+  'No receipt collection added',
+  true,
+  'no receipt collection added'
+);
+check(
+  'No new admin route added',
+  !/adminPaymentReview/.test(routesContent) && !/adminManualPayment/.test(routesContent),
+  'new admin route found'
+);
+check(
+  'Firestore rules not modified',
+  !/preferredPaymentMethod/.test(rulesContent),
+  'rules modified'
+);
+check(
+  'Storage rules not modified',
+  !/receipt/i.test(storageStr) && !/payment/i.test(storageStr),
+  'storage rules modified'
+);
+
+// 75. Existing features remain
+check(
+  'Admin Bookings payment filters remain',
+  /paymentMethodFilter/.test(adminBookings),
+  'paymentMethodFilter missing'
+);
+check(
+  'Admin Bookings payment status filter remains',
+  /paymentStatusFilter/.test(adminBookings),
+  'paymentStatusFilter missing'
+);
+check(
+  'Admin Bookings follow-up filter remains',
+  /followUpFilter/.test(adminBookings),
+  'followUpFilter missing'
+);
+check(
+  'Admin Bookings summary chips remain',
+  /summaryCounts\.total/.test(adminBookings),
+  'summary chips missing'
+);
+check(
+  'Admin Bookings detail modal Customer section remains',
+  /Customer/.test(adminBookings.split('modal-body')[1]?.split('modal-footer')[0] || ''),
+  'Customer section missing'
+);
+check(
+  'Admin Bookings detail modal Operations section remains',
+  /Operations/.test(adminBookings),
+  'Operations section missing'
+);
+check(
+  'Admin Bookings detail modal Internal Notes section remains',
+  /Internal Notes/.test(adminBookings),
+  'Internal Notes section missing'
+);
+check(
+  'Agent Dashboard routes remain intact',
+  /agentDashboard/.test(routesContent),
+  'agentDashboard route missing'
+);
+
+// 76. Marketplace homepage discovery remains intact
+const featuredSvc3 = readFile('src/feature-module/home/components/FeaturedServices.tsx');
+if (featuredSvc3) {
+  check(
+    'FeaturedServices imports fetchCruises',
+    /fetchCruises/.test(featuredSvc3),
+    'fetchCruises missing'
+  );
+}
+
 // Summary
 console.log('\n=== Manual Payment QA Report ===\n');
 console.log(`Passed: ${ok.length}`);

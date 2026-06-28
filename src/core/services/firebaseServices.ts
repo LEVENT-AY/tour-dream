@@ -612,6 +612,7 @@ export interface ServiceRequest {
   paymentFlow?: "manual";
   paymentStatus?: ManualPaymentStatus;
   preferredPaymentMethod?: PreferredPaymentMethod;
+  paymentReference?: string;
 }
 
 export const fetchServiceRequests = async (
@@ -685,6 +686,7 @@ export interface CreateServiceRequestInput {
   guestsCount?: number;
   message?: string;
   preferredPaymentMethod?: PreferredPaymentMethod;
+  paymentReference?: string;
 }
 
 export const createServiceRequest = async (
@@ -709,6 +711,7 @@ export const createServiceRequest = async (
   if (typeof input.guestsCount === 'number') payload.guestsCount = input.guestsCount;
   if (input.message) payload.message = input.message;
   if (input.preferredPaymentMethod) payload.preferredPaymentMethod = input.preferredPaymentMethod;
+  if (input.paymentReference?.trim()) payload.paymentReference = input.paymentReference.trim();
 
   const docRef = await addDoc(collection(db, 'serviceRequests'), payload);
   return docRef.id;

@@ -79,7 +79,7 @@ const CSV_HEADERS = [
   'createdAt','status','priority','serviceType','serviceTitle',
   'customerName','phone','email','requestedDate','guestsCount',
   'assignedTo','followUpDate','lastContactedAt','message','internalNotes',
-  'paymentFlow','paymentStatus','preferredPaymentMethod',
+  'paymentFlow','paymentStatus','preferredPaymentMethod','paymentReference',
 ];
 
 const normalizePhone = (phone: string): string => phone.replace(/[^\d]/g, '');
@@ -281,6 +281,7 @@ const AdminBookings: React.FC<AdminBookingsProps> = ({ title = 'All Bookings', d
       msg += `your request for "${service}" has been received.`;
     }
     if (r.requestedDate) msg += ` You requested ${r.requestedDate}.`;
+    if (r.paymentReference) msg += ' We received your payment reference and will review it.';
     if (r.status !== 'confirmed') {
       if (r.preferredPaymentMethod === 'wafa_cash') {
         msg += ' After confirmation, we will send Wafa Cash instructions.';
@@ -320,7 +321,7 @@ const AdminBookings: React.FC<AdminBookingsProps> = ({ title = 'All Bookings', d
       `Priority: ${capitalize(r.priority) || 'Normal'}`,
       `Assigned to: ${r.assignedTo || 'Unassigned'}`,
       `Follow-up: ${r.followUpDate || 'Not set'}`,
-      `Payment: ${r.paymentFlow === 'manual' ? 'Manual' : r.paymentFlow || 'N/A'}${r.preferredPaymentMethod ? ` / ${PAYMENT_METHOD_LABELS[r.preferredPaymentMethod] || r.preferredPaymentMethod.replace(/_/g, ' ')}` : ''}`,
+      `Payment: ${r.paymentFlow === 'manual' ? 'Manual' : r.paymentFlow || 'N/A'}${r.preferredPaymentMethod ? ` / ${PAYMENT_METHOD_LABELS[r.preferredPaymentMethod] || r.preferredPaymentMethod.replace(/_/g, ' ')}` : ''}${r.paymentReference ? `\nPayment reference: ${r.paymentReference}` : ''}`,
       `Customer message: ${r.message || '(none)'}`,
     ];
     try {
@@ -350,6 +351,9 @@ const AdminBookings: React.FC<AdminBookingsProps> = ({ title = 'All Bookings', d
       return r.assignedTo || 'Unassigned';
     }
     if (field === 'lastContactedAt' || field === 'followUpDate') {
+      return (r as any)[field] || '';
+    }
+    if (field === 'paymentReference') {
       return (r as any)[field] || '';
     }
     return (r as any)[field];
@@ -855,17 +859,21 @@ const AdminBookings: React.FC<AdminBookingsProps> = ({ title = 'All Bookings', d
                   <div className="col-12">
                     <h6 className="text-muted border-bottom pb-1">Payment Info</h6>
                     <div className="row g-2">
-                      <div className="col-md-4">
+                      <div className="col-md-3">
                         <span className="fs-13 text-muted">Flow</span>
                         <p className="mb-0">{selectedRequest.paymentFlow === 'manual' ? 'Manual' : selectedRequest.paymentFlow || '\u2014'}</p>
                       </div>
-                      <div className="col-md-4">
+                      <div className="col-md-3">
                         <span className="fs-13 text-muted">Status</span>
                         <p className="mb-0">{selectedRequest.paymentStatus === 'not_requested' ? 'Not requested' : selectedRequest.paymentStatus ? selectedRequest.paymentStatus.replace(/_/g, ' ') : <em className="text-muted">Not requested</em>}</p>
                       </div>
-                      <div className="col-md-4">
+                      <div className="col-md-3">
                         <span className="fs-13 text-muted">Preferred method</span>
                         <p className="mb-0">{selectedRequest.preferredPaymentMethod ? (PAYMENT_METHOD_LABELS[selectedRequest.preferredPaymentMethod] || selectedRequest.preferredPaymentMethod.replace(/_/g, ' ')) : <em className="text-muted">Not selected</em>}</p>
+                      </div>
+                      <div className="col-md-3">
+                        <span className="fs-13 text-muted">Reference</span>
+                        <p className="mb-0" style={{ wordBreak: 'break-word' }}>{selectedRequest.paymentReference || <em className="text-muted">Not provided</em>}</p>
                       </div>
                     </div>
                     <p className="fs-12 text-muted mt-2 mb-0">
