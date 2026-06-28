@@ -1053,6 +1053,140 @@ check(
   'STATUS_BADGE not found'
 );
 
+// 62. Fetch error state (Sprint 17)
+check(
+  'Admin Bookings has fetchError state',
+  /fetchError/.test(adminBookings),
+  'fetchError state not found'
+);
+check(
+  'Admin Bookings shows dismissable error alert when fetch fails',
+  /alert.*alert-danger/.test(adminBookings) && /setFetchError/.test(adminBookings),
+  'error alert not found'
+);
+check(
+  'Admin Bookings clears fetchError before loading',
+  /setFetchError\(''\)/.test(adminBookings),
+  'fetchError not cleared before load'
+);
+
+// 63. Priority display uses capitalize helper
+check(
+  'Admin Bookings uses capitalize helper for priority display',
+  /capitalize\(/.test(adminBookings),
+  'capitalize not used for priority'
+);
+check(
+  'capitalize helper exists in Admin Bookings',
+  /const capitalize/.test(readFile('src/feature-module/admin-dashboard/pages/bookings.tsx')),
+  'capitalize helper not found'
+);
+
+// 64. Date formatting consistency
+check(
+  'Admin Bookings has formatDateTime helper',
+  /formatDateTime/.test(adminBookings),
+  'formatDateTime helper not found'
+);
+check(
+  'Modal uses formatDateTime for createdAt',
+  /formatDateTime\(selectedRequest\.createdAt\)/.test(adminBookings),
+  'formatDateTime not used for modal createdAt'
+);
+
+// 65. No fake/template content remains
+const bookingsContent = readFile('src/feature-module/admin-dashboard/pages/bookings.tsx');
+check(
+  'No fake invoice string "INV" in Admin Bookings',
+  !/INV\d{5,}/.test(bookingsContent),
+  'fake invoice number found'
+);
+check(
+  'No fake card number "4242" in Admin Bookings',
+  !/4242/.test(bookingsContent),
+  'fake card number found'
+);
+check(
+  'No fake bank string "Bank of" in Admin Bookings',
+  !/Bank of/.test(bookingsContent),
+  'fake bank name found'
+);
+check(
+  'No "Demo" or "Fake" customer name in Admin Bookings',
+  !/\bDemo\b|\bFake\b/.test(bookingsContent),
+  'demo/fake content found'
+);
+check(
+  'No hardcoded booking rows in Admin Bookings',
+  !/{serviceTitle:.*\n.*customerName:/.test(bookingsContent),
+  'hardcoded booking rows found'
+);
+
+// 66. Missing value fallback consistency
+check(
+  'Table uses em dash for missing service title',
+  /serviceTitle \|\| '\\u2014'/.test(adminBookings),
+  'service title fallback not consistent'
+);
+check(
+  'Table uses em dash for missing customer name',
+  /customerName \|\| '\\u2014'/.test(adminBookings),
+  'customer name fallback missing'
+);
+check(
+  'Modal uses "Customer name not provided" for missing name',
+  /Customer name not provided/.test(adminBookings),
+  'customer name modal fallback missing'
+);
+check(
+  'Modal uses "No message provided" for missing message',
+  /No message provided/.test(adminBookings),
+  'message modal fallback missing'
+);
+check(
+  'Modal uses "Not assigned" for unassigned',
+  /Not assigned/.test(adminBookings),
+  'unassigned modal fallback missing'
+);
+check(
+  'Modal uses "Not selected" for unset payment method',
+  /Not selected/.test(adminBookings),
+  'payment method fallback missing'
+);
+check(
+  'Modal uses "Not requested" for unset payment status',
+  /Not requested/.test(adminBookings),
+  'payment status fallback missing'
+);
+
+// 67. Existing QA scripts in package.json
+const pkg = readFile('package.json');
+check(
+  'package.json has qa:service-requests script',
+  /"qa:service-requests"/.test(pkg),
+  'qa:service-requests script missing'
+);
+check(
+  'package.json has qa:marketplace script',
+  /"qa:marketplace"/.test(pkg),
+  'qa:marketplace script missing'
+);
+check(
+  'package.json has qa:agent-dashboard script',
+  /"qa:agent-dashboard"/.test(pkg),
+  'qa:agent-dashboard script missing'
+);
+check(
+  'package.json has qa:manual-payment script',
+  /"qa:manual-payment"/.test(pkg),
+  'qa:manual-payment script missing'
+);
+check(
+  'package.json has build script',
+  /"build"/.test(pkg),
+  'build script missing'
+);
+
 // Summary
 console.log('\n=== Manual Payment QA Report ===\n');
 console.log(`Passed: ${ok.length}`);

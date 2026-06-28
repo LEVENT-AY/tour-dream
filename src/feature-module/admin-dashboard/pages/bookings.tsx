@@ -84,9 +84,16 @@ const CSV_HEADERS = [
 
 const normalizePhone = (phone: string): string => phone.replace(/[^\d]/g, '');
 
+const capitalize = (s?: string) => s ? s.charAt(0).toUpperCase() + s.slice(1) : '';
+
 const formatShortDate = (value?: string) => {
   if (!value) return '\u2014';
   try { return new Date(value).toLocaleDateString('en-GB'); } catch { return value; }
+};
+
+const formatDateTime = (value?: string) => {
+  if (!value) return '\u2014';
+  try { return new Date(value).toLocaleString('en-GB'); } catch { return value; }
 };
 
 const todayStr = () => new Date().toISOString().slice(0, 10);
@@ -111,6 +118,7 @@ interface AdminBookingsProps {
 const AdminBookings: React.FC<AdminBookingsProps> = ({ title = 'All Bookings', defaultStatus = 'all' }) => {
   const [allRequests, setAllRequests] = useState<ServiceRequest[]>([]);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState('');
   const [search, setSearch] = useState('');
   const [activeTab, setActiveTab] = useState<ServiceRequestStatus | 'all'>(defaultStatus);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -137,11 +145,12 @@ const AdminBookings: React.FC<AdminBookingsProps> = ({ title = 'All Bookings', d
 
   const load = async () => {
     setLoading(true);
+    setFetchError('');
     try {
       const data = await fetchServiceRequests();
       setAllRequests(data);
-    } catch (err) {
-      console.error('Error loading requests:', err);
+    } catch {
+      setFetchError('Failed to load requests. Check your connection and try again.');
     } finally {
       setLoading(false);
     }
@@ -308,7 +317,7 @@ const AdminBookings: React.FC<AdminBookingsProps> = ({ title = 'All Bookings', d
       `Contact: ${r.customerPhone || r.customerEmail || 'Not provided'}`,
       `Service: ${r.serviceTitle || 'N/A'} (${r.serviceType || 'other'})`,
       `Status: ${STATUS_LABELS[r.status] || r.status}`,
-      `Priority: ${r.priority ? r.priority.charAt(0).toUpperCase() + r.priority.slice(1) : 'Normal'}`,
+      `Priority: ${capitalize(r.priority) || 'Normal'}`,
       `Assigned to: ${r.assignedTo || 'Unassigned'}`,
       `Follow-up: ${r.followUpDate || 'Not set'}`,
       `Payment: ${r.paymentFlow === 'manual' ? 'Manual' : r.paymentFlow || 'N/A'}${r.preferredPaymentMethod ? ` / ${PAYMENT_METHOD_LABELS[r.preferredPaymentMethod] || r.preferredPaymentMethod.replace(/_/g, ' ')}` : ''}`,
@@ -394,6 +403,13 @@ const AdminBookings: React.FC<AdminBookingsProps> = ({ title = 'All Bookings', d
         </button>
       </div>
 
+      {fetchError && (
+        <div className="alert alert-danger alert-dismissible d-flex align-items-center gap-2 py-2 mb-3">
+          <i className="isax isax-info-circle" />
+          <span className="fs-14">{fetchError}</span>
+          <button type="button" className="btn-close ms-auto" onClick={() => setFetchError('')} aria-label="Dismiss" />
+        </div>
+      )}
       <div className="d-flex flex-wrap gap-2 mb-3">
         <span className="badge bg-light text-dark fs-13 fw-normal px-3 py-2 border">
           Total: <strong>{summaryCounts.total}</strong>
@@ -592,7 +608,7 @@ const AdminBookings: React.FC<AdminBookingsProps> = ({ title = 'All Bookings', d
                         </td>
                         <td>
                           <span className={PRIORITY_BADGE[r.priority || 'normal']}>
-                            {r.priority || 'normal'}
+                            {capitalize(r.priority) || 'Normal'}
                           </span>
                         </td>
                         <td>
@@ -943,7 +959,7 @@ const AdminBookings: React.FC<AdminBookingsProps> = ({ title = 'All Bookings', d
                   <div className="col-md-4">
                     <label className="form-label fs-14">Created</label>
                     <p className="form-control-plaintext mb-0 pt-1">
-                      {selectedRequest.createdAt ? new Date(selectedRequest.createdAt).toLocaleString('en-GB') : '\u2014'}
+                      {formatDateTime(selectedRequest.createdAt)}
                     </p>
                   </div>
                 </div>
