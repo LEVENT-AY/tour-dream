@@ -125,6 +125,21 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({
     }
   };
 
+  const handleReset = () => {
+    setSuccess(null);
+    setError(null);
+    setForm({
+      customerName: '',
+      customerEmail: '',
+      customerPhone: '',
+      requestedDate: '',
+      guestsCount: '',
+      message: '',
+      preferredPaymentMethod: '',
+      paymentReference: '',
+    });
+  };
+
   return (
     <div className="card shadow-none border mt-4">
       <div className="card-body">
@@ -143,6 +158,13 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({
                 <li>No card payment is collected on the website.</li>
               </ul>
             </div>
+            <button
+              type="button"
+              className="btn btn-outline-primary w-100 mt-3"
+              onClick={handleReset}
+            >
+              Send another request
+            </button>
           </div>
         ) : (
           <>

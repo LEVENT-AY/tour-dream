@@ -101,7 +101,11 @@ const FirestoreCruiseList: React.FC<FirestoreCruiseListProps> = ({ onStatus }) =
   }
 
   if (cruises.length === 0) {
-    return null;
+    return (
+      <div className="text-center py-5">
+        <p className="fs-14 text-muted mb-0">No cruises available right now. Check back later.</p>
+      </div>
+    );
   }
 
   return (
@@ -197,7 +201,7 @@ const FirestoreCruiseList: React.FC<FirestoreCruiseListProps> = ({ onStatus }) =
                                 AGENT_FALLBACK_IMAGE
                               }
                               className="rounded-circle"
-                              alt="img"
+                              alt="Agent"
                               fallbackSrc={AGENT_FALLBACK_IMAGE}
                             />
                           </span>

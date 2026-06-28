@@ -73,7 +73,11 @@ const FirestoreVisaList: React.FC<FirestoreVisaListProps> = ({ onStatus }) => {
   }
 
   if (visas.length === 0) {
-    return null;
+    return (
+      <div className="text-center py-5">
+        <p className="fs-14 text-muted mb-0">No visa services available right now. Check back later.</p>
+      </div>
+    );
   }
 
   return (

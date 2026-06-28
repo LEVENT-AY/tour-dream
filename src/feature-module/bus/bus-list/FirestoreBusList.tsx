@@ -71,7 +71,11 @@ const FirestoreBusList: React.FC<FirestoreBusListProps> = ({ onStatus }) => {
   }
 
   if (buses.length === 0) {
-    return null;
+    return (
+      <div className="text-center py-5">
+        <p className="fs-14 text-muted mb-0">No bus trips available right now. Check back later.</p>
+      </div>
+    );
   }
 
   return (

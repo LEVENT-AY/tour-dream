@@ -518,6 +518,54 @@ check(
   '"checkout" found in FeaturedServices'
 );
 
+// 34. List page empty states are user-friendly (not null)
+const cruiseListContent = readFile('src/feature-module/curise/cruise-list/FirestoreCruiseList.tsx');
+const busListContent = readFile('src/feature-module/bus/bus-list/FirestoreBusList.tsx');
+const visaListContent = readFile('src/feature-module/visa/visa-list/FirestoreVisaList.tsx');
+const guideListContent = readFile('src/feature-module/guide/guide-grid/FirestoreGuideList.tsx');
+check(
+  'Cruise list empty state shows friendly message (not null)',
+  /No cruises available right now/.test(cruiseListContent),
+  'cruise list still returns null when empty'
+);
+check(
+  'Bus list empty state shows friendly message (not null)',
+  /No bus trips available right now/.test(busListContent),
+  'bus list still returns null when empty'
+);
+check(
+  'Visa list empty state shows friendly message (not null)',
+  /No visa services available right now/.test(visaListContent),
+  'visa list still returns null when empty'
+);
+check(
+  'Guide list empty state shows friendly message (not null)',
+  /No guides available right now/.test(guideListContent),
+  'guide list still returns null when empty'
+);
+
+// 35. Cruise list agent avatar alt text is descriptive
+check(
+  'Cruise list agent avatar uses descriptive alt text',
+  !/alt="img"/.test(cruiseListContent),
+  'cruise list still has alt="img" for agent avatar'
+);
+
+// 36. FeaturedServices does not use $ prefix for prices
+check(
+  'FeaturedServices does not use $ prefix for prices',
+  !/\$\{item\.price\}/.test(fsContent),
+  'FeaturedServices still uses $ prefix for TND prices'
+);
+
+// 37. ServiceRequestForm has "Send another request" in success state
+const srFormContent = readFile('src/core/common/service-request/ServiceRequestForm.tsx');
+check(
+  'ServiceRequestForm has "Send another request" in success state',
+  /Send another request/.test(srFormContent),
+  '"Send another request" button missing in success state'
+);
+
 // Summary
 console.log('\n=== QA: Homepage Marketplace Discovery ===\n');
 if (ok.length) {

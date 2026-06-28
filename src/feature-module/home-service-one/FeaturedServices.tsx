@@ -224,7 +224,7 @@ const FeaturedServices = () => {
                             </span>
                             {item.price > 0 && (
                               <span className="text-primary fw-semibold">
-                                ${item.price}
+                                {item.price} TND
                               </span>
                             )}
                           </div>
