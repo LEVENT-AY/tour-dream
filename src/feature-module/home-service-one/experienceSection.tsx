@@ -12,7 +12,7 @@ const ExperienceSection = () => {
               Explore Tunisian <br />{" "}
               <ImageWithBasePath
                 src="./assets/img/bg/heading-bg-02.png"
-                alt="img"
+                alt=""
               />{" "}
               Destinations{" "}
             </h2>
@@ -23,7 +23,7 @@ const ExperienceSection = () => {
                 <Link to={all_routes.cruiseList}>
                   <ImageWithBasePath
                     src="assets/img/destination/destination-48.jpg"
-                    alt="Img"
+                    alt="Tunis"
                   />
                 </Link>
                 <div className="loc-name-bottom">
@@ -37,7 +37,7 @@ const ExperienceSection = () => {
                 <Link to={all_routes.cruiseList}>
                   <ImageWithBasePath
                     src="assets/img/destination/destination-49.jpg"
-                    alt="Img"
+                    alt="Sousse"
                   />
                 </Link>
                 <div className="loc-name-bottom">
@@ -53,7 +53,7 @@ const ExperienceSection = () => {
                 <Link to={all_routes.cruiseList}>
                   <ImageWithBasePath
                     src="assets/img/destination/destination-50.jpg"
-                    alt="Img"
+                    alt="Hammamet"
                   />
                 </Link>
                 <div className="loc-name-bottom">
@@ -69,7 +69,7 @@ const ExperienceSection = () => {
                 <Link to={all_routes.cruiseList}>
                   <ImageWithBasePath
                     src="assets/img/destination/destination-51.jpg"
-                    alt="Img"
+                    alt="Djerba"
                   />
                 </Link>
                 <div className="loc-name-bottom">
@@ -84,12 +84,12 @@ const ExperienceSection = () => {
                   <div className="location-wrap wow zoomIn">
                     <Link to={all_routes.cruiseList}>
                       <ImageWithBasePath
-                        src="assets/img/destination/destination-52.jpg"
-                        alt="Img"
-                      />
-                    </Link>
-                    <div className="loc-name-bottom">
-                      <h3 className="mb-1 home-eight-title">Sfax</h3>
+                      src="assets/img/destination/destination-52.jpg"
+                      alt="Sfax"
+                    />
+                  </Link>
+                  <div className="loc-name-bottom">
+                    <h3 className="mb-1 home-eight-title">Sfax</h3>
                     </div>
                     <Link to={all_routes.cruiseList} className="loc-view-bottom">
                       <i className="isax isax-arrow-right-1" />
@@ -100,12 +100,12 @@ const ExperienceSection = () => {
                   <div className="location-wrap wow zoomIn">
                     <Link to={all_routes.cruiseList}>
                       <ImageWithBasePath
-                        src="assets/img/destination/destination-53.jpg"
-                        alt="Img"
-                      />
-                    </Link>
-                    <div className="loc-name-bottom">
-                      <h3 className="mb-1 home-eight-title">Tozeur</h3>
+                      src="assets/img/destination/destination-53.jpg"
+                      alt="Tozeur"
+                    />
+                  </Link>
+                  <div className="loc-name-bottom">
+                    <h3 className="mb-1 home-eight-title">Tozeur</h3>
                     </div>
                     <Link to={all_routes.cruiseList} className="loc-view-bottom">
                       <i className="isax isax-arrow-right-1" />

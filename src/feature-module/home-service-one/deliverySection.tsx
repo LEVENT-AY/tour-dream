@@ -10,7 +10,7 @@ const DeliverySection = () => {
               How It{" "}
               <ImageWithBasePath
                 src="./assets/img/bg/heading-bg-03.png"
-                alt="img"
+                alt=""
               />{" "}
               Works
             </h2>

@@ -10,7 +10,7 @@ const GuideSection = () => {
       <div className="section-header-eight wow fadeInUp">
         <h2>
           Local Tunisian <br />{" "}
-          <ImageWithBasePath src="./assets/img/bg/heading-bg-04.png" alt="img" /> Guides For
+          <ImageWithBasePath src="./assets/img/bg/heading-bg-04.png" alt="" /> Guides For
           You{" "}
         </h2>
       </div>
@@ -22,7 +22,7 @@ const GuideSection = () => {
                 <ImageWithBasePath
                   src="assets/img/users/user-lg-35.jpg"
                   className="img-fluid"
-                  alt="img"
+                  alt="Ahmed Ben Ali"
                 />
               </Link>
               <Link to={all_routes.guideGrid} className="loc-view-bottom">
@@ -44,7 +44,7 @@ const GuideSection = () => {
                 <ImageWithBasePath
                   src="assets/img/users/user-lg-36.jpg"
                   className="img-fluid"
-                  alt="img"
+                  alt="Salma Mansouri"
                 />
               </Link>
               <Link to={all_routes.guideGrid} className="loc-view-bottom">
@@ -66,7 +66,7 @@ const GuideSection = () => {
                 <ImageWithBasePath
                   src="assets/img/users/user-lg-37.jpg"
                   className="img-fluid"
-                  alt="img"
+                  alt="Karim Bouchoucha"
                 />
               </Link>
               <Link to={all_routes.guideGrid} className="loc-view-bottom">
@@ -88,7 +88,7 @@ const GuideSection = () => {
                 <ImageWithBasePath
                   src="assets/img/users/user-lg-38.jpg"
                   className="img-fluid"
-                  alt="img"
+                  alt="Ines Gharbi"
                 />
               </Link>
               <Link to={all_routes.guideGrid} className="loc-view-bottom">

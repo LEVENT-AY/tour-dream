@@ -398,6 +398,60 @@ if (storageRules) {
   check('Storage rules unchanged', true, 'storage.rules not in project');
 }
 
+// 29. index.html title and meta description are DreamsTour Tunisia-specific
+const indexHtml = readFile('index.html');
+check(
+  'Page title is DreamsTour Tunisia specific',
+  /DreamsTour Tunisia/.test(indexHtml),
+  'title not updated to DreamsTour Tunisia'
+);
+check(
+  'Meta description mentions Tunisia and manual payment',
+  /Explore Tunisia travel services.*manual follow-up.*No online card payment/.test(indexHtml),
+  'meta description not updated'
+);
+
+// 30. Homepage section alt text is descriptive (no generic "img"/"Img")
+const guideAltContent = readFile('src/feature-module/home-service-one/guideSection.tsx');
+const expAltContent = readFile('src/feature-module/home-service-one/experienceSection.tsx');
+const recomAltContent = readFile('src/feature-module/home-service-one/recomanded.tsx');
+check(
+  'Guide section uses descriptive alt text (not generic "img")',
+  !/ alt="img"/.test(guideAltContent),
+  'guide section still has generic alt="img"'
+);
+check(
+  'Experience section uses descriptive alt text (not "Img")',
+  !/ alt="Img"/.test(expAltContent),
+  'experience section still has alt="Img"'
+);
+check(
+  'Recomanded section uses descriptive alt text (not generic "img")',
+  !/ alt="img"/.test(recomAltContent),
+  'recomanded section still has generic alt="img"'
+);
+
+// 31. No SEO dependency (react-helmet) added
+const mainContent = readFile('src/main.tsx');
+const packageContent = readFile('package.json');
+check(
+  'No react-helmet dependency added',
+  !/react-helmet/.test(packageContent),
+  'react-helmet found in package.json'
+);
+
+// 32. Public CTAs do not include "Pay Now" or "checkout" wording
+check(
+  'Homepage does not contain "Pay Now"',
+  !/Pay Now/.test(homeContent + fsContent + deliveryContent + chooseContent),
+  '"Pay Now" found in homepage content'
+);
+check(
+  'FeaturedServices does not contain "checkout"',
+  !/checkout/.test(fsContent),
+  '"checkout" found in FeaturedServices'
+);
+
 // Summary
 console.log('\n=== QA: Homepage Marketplace Discovery ===\n');
 if (ok.length) {

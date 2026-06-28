@@ -12,7 +12,7 @@ const Recomanded = () => {
               Popular Tunisia <br />{" "}
               <ImageWithBasePath
                 src="./assets/img/bg/heading-bg-03.png"
-                alt="img"
+                alt=""
               />{" "}
               Tours &amp; Highlights{" "}
             </h2>
@@ -25,7 +25,7 @@ const Recomanded = () => {
                     <ImageWithBasePath
                       src="assets/img/destination/destination-54.jpg"
                       className="img-fluid"
-                      alt="img"
+                      alt="Medina Walk in Tunis Medina"
                     />
                   </Link>
                   <div className="fav-item fs-14">
@@ -67,7 +67,7 @@ const Recomanded = () => {
                     <ImageWithBasePath
                       src="assets/img/destination/destination-55.jpg"
                       className="img-fluid"
-                      alt="img"
+                      alt="Sahara Escape in Douz, Sahara Desert"
                     />
                   </Link>
                   <div className="fav-item fs-14">
@@ -109,7 +109,7 @@ const Recomanded = () => {
                     <ImageWithBasePath
                       src="assets/img/destination/destination-56.jpg"
                       className="img-fluid"
-                      alt="img"
+                      alt="Coastal Ride at Hammamet Coast"
                     />
                   </Link>
                   <div className="fav-item fs-14">
@@ -150,7 +150,7 @@ const Recomanded = () => {
                     <ImageWithBasePath
                       src="assets/img/destination/destination-57.jpg"
                       className="img-fluid"
-                      alt="img"
+                      alt="Djerba Retreat on Djerba Island"
                     />
                   </Link>
                   <div className="fav-item fs-14">
