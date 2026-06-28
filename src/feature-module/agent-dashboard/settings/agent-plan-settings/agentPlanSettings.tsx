@@ -1,7 +1,6 @@
 
 import { all_routes } from '../../../router/all_routes';
 import Breadcrumb from '../../../../core/common/Breadcrumb/breadcrumb';
-import ImageWithBasePath from '../../../../core/common/imageWithBasePath';
 import { Link } from 'react-router-dom';
 import Sidebar from '../../sidebar/sidebar';
 import AgentPlanSettingsModal from './agentPlanSettingsModal';
@@ -77,36 +76,10 @@ const AgentPlanSettings = () => {
                                             <div className="col-xl-5 d-flex">
                                                 <div className="card shadow-none bg-gray-transparent flex-fill">
                                                     <div className="card-body">
-                                                        <div className="border-bottom d-flex align-items-center justify-content-between mb-3 pb-3">
-                                                            <h6 className="fw-medium">Active Plan</h6>
-                                                            <Link to="#" className="btn btn-light btn-sm">
-                                                                Download PDF
-                                                            </Link>
-                                                        </div>
-                                                        <div className="d-flex align-items-center justify-content-between border-bottom mb-4 pb-4">
-                                                            <div>
-                                                                <h5 className="mb-1 fs-18">Standard Plan</h5>
-                                                                <p className="fs-14">
-                                                                    Valid till: May 2025 - Jun 2025
-                                                                </p>
-                                                            </div>
-                                                            <div>
-                                                                <h4>$199</h4>
-                                                                <span className="d-block fs-14">per year</span>
-                                                            </div>
-                                                        </div>
-                                                        <div className="d-flex align-items-center justify-content-end">
-                                                            <Link to="#" className="btn btn-light btn-sm me-2">
-                                                                Cancel Subscription
-                                                            </Link>
-                                                            <Link
-                                                                to="#"
-                                                                data-bs-toggle="modal"
-                                                                data-bs-target="#price_plane"
-                                                                className="btn btn-primary btn-sm"
-                                                            >
-                                                                Update Plan
-                                                            </Link>
+                                                        <div className="text-center py-4">
+                                                            <i className="isax isax-star fs-32 text-gray-4 mb-2 d-block" />
+                                                            <p className="fw-medium mb-1">No active plan</p>
+                                                            <p className="fs-14 text-gray-6 mb-0">Plan and billing information will appear here once the subscription workflow is enabled.</p>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -114,115 +87,10 @@ const AgentPlanSettings = () => {
                                             <div className="col-xl-7 d-flex">
                                                 <div className="card shadow-none bg-gray-transparent flex-fill">
                                                     <div className="card-body">
-                                                        <div className="border-bottom d-flex align-items-center justify-content-between mb-3 pb-3">
-                                                            <h6 className="fw-medium">Saved Cards</h6>
-                                                            <Link
-                                                                to="#"
-                                                                className="btn btn-light btn-sm d-inline-flex align-items-center"
-                                                                data-bs-toggle="modal"
-                                                                data-bs-target="#add_card"
-                                                            >
-                                                                <i className="isax isax-add me-1" />
-                                                                Add New Card
-                                                            </Link>
-                                                        </div>
-                                                        <div className="row g-2">
-                                                            <div className="col-md-6">
-                                                                <div className="card mb-0">
-                                                                    <div className="card-body p-3">
-                                                                        <div className="d-flex align-items-center mb-3">
-                                                                            <span className="payment-img d-flex align-items-center justify-content-center flex-shrink-0 rounded border me-2">
-                                                                                <ImageWithBasePath
-                                                                                    src="assets/img/icons/visa-3.svg"
-                                                                                    alt=""
-                                                                                />
-                                                                            </span>
-                                                                            <div>
-                                                                                <span className="fs-14 mb-1 d-block">
-                                                                                    Credit Card
-                                                                                </span>
-                                                                                <h6 className="fs-14 fw-medium text-truncate">
-                                                                                    Visa •••• 1568
-                                                                                </h6>
-                                                                            </div>
-                                                                        </div>
-                                                                        <div className="d-flex align-items-center justify-content-between">
-                                                                            <Link
-                                                                                to="#"
-                                                                                className="btn btn-primary btn-sm"
-                                                                            >
-                                                                                Default
-                                                                            </Link>
-                                                                            <div className="d-flex align-items-center edit-delete-icon">
-                                                                                <Link
-                                                                                    to="#"
-                                                                                    className="avatar rounded-circle border me-2"
-                                                                                    data-bs-toggle="modal"
-                                                                                    data-bs-target="#edit_card"
-                                                                                >
-                                                                                    <i className="isax isax-edit fs-14" />
-                                                                                </Link>
-                                                                                <Link
-                                                                                    to="#"
-                                                                                    className="avatar rounded-circle border"
-                                                                                    data-bs-toggle="modal"
-                                                                                    data-bs-target="#delete-list"
-                                                                                >
-                                                                                    <i className="isax isax-trash fs-14" />
-                                                                                </Link>
-                                                                            </div>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                            <div className="col-md-6">
-                                                                <div className="card mb-0">
-                                                                    <div className="card-body p-3">
-                                                                        <div className="d-flex align-items-center mb-3">
-                                                                            <span className="payment-img d-flex align-items-center justify-content-center flex-shrink-0 rounded border me-2">
-                                                                                <ImageWithBasePath
-                                                                                    src="assets/img/icons/visa-2.svg"
-                                                                                    alt=""
-                                                                                />
-                                                                            </span>
-                                                                            <div>
-                                                                                <span className="fs-14 mb-1 d-block">
-                                                                                    Debit Card
-                                                                                </span>
-                                                                                <h6 className="fs-14 fw-medium text-truncate">
-                                                                                    Mastercard •••• 1279
-                                                                                </h6>
-                                                                            </div>
-                                                                        </div>
-                                                                        <div className="d-flex align-items-center justify-content-between">
-                                                                            <Link
-                                                                                to="#"
-                                                                                className="text-primary text-decoration-underline fs-14"
-                                                                            >
-                                                                                Set as Default
-                                                                            </Link>
-                                                                            <div className="d-flex align-items-center edit-delete-icon">
-                                                                                <Link
-                                                                                    to="#"
-                                                                                    className="avatar rounded-circle border me-2"
-                                                                                    data-bs-toggle="modal"
-                                                                                    data-bs-target="#edit_card"
-                                                                                >
-                                                                                    <i className="isax isax-edit fs-14" />
-                                                                                </Link>
-                                                                                <Link
-                                                                                    to="#"
-                                                                                    className="avatar rounded-circle border"
-                                                                                    data-bs-toggle="modal"
-                                                                                    data-bs-target="#delete-list"
-                                                                                >
-                                                                                    <i className="isax isax-trash fs-14" />
-                                                                                </Link>
-                                                                            </div>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
+                                                        <div className="text-center py-4">
+                                                            <i className="isax isax-card-tick fs-32 text-gray-4 mb-2 d-block" />
+                                                            <p className="fw-medium mb-1">No saved cards</p>
+                                                            <p className="fs-14 text-gray-6 mb-0">Saved payment methods will appear here once the finance workflow is enabled.</p>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -273,217 +141,10 @@ const AgentPlanSettings = () => {
                                                 </div>
                                                 <div className="custom-datatable-filter table-responsive">
                                                     <table className="table datatable">
-                                                        <thead className="thead-light">
-                                                            <tr>
-                                                                <th>ID</th>
-                                                                <th>Plan Name</th>
-                                                                <th>Payment Method</th>
-                                                                <th>Subscribed On</th>
-                                                                <th>Last Date</th>
-                                                                <th>Amount</th>
-                                                                <th>Status</th>
-                                                                <th />
-                                                            </tr>
-                                                        </thead>
                                                         <tbody>
                                                             <tr>
-                                                                <td>
-                                                                    <Link
-                                                                        to="#"
-                                                                        className="link-primary fw-medium"
-                                                                        data-bs-toggle="modal"
-                                                                        data-bs-target="#transaction_detail"
-                                                                    >
-                                                                        #IN-1245
-                                                                    </Link>
-                                                                </td>
-                                                                <td>
-                                                                    <h6 className="fs-14 fw-medium">Standard Plan</h6>
-                                                                </td>
-                                                                <td>Credit Card</td>
-                                                                <td>15 May 2025</td>
-                                                                <td>14 Jun 2025</td>
-                                                                <td>$199</td>
-                                                                <td>
-                                                                    <span className="badge badge-secondary rounded-pill d-inline-flex align-items-center fs-10">
-                                                                        <i className="fa-solid fa-circle fs-5 me-1" />
-                                                                        Pending
-                                                                    </span>
-                                                                </td>
-                                                                <td>
-                                                                    <div className="d-flex align-items-center">
-                                                                        <Link
-                                                                            to="#"
-                                                                            data-bs-toggle="modal"
-                                                                            data-bs-target="#transaction_detail"
-                                                                            className="me-2"
-                                                                        >
-                                                                            <i className="isax isax-eye" />
-                                                                        </Link>
-                                                                        <Link to="#">
-                                                                            <i className="isax isax-document-download" />
-                                                                        </Link>
-                                                                    </div>
-                                                                </td>
-                                                            </tr>
-                                                            <tr>
-                                                                <td>
-                                                                    <Link
-                                                                        to="#"
-                                                                        className="link-primary fw-medium"
-                                                                        data-bs-toggle="modal"
-                                                                        data-bs-target="#transaction_detail"
-                                                                    >
-                                                                        #IN-3215
-                                                                    </Link>
-                                                                </td>
-                                                                <td>
-                                                                    <h6 className="fs-14 fw-medium">Basic Plan</h6>
-                                                                </td>
-                                                                <td>Debit Card</td>
-                                                                <td>15 Apr 2025</td>
-                                                                <td>14 May 2025</td>
-                                                                <td>$99</td>
-                                                                <td>
-                                                                    <span className="badge badge-success rounded-pill d-inline-flex align-items-center fs-10">
-                                                                        <i className="fa-solid fa-circle fs-5 me-1" />
-                                                                        Paid
-                                                                    </span>
-                                                                </td>
-                                                                <td>
-                                                                    <div className="d-flex align-items-center">
-                                                                        <Link
-                                                                            to="#"
-                                                                            data-bs-toggle="modal"
-                                                                            data-bs-target="#transaction_detail"
-                                                                            className="me-2"
-                                                                        >
-                                                                            <i className="isax isax-eye" />
-                                                                        </Link>
-                                                                        <Link to="#">
-                                                                            <i className="isax isax-document-download" />
-                                                                        </Link>
-                                                                    </div>
-                                                                </td>
-                                                            </tr>
-                                                            <tr>
-                                                                <td>
-                                                                    <Link
-                                                                        to="#"
-                                                                        className="link-primary fw-medium"
-                                                                        data-bs-toggle="modal"
-                                                                        data-bs-target="#transaction_detail"
-                                                                    >
-                                                                        #IN-4581
-                                                                    </Link>
-                                                                </td>
-                                                                <td>
-                                                                    <h6 className="fs-14 fw-medium">Premium Plan</h6>
-                                                                </td>
-                                                                <td>Paypal</td>
-                                                                <td>15 Mar 2025</td>
-                                                                <td>14 Apr 2025</td>
-                                                                <td>$299</td>
-                                                                <td>
-                                                                    <span className="badge badge-success rounded-pill d-inline-flex align-items-center fs-10">
-                                                                        <i className="fa-solid fa-circle fs-5 me-1" />
-                                                                        Paid
-                                                                    </span>
-                                                                </td>
-                                                                <td>
-                                                                    <div className="d-flex align-items-center">
-                                                                        <Link
-                                                                            to="#"
-                                                                            data-bs-toggle="modal"
-                                                                            data-bs-target="#transaction_detail"
-                                                                            className="me-2"
-                                                                        >
-                                                                            <i className="isax isax-eye" />
-                                                                        </Link>
-                                                                        <Link to="#">
-                                                                            <i className="isax isax-document-download" />
-                                                                        </Link>
-                                                                    </div>
-                                                                </td>
-                                                            </tr>
-                                                            <tr>
-                                                                <td>
-                                                                    <Link
-                                                                        to="#"
-                                                                        className="link-primary fw-medium"
-                                                                        data-bs-toggle="modal"
-                                                                        data-bs-target="#transaction_detail"
-                                                                    >
-                                                                        #IN-6545
-                                                                    </Link>
-                                                                </td>
-                                                                <td>
-                                                                    <h6 className="fs-14 fw-medium">Basic Plan</h6>
-                                                                </td>
-                                                                <td>Debit Card</td>
-                                                                <td>15 Feb 2025</td>
-                                                                <td>14 Mar 2025</td>
-                                                                <td>$99</td>
-                                                                <td>
-                                                                    <span className="badge badge-danger rounded-pill d-inline-flex align-items-center fs-10">
-                                                                        <i className="fa-solid fa-circle fs-5 me-1" />
-                                                                        Cancelled
-                                                                    </span>
-                                                                </td>
-                                                                <td>
-                                                                    <div className="d-flex align-items-center">
-                                                                        <Link
-                                                                            to="#"
-                                                                            data-bs-toggle="modal"
-                                                                            data-bs-target="#transaction_detail"
-                                                                            className="me-2"
-                                                                        >
-                                                                            <i className="isax isax-eye" />
-                                                                        </Link>
-                                                                        <Link to="#">
-                                                                            <i className="isax isax-document-download" />
-                                                                        </Link>
-                                                                    </div>
-                                                                </td>
-                                                            </tr>
-                                                            <tr>
-                                                                <td>
-                                                                    <Link
-                                                                        to="#"
-                                                                        className="link-primary fw-medium"
-                                                                        data-bs-toggle="modal"
-                                                                        data-bs-target="#transaction_detail"
-                                                                    >
-                                                                        #IN-5769
-                                                                    </Link>
-                                                                </td>
-                                                                <td>
-                                                                    <h6 className="fs-14 fw-medium">Standard Plan</h6>
-                                                                </td>
-                                                                <td>Stripe</td>
-                                                                <td>15 Jan 2025</td>
-                                                                <td>14 Feb 2025</td>
-                                                                <td>$99</td>
-                                                                <td>
-                                                                    <span className="badge badge-success rounded-pill d-inline-flex align-items-center fs-10">
-                                                                        <i className="fa-solid fa-circle fs-5 me-1" />
-                                                                        Paid
-                                                                    </span>
-                                                                </td>
-                                                                <td>
-                                                                    <div className="d-flex align-items-center">
-                                                                        <Link
-                                                                            to="#"
-                                                                            data-bs-toggle="modal"
-                                                                            data-bs-target="#transaction_detail"
-                                                                            className="me-2"
-                                                                        >
-                                                                            <i className="isax isax-eye" />
-                                                                        </Link>
-                                                                        <Link to="#">
-                                                                            <i className="isax isax-document-download" />
-                                                                        </Link>
-                                                                    </div>
+                                                                <td colSpan={8} className="text-center py-4 text-gray-6">
+                                                                    No transaction history yet.
                                                                 </td>
                                                             </tr>
                                                         </tbody>

@@ -1,17 +1,20 @@
-
-import Breadcrumb from '../../../../core/common/Breadcrumb/breadcrumb';
+import { useEffect, useState } from 'react';
 import type { TableData } from '../../../../core/common/data/interface';
-import Table from "../../../../core/common/dataTable/index";
-import { Link } from 'react-router-dom';
+import { all_routes } from '../../../router/all_routes';
+import Breadcrumb from '../../../../core/common/Breadcrumb/breadcrumb';
 import Sidebar from '../../sidebar/sidebar';
 import PredefinedDateRanges from '../../../../core/common/range-picker/datePicker';
-import { all_routes } from '../../../router/all_routes';
+import { Link } from 'react-router-dom';
+import Table from "../../../../core/common/dataTable/index";
 import AgentBusBookingModal from './agentBusBookingModal';
+import { useAuth } from '../../../../core/contexts/AuthContext';
+import { fetchAgentBookings, bookingStatusDisplay } from '../../../../core/services/agentServices';
+import type { Booking } from '../../../../core/services/firebaseServices';
 
 const AgentBusBooking = () => {
 
     const routes = all_routes;
-    //Breadcrumb Data
+    const { userProfile } = useAuth();
     const breadcrumbs = [
         {
             label: 'Bus Bookings',
@@ -24,8 +27,50 @@ const AgentBusBooking = () => {
         },
     ];
 
+    const [bookings, setBookings] = useState<Booking[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+    const loadBookings = async () => {
+        if (!userProfile?.uid) return;
+        setLoading(true);
+        setError(null);
+        try {
+            const data = await fetchAgentBookings(userProfile.uid);
+            setBookings(data.filter((b) => b.itemType === 'bus'));
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'Failed to load bookings');
+        } finally {
+            setLoading(false);
+        }
+    };
 
-    const data: TableData[] = [];
+    useEffect(() => {
+        loadBookings();
+    }, [userProfile?.uid]);
+
+    const data = bookings.map((booking) => {
+        const status = bookingStatusDisplay(booking.status);
+        return {
+            id: booking.id,
+            action: status.action,
+            hotelName: booking.itemTitle || '—',
+            location: booking.itemType || '—',
+            bookedBy: booking.userName || booking.userEmail || 'Customer',
+            bookedLocation: booking.userEmail || '',
+            room: '—',
+            guest: '—',
+            days: '—',
+            pricing: new Intl.NumberFormat(undefined, { style: 'currency', currency: booking.currency || 'USD' }).format(
+                typeof booking.totalAmount === 'number' ? booking.totalAmount : booking.price || 0
+            ),
+            bookedOn: booking.createdAt ? new Date(booking.createdAt).toLocaleDateString() : '—',
+            date: booking.createdAt || '',
+            status: status.label,
+            badge: status.badge,
+            raw: booking,
+        };
+    });
+
     const columns = [
         {
             title: "ID",
@@ -38,26 +83,23 @@ const AgentBusBooking = () => {
                     data-bs-toggle="modal"
                     data-bs-target={`#${render.action}`}
                 >
-                    {render.id}
+                    #{render.id?.slice(-6).toUpperCase()}
                 </Link>
-
             ),
-            sorter: (a: TableData, b: TableData) => a.id.length - b.id.length,
+            sorter: (a: any, b: any) => String(a.id).length - String(b.id).length,
         },
         {
-            title: "Bus & Brands",
-            dataIndex: "",
-            key: "",
+            title: "Service",
+            dataIndex: "hotel",
+            key: "hotel",
             render: (_text: any, render: any) => (
                 <div>
-                    <p className="text-dark mb-0 fw-medium fs-14">
-                        <Link to={routes.flightDetails}>{render.flightName}</Link>
-                    </p>
-                    <span className="fs-14 fw-normal text-gray-6">{render.flightType}</span>
+                    <p className="text-dark mb-0 fw-medium fs-14">{render.hotelName}</p>
+                    <span className="fs-14 fw-normal text-gray-6">{render.location}</span>
                 </div>
             ),
-            sorter: (a: TableData, b: TableData) =>
-                a.flightName.length - b.flightName.length,
+            sorter: (a: any, b: any) =>
+                String(a.hotel).length - String(b.hotel).length,
         },
         {
             title: "Booked By",
@@ -69,37 +111,19 @@ const AgentBusBooking = () => {
                     <span className="fs-14 fw-normal text-gray-6">{render.bookedLocation}</span>
                 </>
             ),
-            sorter: (a: TableData, b: TableData) => a.bookedby.length - b.bookedby.length,
-        },
-        {
-            title: "Travellers",
-            dataIndex: "travellers",
-            key: "travellers",
-            render: (_text: any, render: any) => (
-                <>
-                    <h6 className="fs-14 mb-1">{render.tickect}</h6>
-                    <span className="fs-14 fw-normal text-gray-6">{render.members}</span>
-                </>
-            ),
-            sorter: (a: TableData, b: TableData) => a.ticket.length - b.ticket.length,
-        },
-        {
-            title: "Days",
-            dataIndex: "days",
-            key: "days",
-            sorter: (a: TableData, b: TableData) => a.from_to.length - b.from_to.length,
+            sorter: (a: any, b: any) => String(a.bookedBy).length - String(b.bookedBy).length,
         },
         {
             title: "Pricing",
             dataIndex: "pricing",
             key: "pricing",
-            sorter: (a: TableData, b: TableData) => a.pricing.length - b.pricing.length,
+            sorter: (a: TableData, b: TableData) => String(a.pricing).length - String(b.pricing).length,
         },
         {
             title: "Booked on",
             dataIndex: "bookedOn",
             key: "bookedOn",
-            sorter: (a: TableData, b: TableData) => a.date.length - b.date.length,
+            sorter: (a: TableData, b: TableData) => String(a.date).length - String(b.date).length,
         },
         {
             title: "Status",
@@ -109,9 +133,8 @@ const AgentBusBooking = () => {
                     <i className="fa-solid fa-circle fs-5 me-1" />
                     {render.status}
                 </span>
-
             ),
-            sorter: (a: TableData, b: TableData) => a.status.length - b.status.length,
+            sorter: (a: TableData, b: TableData) => String(a.status).length - String(b.status).length,
         },
         {
             title: "",
@@ -127,34 +150,26 @@ const AgentBusBooking = () => {
                     </Link>
                 </div>
             ),
-            sorter: (a: TableData, b: TableData) => a.action.length - b.action.length,
+            sorter: (a: TableData, b: TableData) => String(a.action).length - String(b.action).length,
         },
     ];
 
     return (
         <div>
             <Breadcrumb title="Bus Bookings" breadcrumbs={breadcrumbs} backgroundClass="breadcrumb-bg-04" />
-            {/* Page Wrapper */}
             <div className="content">
                 <div className="container">
-                    <div className="alert alert-info mb-4">
-                        Bus booking management is not configured yet. No live bus booking records are loaded.
-                    </div>
                     <div className="row">
-                        {/* Sidebar */}
                         <div className="col-xl-3 col-lg-4 ">
                             <Sidebar />
                         </div>
-                        {/* /Sidebar */}
-                        {/* Hotel Booking */}
                         <div className="col-xl-9 col-lg-8 theiaStickySidebar">
-                            {/* Booking Header */}
                             <div className="card booking-header border-0">
                                 <div className="card-body header-content d-flex align-items-center justify-content-between flex-wrap ">
                                     <div>
                                         <h6 className="mb-1">Bus Bookings</h6>
                                         <p className="fs-14 text-gray-6 fw-normal ">
-                                            No of Booking : 40
+                                            {loading ? 'Loading...' : `${bookings.length} booking${bookings.length !== 1 ? 's' : ''}`}
                                         </p>
                                     </div>
                                     <div className="d-flex align-items-center flex-wrap">
@@ -167,8 +182,9 @@ const AgentBusBooking = () => {
                                     </div>
                                 </div>
                             </div>
-                            {/* /Booking Header */}
-                            {/* Bus Booking List */}
+                            {error && (
+                                <div className="alert alert-danger">{error}</div>
+                            )}
                             <div className="card hotel-list">
                                 <div className="card-body p-0">
                                     <div className="list-header d-flex align-items-center justify-content-between flex-wrap">
@@ -184,150 +200,15 @@ const AgentBusBooking = () => {
                                                     placeholder="Search"
                                                 />
                                             </div>
-                                            <div className="dropdown me-3">
-                                                <Link
-                                                    to="#"
-                                                    className="dropdown-toggle text-gray-6 btn  rounded border d-inline-flex align-items-center"
-                                                    data-bs-toggle="dropdown"
-                                                    
-                                                >
-                                                    Ticket Type
-                                                </Link>
-                                                <ul className="dropdown-menu dropdown-menu-end p-3">
-                                                    <li>
-                                                        <Link
-                                                            to="#"
-                                                            className="dropdown-item rounded-1"
-                                                        >
-                                                            Business Class
-                                                        </Link>
-                                                    </li>
-                                                    <li>
-                                                        <Link
-                                                            to="#"
-                                                            className="dropdown-item rounded-1"
-                                                        >
-                                                            Economy
-                                                        </Link>
-                                                    </li>
-                                                    <li>
-                                                        <Link
-                                                            to="#"
-                                                            className="dropdown-item rounded-1"
-                                                        >
-                                                            Fare Economy
-                                                        </Link>
-                                                    </li>
-                                                </ul>
-                                            </div>
-                                            <div className="dropdown me-3">
-                                                <Link
-                                                    to="#"
-                                                    className="dropdown-toggle text-gray-6 btn  rounded border d-inline-flex align-items-center"
-                                                    data-bs-toggle="dropdown"
-                                                    
-                                                >
-                                                    Status
-                                                </Link>
-                                                <ul className="dropdown-menu dropdown-menu-end p-3">
-                                                    <li>
-                                                        <Link
-                                                            to="#"
-                                                            className="dropdown-item rounded-1"
-                                                        >
-                                                            Upcoming
-                                                        </Link>
-                                                    </li>
-                                                    <li>
-                                                        <Link
-                                                            to="#"
-                                                            className="dropdown-item rounded-1"
-                                                        >
-                                                            Cancelled
-                                                        </Link>
-                                                    </li>
-                                                    <li>
-                                                        <Link
-                                                            to="#"
-                                                            className="dropdown-item rounded-1"
-                                                        >
-                                                            Completed
-                                                        </Link>
-                                                    </li>
-                                                </ul>
-                                            </div>
-                                            <div className="d-flex align-items-center sort-by">
-                                                <span className="fs-14 text-gray-9 fw-medium">
-                                                    Sort By :
-                                                </span>
-                                                <div className="dropdown">
-                                                    <Link
-                                                        to="#"
-                                                        className="dropdown-toggle text-gray-6 btn  rounded d-inline-flex align-items-center"
-                                                        data-bs-toggle="dropdown"
-                                                        
-                                                    >
-                                                        Recommended
-                                                    </Link>
-                                                    <ul className="dropdown-menu dropdown-menu-end p-3">
-                                                        <li>
-                                                            <Link
-                                                                to="#"
-                                                                className="dropdown-item rounded-1"
-                                                            >
-                                                                Recently Added
-                                                            </Link>
-                                                        </li>
-                                                        <li>
-                                                            <Link
-                                                                to="#"
-                                                                className="dropdown-item rounded-1"
-                                                            >
-                                                                Ascending
-                                                            </Link>
-                                                        </li>
-                                                        <li>
-                                                            <Link
-                                                                to="#"
-                                                                className="dropdown-item rounded-1"
-                                                            >
-                                                                Desending
-                                                            </Link>
-                                                        </li>
-                                                        <li>
-                                                            <Link
-                                                                to="#"
-                                                                className="dropdown-item rounded-1"
-                                                            >
-                                                                Last Month
-                                                            </Link>
-                                                        </li>
-                                                        <li>
-                                                            <Link
-                                                                to="#"
-                                                                className="dropdown-item rounded-1"
-                                                            >
-                                                                Last 7 Days
-                                                            </Link>
-                                                        </li>
-                                                    </ul>
-                                                </div>
-                                            </div>
                                         </div>
                                     </div>
-                                    {/* Hotel List */}
                                     <Table dataSource={data} columns={columns} Selection={false} />
-                                    {/* /Hotel List */}
                                 </div>
                             </div>
-                            {/* /Bus Booking List */}
-
                         </div>
-                        {/* /Hotel Booking */}
                     </div>
                 </div>
             </div>
-            {/* /Page Wrapper */}
             <AgentBusBookingModal />
         </div>
     )

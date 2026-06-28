@@ -218,6 +218,164 @@ check(
   'no changes made to admin bookings or CRM files'
 );
 
+// 15. Bus booking page wired to real data
+const busContent = readFile('src/feature-module/agent-dashboard/Booking/bus-booking/agentBusBooking.tsx');
+check(
+  'Bus booking imports fetchAgentBookings',
+  /fetchAgentBookings/.test(busContent),
+  'fetchAgentBookings not imported in agentBusBooking'
+);
+check(
+  'Bus booking uses useAuth',
+  /useAuth/.test(busContent),
+  'useAuth not used in agentBusBooking'
+);
+check(
+  'Bus booking filters by itemType bus',
+  /itemType.*bus/.test(busContent),
+  'itemType bus filter not found in agentBusBooking'
+);
+check(
+  'Bus booking has no static "No of Booking : 40"',
+  !/No of Booking : 40/.test(busContent),
+  'static booking count still present in agentBusBooking'
+);
+check(
+  'Bus booking has no alert about not configured',
+  !/not configured/.test(busContent),
+  'not configured alert still present in agentBusBooking'
+);
+
+// 16. Cruise booking page wired to real data
+const cruiseContent = readFile('src/feature-module/agent-dashboard/Booking/cruise-booking/agentCruiseBooking.tsx');
+check(
+  'Cruise booking imports fetchAgentBookings',
+  /fetchAgentBookings/.test(cruiseContent),
+  'fetchAgentBookings not imported in agentCruiseBooking'
+);
+check(
+  'Cruise booking uses useAuth',
+  /useAuth/.test(cruiseContent),
+  'useAuth not used in agentCruiseBooking'
+);
+check(
+  'Cruise booking filters by itemType cruise',
+  /itemType.*cruise/.test(cruiseContent),
+  'itemType cruise filter not found in agentCruiseBooking'
+);
+check(
+  'Cruise booking has no static "No of Booking : 40"',
+  !/No of Booking : 40/.test(cruiseContent),
+  'static booking count still present in agentCruiseBooking'
+);
+check(
+  'Cruise booking has no alert about not configured',
+  !/not configured/.test(cruiseContent),
+  'not configured alert still present in agentCruiseBooking'
+);
+
+// 17. Earnings modal fake PII removed
+const earnModal = readFile('src/feature-module/agent-dashboard/earnings/agentEarningModal.tsx');
+check(
+  'Earnings modal no "Thomas Lawler"',
+  !/Thomas Lawler/.test(earnModal),
+  'Thomas Lawler still present in agentEarningModal'
+);
+check(
+  'Earnings modal no "Sara Inc"',
+  !/Sara Inc/.test(earnModal),
+  'Sara Inc still present in agentEarningModal'
+);
+check(
+  'Earnings modal no "Ted M. Davis"',
+  !/Ted M\. Davis/.test(earnModal),
+  'Ted M. Davis still present in agentEarningModal'
+);
+check(
+  'Earnings modal no fake invoice numbers',
+  !/#INV0001/.test(earnModal) && !/#WRV0001/.test(earnModal),
+  'fake invoice numbers still present in agentEarningModal'
+);
+check(
+  'Earnings modal no fake card number',
+  !/6565 4546/.test(earnModal),
+  'fake card number still present in agentEarningModal'
+);
+check(
+  'Earnings modal no fake bank details',
+  !/Citi Bank Inc/.test(earnModal),
+  'Citi Bank Inc still present in agentEarningModal'
+);
+check(
+  'Earnings modal has empty state for invoices',
+  /No invoice details available/.test(earnModal),
+  'earning invoice empty state not found'
+);
+
+// 18. Plan settings fake data removed
+const planSettings = readFile('src/feature-module/agent-dashboard/settings/agent-plan-settings/agentPlanSettings.tsx');
+check(
+  'Plan settings no "Standard Plan"',
+  !/Standard Plan/.test(planSettings),
+  'Standard Plan still present in agentPlanSettings'
+);
+check(
+  'Plan settings no "$199"',
+  !/\$199/.test(planSettings),
+  '$199 still present in agentPlanSettings'
+);
+check(
+  'Plan settings no fake card masks',
+  !/••••/.test(planSettings),
+  'fake card masks still present in agentPlanSettings'
+);
+check(
+  'Plan settings has empty state for plans',
+  /No active plan/.test(planSettings),
+  'plans empty state not found'
+);
+check(
+  'Plan settings has empty state for saved cards',
+  /No saved cards/.test(planSettings),
+  'saved cards empty state not found'
+);
+
+// 19. Plan settings modal fake data removed
+const planSvcModal = readFile('src/feature-module/agent-dashboard/settings/agent-plan-settings/agentPlanSettingsModal.tsx');
+check(
+  'Plan settings modal no Thomas Lawler',
+  !/Thomas Lawler/.test(planSvcModal),
+  'Thomas Lawler still in agentPlanSettingsModal'
+);
+check(
+  'Plan settings modal no fake invoice',
+  !/#WRV0001/.test(planSvcModal),
+  '#WRV0001 still in agentPlanSettingsModal'
+);
+
+// 20. Agent plan page not static form
+const agentPlanContent = readFile('src/feature-module/agent-dashboard/agent-plan/agentPlan.tsx');
+check(
+  'Agent plan no personal info form',
+  !/First Name/.test(agentPlanContent) || /Plan enrollment is not available/.test(agentPlanContent),
+  'static personal info form still in agentPlan'
+);
+
+// 21. Agent plan modal fake data removed
+const plantModal = readFile('src/feature-module/agent-dashboard/agent-plan/agentPlantModal.tsx');
+check(
+  'Agent plan modal no Thomas Lawler',
+  !/Thomas Lawler/.test(plantModal),
+  'Thomas Lawler still in agentPlantModal'
+);
+
+// 22. No new parallel agent dashboard route
+check(
+  'No new parallel dashboard route created',
+  agentDashboardRoutes === 1,
+  'extra agent dashboard routes found'
+);
+
 // Summary
 console.log('\n=== Agent Dashboard QA Report ===\n');
 console.log(`Passed: ${ok.length}`);
