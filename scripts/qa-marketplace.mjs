@@ -72,8 +72,13 @@ check(
 // 5. FeaturedServices returns null when no results
 check(
   'FeaturedServices handles empty results gracefully',
-  /return null/.test(fsContent),
+  /results.*length.*===.*0.*return null/.test(fsContent),
   'empty result handling not found'
+);
+check(
+  'FeaturedServices all-zero hide behavior (returns null silently when all empty)',
+  /if \(!results\s*\|\|\s*results\.length\s*===\s*0\)\s*\{?\s*return null/.test(fsContent),
+  'all-zero hide behavior not found'
 );
 
 // 6. FeaturedServices links to details with ?id=

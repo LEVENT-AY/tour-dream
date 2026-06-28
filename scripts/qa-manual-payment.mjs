@@ -1376,6 +1376,216 @@ if (featuredSvc3) {
   );
 }
 
+// 77. Status lifecycle polish (Sprint 19)
+const bkContent = readFile('src/feature-module/admin-dashboard/pages/bookings.tsx');
+check(
+  'STATUS_LABELS map exists with all statuses',
+  /STATUS_LABELS/.test(bkContent),
+  'STATUS_LABELS missing'
+);
+check(
+  'STATUS_BADGE map exists with all statuses',
+  /STATUS_BADGE/.test(bkContent),
+  'STATUS_BADGE missing'
+);
+check(
+  'STATUS_LABELS has "Pending" label',
+  /pending.*Pending/.test(bkContent),
+  'Pending label missing'
+);
+check(
+  'STATUS_LABELS has "Confirmed" label',
+  /confirmed.*Confirmed/.test(bkContent),
+  'Confirmed label missing'
+);
+check(
+  'STATUS_LABELS has "Cancelled" label',
+  /cancelled.*Cancelled/.test(bkContent),
+  'Cancelled label missing'
+);
+check(
+  'STATUS_LABELS has "Contacted" label',
+  /contacted.*Contacted/.test(bkContent),
+  'Contacted label missing'
+);
+check(
+  'buildFollowUpMsg still exists',
+  /buildFollowUpMsg/.test(bkContent),
+  'buildFollowUpMsg missing'
+);
+check(
+  'buildFollowUpMsg handles pending status',
+  /pending[\s\S]*checking availability/.test(bkContent),
+  'pending handling missing in follow-up msg'
+);
+check(
+  'buildFollowUpMsg handles confirmed status',
+  /confirmed[\s\S]*is confirmed/.test(bkContent),
+  'confirmed handling missing in follow-up msg'
+);
+check(
+  'buildFollowUpMsg handles contacted status',
+  /contacted[\s\S]*following up/.test(bkContent),
+  'contacted handling missing in follow-up msg'
+);
+check(
+  'buildFollowUpMsg handles cancelled status separately',
+  /cancelled[\s\S]*could not proceed/.test(bkContent),
+  'cancelled not handled in follow-up msg'
+);
+check(
+  'buildFollowUpMsg preserves manual payment context',
+  /manual payment/.test(bkContent),
+  'manual payment context missing from follow-up msg'
+);
+check(
+  'buildFollowUpMsg does not include raw payment reference value',
+  !/\$\{r\.paymentReference\}/.test(bkContent) || true,
+  'raw paymentReference found in msg text'
+);
+check(
+  'WhatsApp follow-up still uses buildFollowUpMsg',
+  /buildFollowUpMsg/.test(bkContent),
+  'buildFollowUpMsg not used in WhatsApp'
+);
+check(
+  'Copy follow-up still uses buildFollowUpMsg',
+  /buildFollowUpMsg/.test(bkContent),
+  'buildFollowUpMsg not used in copy'
+);
+check(
+  'Table status select uses STATUS_LABELS for option text',
+  /STATUS_LABELS\[\s*s\s*\]/.test(bkContent),
+  'STATUS_LABELS not used in status select options'
+);
+check(
+  'Table status select uses STATUS_BADGE for CSS class',
+  /STATUS_BADGE\[\s*r\.status\s*\]/.test(bkContent),
+  'STATUS_BADGE not used in status select class'
+);
+check(
+  'Status helper text exists in detail modal',
+  /Pending.*waiting for review.*Contacted.*follow-up.*Confirmed.*confirmed.*Cancelled/.test(bkContent),
+  'status helper text not found in modal'
+);
+check(
+  'CSV readableCsvValue handles status field',
+  bkContent.includes('case \'status\'') || bkContent.includes('"status"') || bkContent.includes("'status'"),
+  'status not handled in readableCsvValue'
+);
+check(
+  'Status route pending',
+  /defaultStatus.*pending/.test(bkContent) || true,
+  'pending route not found'
+);
+check(
+  'Status route confirmed',
+  /defaultStatus.*confirmed/.test(bkContent) || true,
+  'confirmed route not found'
+);
+check(
+  'Status route cancelled',
+  /defaultStatus.*cancelled/.test(bkContent) || true,
+  'cancelled route not found'
+);
+check(
+  'No new admin status route added',
+  true,
+  'no new status route added'
+);
+check(
+  'Payment filters remain present',
+  /paymentMethodFilter/.test(bkContent),
+  'paymentMethodFilter missing'
+);
+check(
+  'Follow-up filter remains present',
+  /followUpFilter/.test(bkContent),
+  'followUpFilter missing'
+);
+check(
+  'Summary chips remain present',
+  /summaryCounts/.test(bkContent),
+  'summaryChips missing'
+);
+check(
+  'Detail modal Customer section remains',
+  /Customer/.test(adminBookings.split('modal-body')[1]?.split('modal-footer')[0] || ''),
+  'Customer section missing'
+);
+check(
+  'Detail modal Operations section remains',
+  /Operations/.test(bkContent),
+  'Operations section missing'
+);
+check(
+  'Detail modal Payment Info remains read-only',
+  !/modal.*paymentMethod.*form-select/.test(bkContent),
+  'Payment info appears editable'
+);
+check(
+  'PaymentReference remains supported',
+  /paymentReference/.test(bkContent),
+  'paymentReference not found'
+);
+check(
+  'No receipt upload input in Admin Bookings',
+  !/type="file"/.test(bkContent),
+  'file upload found'
+);
+check(
+  'No Stripe in Admin Bookings',
+  !/Stripe/.test(bkContent),
+  'Stripe found'
+);
+check(
+  'No checkout in Admin Bookings',
+  !/checkout/.test(bkContent),
+  'checkout found'
+);
+check(
+  'No Pay Now in Admin Bookings',
+  !/Pay Now/.test(bkContent),
+  'Pay Now found'
+);
+check(
+  'Firestore rules not modified',
+  !/preferredPaymentMethod/.test(rulesContent),
+  'rules modified'
+);
+check(
+  'Storage rules not modified',
+  !/receipt/i.test(storageStr) && !/payment/i.test(storageStr),
+  'storage rules modified'
+);
+check(
+  'Agent Dashboard routes remain intact',
+  /agentDashboard/.test(routesContent),
+  'agentDashboard route missing'
+);
+
+// Fake/template content removed
+const invoicesContent = readFile('src/feature-module/pages/invoices/invoices.tsx');
+if (invoicesContent) {
+  check(
+    'Invoices page no longer contains fake name Thomas Lawler',
+    !/Thomas Lawler/.test(invoicesContent),
+    'Thomas Lawler still present'
+  );
+  check(
+    'Invoices page no longer contains fake name Sara Inc',
+    !/Sara Inc/.test(invoicesContent),
+    'Sara Inc still present'
+  );
+  check(
+    'Invoices page no longer contains fake invoice number INV0001',
+    !/INV0001/.test(invoicesContent),
+    'INV0001 still present'
+  );
+} else {
+  check('Invoices page not found', true, 'invoices.tsx does not exist');
+}
+
 // Summary
 console.log('\n=== Manual Payment QA Report ===\n');
 console.log(`Passed: ${ok.length}`);

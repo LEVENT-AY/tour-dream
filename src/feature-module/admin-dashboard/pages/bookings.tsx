@@ -271,32 +271,34 @@ const AdminBookings: React.FC<AdminBookingsProps> = ({ title = 'All Bookings', d
     const name = r.customerName || 'there';
     const service = r.serviceTitle || 'a service';
     let msg = `Hello ${name}, `;
+    if (r.status === 'cancelled') {
+      msg += `your request for "${service}" could not proceed at this time. Contact us if you would like help choosing another option.`;
+      return msg;
+    }
     if (r.status === 'confirmed') {
-      msg += `your request for "${service}" is confirmed.`;
+      msg += `your request for "${service}" is confirmed. Our team will share the manual payment instructions and next steps.`;
     } else if (r.status === 'contacted') {
-      msg += `we are following up on your request for "${service}".`;
-    } else if (r.status === 'pending') {
-      msg += `your request for "${service}" has been received. Our team is checking availability.`;
+      msg += `we are following up on your request for "${service}". Let us know if you need help with the manual payment step.`;
     } else {
-      msg += `your request for "${service}" has been received.`;
+      msg += `your request for "${service}" has been received. Our team is checking availability. After confirmation, we will share the manual payment next step.`;
     }
     if (r.requestedDate) msg += ` You requested ${r.requestedDate}.`;
     if (r.paymentReference) msg += ' We received your payment reference and will review it.';
-    if (r.status !== 'confirmed') {
-      if (r.preferredPaymentMethod === 'wafa_cash') {
-        msg += ' After confirmation, we will send Wafa Cash instructions.';
-      } else if (r.preferredPaymentMethod === 'bank_transfer') {
-        msg += ' After confirmation, we will send bank transfer instructions.';
-      } else {
-        msg += ' Our team will confirm availability and help you choose the best manual payment method.';
-      }
-    } else {
+    if (r.status === 'confirmed') {
       if (r.preferredPaymentMethod === 'wafa_cash') {
         msg += ' We will send Wafa Cash instructions for the manual payment step.';
       } else if (r.preferredPaymentMethod === 'bank_transfer') {
         msg += ' We will share bank transfer instructions for the manual payment step.';
       } else {
         msg += ' We will contact you with manual payment instructions.';
+      }
+    } else {
+      if (r.preferredPaymentMethod === 'wafa_cash') {
+        msg += ' After confirmation, we will send Wafa Cash instructions.';
+      } else if (r.preferredPaymentMethod === 'bank_transfer') {
+        msg += ' After confirmation, we will send bank transfer instructions.';
+      } else {
+        msg += ' Our team will confirm availability and help you choose the best manual payment method.';
       }
     }
     return msg;
@@ -332,6 +334,9 @@ const AdminBookings: React.FC<AdminBookingsProps> = ({ title = 'All Bookings', d
   }, []);
 
   const readableCsvValue = (r: ServiceRequest, field: string): string => {
+    if (field === 'status') {
+      return STATUS_LABELS[r.status] || r.status || 'Not set';
+    }
     if (field === 'preferredPaymentMethod') {
       const val = (r as any)[field];
       return PAYMENT_METHOD_LABELS[val] || (val ? val.replace(/_/g, ' ') : '');
@@ -366,7 +371,7 @@ const AdminBookings: React.FC<AdminBookingsProps> = ({ title = 'All Bookings', d
         if (h === 'guestsCount') return esc(r.guestsCount ?? '');
         if (h === 'phone') return esc(r.customerPhone);
         if (h === 'email') return esc(r.customerEmail);
-        if (h.startsWith('payment') || h === 'priority' || h === 'assignedTo' || h === 'lastContactedAt') return esc(readableCsvValue(r, h));
+        if (h.startsWith('payment') || h === 'priority' || h === 'assignedTo' || h === 'lastContactedAt' || h === 'status' || h === 'followUpDate') return esc(readableCsvValue(r, h));
         return esc((r as any)[h]);
       }).join(',')
     );
@@ -629,14 +634,14 @@ const AdminBookings: React.FC<AdminBookingsProps> = ({ title = 'All Bookings', d
                         <td className="text-nowrap">{formatShortDate(r.createdAt)}</td>
                         <td>
                           <select
-                            className={`form-select form-select-sm ${r.status === 'pending' ? 'bg-warning text-dark' : r.status === 'contacted' ? 'bg-info text-dark' : r.status === 'confirmed' ? 'bg-success text-white' : 'bg-danger text-white'}`}
+                            className={`form-select form-select-sm ${(STATUS_BADGE[r.status] || 'bg-light text-dark').replace('badge ', '')}`}
                             value={r.status}
                             disabled={updatingId === r.id}
                             onChange={(e) => changeStatus(r.id!, e.target.value as ServiceRequestStatus)}
                           >
                             {STATUS_OPTIONS.map((s) => (
                               <option key={s} value={s}>
-                                {s.charAt(0).toUpperCase() + s.slice(1)}
+                                {STATUS_LABELS[s]}
                               </option>
                             ))}
                           </select>
@@ -855,6 +860,9 @@ const AdminBookings: React.FC<AdminBookingsProps> = ({ title = 'All Bookings', d
                         </div>
                       </div>
                     </div>
+                    <p className="fs-12 text-muted mt-1 mb-0">
+                      Pending: waiting for review. Contacted: follow-up in progress. Confirmed: confirmed by the team. Cancelled: cannot proceed.
+                    </p>
                   </div>
                   <div className="col-12">
                     <h6 className="text-muted border-bottom pb-1">Payment Info</h6>
