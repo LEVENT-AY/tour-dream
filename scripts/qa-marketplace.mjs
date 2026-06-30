@@ -142,26 +142,136 @@ check(
   '<FeaturedServices /> not found in HomeServiceOne'
 );
 
-// 11. Hero section has clean Tunisia CTA (no fake search, no Newyork/USA)
+// 11. Full demo homepage design restored with original search panel
 check(
-  'Hero section shows Explore Tunisia heading',
-  /Explore Tunisia Travel Services/.test(homeContent),
-  'Explore Tunisia heading not found in hero'
+  'Full demo hero design restored (ADVENTURE heading)',
+  /animate-text.*Adventure/.test(homeContent),
+  'Original ADVENTURE heading not found'
 );
 check(
-  'Hero CTA links to cruiseList route',
-  /to=\{routes\.cruiseList\}/.test(homeContent),
-  'cruiseList route not found in hero CTA'
+  'Original banner-form search panel exists',
+  /banner-form card mb-0 wow fadeInUp/.test(homeContent),
+  'banner-form search panel not found'
 );
 check(
-  'Hero section no longer contains Newyork or USA',
-  !/Newyork|USA/.test(homeContent),
-  'Newyork or USA still found in hero section'
+  'Hero has Play Video with animated button',
+  /Play Video \. Play Video \./.test(homeContent),
+  'Play Video animated button not found'
 );
 check(
-  'Hero section no longer contains fake search tabs',
-  !/Flights|Hotels.*Cars.*Cruise.*Tour.*Bus.*Activity/.test(homeContent),
-  'Fake search tabs still present in hero'
+  'Search tab navigation has Flights tab',
+  /Flights/.test(homeContent),
+  'Flights tab missing'
+);
+check(
+  'Search tab: Flights',
+  /data-bs-target="#flight"/.test(homeContent),
+  'Flight tab missing'
+);
+check(
+  'Search tab: Hotels',
+  /data-bs-target="#Hotels"/.test(homeContent),
+  'Hotels tab missing'
+);
+check(
+  'Search tab: Cars',
+  /data-bs-target="#Cars"/.test(homeContent),
+  'Cars tab missing'
+);
+check(
+  'Search tab: Cruise',
+  /data-bs-target="#Cruise"/.test(homeContent),
+  'Cruise tab missing'
+);
+check(
+  'Search tab: Tour',
+  /data-bs-target="#Tour"/.test(homeContent),
+  'Tour tab missing'
+);
+check(
+  'Search tab: Bus',
+  /data-bs-target="#Bus"/.test(homeContent),
+  'Bus tab missing'
+);
+check(
+  'Search tab: Activity',
+  /data-bs-target="#Activity"/.test(homeContent),
+  'Activity tab missing'
+);
+check(
+  'Search tab: Visa',
+  /data-bs-target="#Visa"/.test(homeContent),
+  'Visa tab missing'
+);
+check(
+  'Search tab: Guide',
+  /data-bs-target="#Guide"/.test(homeContent),
+  'Guide tab missing'
+);
+check(
+  'No Newyork in HomeServiceOne',
+  !/Newyork/.test(homeContent),
+  'Newyork still found'
+);
+check(
+  'No USA in HomeServiceOne',
+  !/USA/.test(homeContent),
+  'USA still found'
+);
+check(
+  'No Las Vegas in HomeServiceOne',
+  !/Las Vegas/.test(homeContent),
+  'Las Vegas still found'
+);
+check(
+  'No hardcoded default 4 Persons fallback',
+  !/=== 0 \? 4 :/.test(homeContent),
+  '4 Persons hardcoded fallback still present'
+);
+check(
+  'Original section: TrendingList',
+  /<TrendingList/.test(homeContent),
+  'TrendingList section missing'
+);
+check(
+  'Original section: ExperienceSection',
+  /<ExperienceSection/.test(homeContent),
+  'ExperienceSection missing'
+);
+check(
+  'Original section: Recomanded',
+  /<Recomanded/.test(homeContent),
+  'Recomanded section missing'
+);
+check(
+  'FeaturedServices integrated in homepage',
+  /<FeaturedServices\s*\/>/.test(homeContent),
+  'FeaturedServices not rendered'
+);
+check(
+  'Original section: GuideSection',
+  /<GuideSection/.test(homeContent),
+  'GuideSection missing'
+);
+check(
+  'Original section: TestimonialSection',
+  /<TestimonialSection/.test(homeContent),
+  'TestimonialSection missing'
+);
+check(
+  'Original section: ChooseSection',
+  /<ChooseSection/.test(homeContent),
+  'ChooseSection missing'
+);
+check(
+  'Original section: LatestSection',
+  /<LatestSection/.test(homeContent),
+  'LatestSection missing'
+);
+check(
+  'Original section: FooterSection',
+  /<FooterSection/.test(homeContent),
+  'FooterSection missing'
 );
 
 // 13. Homepage localized copy checks
@@ -237,16 +347,16 @@ check(
   'Multiple Categories not found'
 );
 
-// 20. No old broken cruiseGrid/visaGrid links remain in homepage
+// 20. Search panel uses valid existing routes (cruiseGrid, visaGrid are valid routes used by search buttons)
 check(
-  'No cruiseGrid references remain in HomeServiceOne',
-  !/all_routes\.cruiseGrid/.test(homeContent),
-  'cruiseGrid still referenced in HomeServiceOne'
+  'Search panel Search button links to cruiseGrid route',
+  /all_routes\.cruiseGrid/.test(homeContent),
+  'cruiseGrid route reference missing in search buttons'
 );
 check(
-  'No visaGrid references remain in HomeServiceOne',
-  !/all_routes\.visaGrid/.test(homeContent),
-  'visaGrid still referenced in HomeServiceOne'
+  'Search panel Search button links to visaGrid route',
+  /all_routes\.visaGrid/.test(homeContent),
+  'visaGrid route reference missing in search buttons'
 );
 
 // 21. All four list routes still exported
@@ -368,19 +478,19 @@ check(
   'Cart counter still present in header topbar'
 );
 check(
-  'Homepage no longer imports ExperienceSection',
-  !/ExperienceSection/.test(homeContent),
-  'ExperienceSection still present in HomeServiceOne'
+  'Homepage includes original ExperienceSection (demo design restored)',
+  /ExperienceSection/.test(homeContent),
+  'ExperienceSection missing from restored demo homepage'
 );
 check(
-  'Homepage no longer imports Recomanded section',
-  !/Recomanded/.test(homeContent),
-  'Recomanded still present in HomeServiceOne'
+  'Homepage includes original Recomanded section (demo design restored)',
+  /Recomanded/.test(homeContent),
+  'Recomanded missing from restored demo homepage'
 );
 check(
-  'Homepage no longer imports GuideSection',
-  !/GuideSection/.test(homeContent),
-  'GuideSection still present in HomeServiceOne'
+  'Homepage includes original GuideSection (demo design restored)',
+  /GuideSection/.test(homeContent),
+  'GuideSection missing from restored demo homepage'
 );
 const footerSectionContentEarly = readFile('src/feature-module/home-service-one/footerSection.tsx');
 check(
