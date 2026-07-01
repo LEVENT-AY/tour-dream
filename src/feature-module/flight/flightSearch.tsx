@@ -2,7 +2,6 @@ import  { useState } from 'react'
 import { Link } from 'react-router-dom'
 import ImageWithBasePath from '../../core/common/imageWithBasePath'
 import { DatePicker } from 'antd'
-import dayjs from 'dayjs';
 
 import BannerCounter from '../../core/common/banner-counter/counter';
 import { all_routes } from '../router/all_routes';
@@ -19,7 +18,6 @@ type BookingState = {
 const FlightSearch = () => {
         const routes = all_routes
       const [flightRadio,setFlightRadio] = useState<string>('oneway')
-      const [defaultDate] = useState(dayjs());
         const [formData, setFormData] = useState<BookingState>({
           flight: {
             adults: 0,
@@ -56,7 +54,7 @@ const FlightSearch = () => {
           appliedData.flight.adults +
           appliedData.flight.children +
           appliedData.flight.infants;
-      const totalFlightPassengers = flightPassengers === 0 ? 4 : flightPassengers;
+      const totalFlightPassengers = flightPassengers === 0 ? 1 : flightPassengers;
   return (
     <>
      {/* Flight Search */}
@@ -142,14 +140,14 @@ const FlightSearch = () => {
                                       >
                                         <BookingDropdown
                                           label="From"
-                                          defaultValue="Newyork"
-                                          defaultSubValue="Ken International Airport"
+                                          defaultValue="Select"
+                                          defaultSubValue="Select airport"
                                           locations={[
-                                            { value: "Newyork", subValue: "Ken International Airport" },
-                                            { value: "Boston", subValue: "Boston Logan International Airport" },
-                                            { value: "NorthernVirginia", subValue: "Dulles International Airport" },
-                                            { value: "LosAngeles", subValue: "Los Angeles International Airport" },
-                                            { value: "Orlando", subValue: "Orlando International Airport" }
+                                            { value: "Tunis", subValue: "Carthage International Airport" },
+                                            { value: "Sfax", subValue: "Sfax Thyna International Airport" },
+                                            { value: "Monastir", subValue: "Monastir Habib Bourguiba Airport" },
+                                            { value: "Djerba", subValue: "Djerba Zarzis International Airport" },
+                                            { value: "Tozeur", subValue: "Tozeur Nefta International Airport" }
                                           ]}
                                         />
                                       </div>
@@ -163,14 +161,14 @@ const FlightSearch = () => {
                                       >
                                         <BookingDropdown
                                           label="To"
-                                          defaultValue="Las Vegas"
-                                          defaultSubValue="Martini International Airport"
+                                          defaultValue="Select"
+                                          defaultSubValue="Select airport"
                                           locations={[
-                                            { value: "Newyork", subValue: "Ken International Airport" },
-                                            { value: "Boston", subValue: "Boston Logan International Airport" },
-                                            { value: "NorthernVirginia", subValue: "Dulles International Airport" },
-                                            { value: "LosAngeles", subValue: "Los Angeles International Airport" },
-                                            { value: "Orlando", subValue: "Orlando International Airport" }
+                                            { value: "Tunis", subValue: "Carthage International Airport" },
+                                            { value: "Sfax", subValue: "Sfax Thyna International Airport" },
+                                            { value: "Monastir", subValue: "Monastir Habib Bourguiba Airport" },
+                                            { value: "Djerba", subValue: "Djerba Zarzis International Airport" },
+                                            { value: "Tozeur", subValue: "Tozeur Nefta International Airport" }
                                           ]}
                                         />
                                         <span className="way-icon badge badge-primary rounded-pill translate-middle">
@@ -185,7 +183,6 @@ const FlightSearch = () => {
                                       <DatePicker
                                         className="form-control datetimepicker"
                                         placeholder="dd/mm/yyyy"
-                                        defaultValue={defaultDate}
                                         format="DD-MM-YYYY"
                                       />
                                       <p className="fs-12 mb-0">Monday</p>
@@ -202,10 +199,10 @@ const FlightSearch = () => {
                                       <label className="form-label fs-14 text-default mb-1">
                                         Return
                                       </label>
-                                      <input
-                                        type="text"
+                                      <DatePicker
                                         className="form-control datetimepicker"
-                                        defaultValue="23-10-2024"
+                                        placeholder="dd/mm/yyyy"
+                                        format="DD-MM-YYYY"
                                       />
                                       <p className="fs-12 mb-0">Wednesday</p>
                                     </div>
@@ -391,14 +388,14 @@ const FlightSearch = () => {
                                       >
                                         <BookingDropdown
                                           label="From"
-                                          defaultValue="Newyork"
-                                          defaultSubValue="Ken International Airport"
+                                          defaultValue="Select"
+                                          defaultSubValue="Select airport"
                                           locations={[
-                                            { value: "Newyork", subValue: "Ken International Airport" },
-                                            { value: "Boston", subValue: "Boston Logan International Airport" },
-                                            { value: "NorthernVirginia", subValue: "Dulles International Airport" },
-                                            { value: "LosAngeles", subValue: "Los Angeles International Airport" },
-                                            { value: "Orlando", subValue: "Orlando International Airport" }
+                                            { value: "Tunis", subValue: "Carthage International Airport" },
+                                            { value: "Sfax", subValue: "Sfax Thyna International Airport" },
+                                            { value: "Monastir", subValue: "Monastir Habib Bourguiba Airport" },
+                                            { value: "Djerba", subValue: "Djerba Zarzis International Airport" },
+                                            { value: "Tozeur", subValue: "Tozeur Nefta International Airport" }
                                           ]}
                                         />
                                       </div>
@@ -411,14 +408,14 @@ const FlightSearch = () => {
                                       >
                                         <BookingDropdown
                                           label="To"
-                                          defaultValue="Las Vegas"
-                                          defaultSubValue="Martini International Airport"
+                                          defaultValue="Select"
+                                          defaultSubValue="Select airport"
                                           locations={[
-                                            { value: "Newyork", subValue: "Ken International Airport" },
-                                            { value: "Boston", subValue: "Boston Logan International Airport" },
-                                            { value: "NorthernVirginia", subValue: "Dulles International Airport" },
-                                            { value: "LosAngeles", subValue: "Los Angeles International Airport" },
-                                            { value: "Orlando", subValue: "Orlando International Airport" }
+                                            { value: "Tunis", subValue: "Carthage International Airport" },
+                                            { value: "Sfax", subValue: "Sfax Thyna International Airport" },
+                                            { value: "Monastir", subValue: "Monastir Habib Bourguiba Airport" },
+                                            { value: "Djerba", subValue: "Djerba Zarzis International Airport" },
+                                            { value: "Tozeur", subValue: "Tozeur Nefta International Airport" }
                                           ]}
                                         />
                                         <span className="way-icon badge badge-primary rounded-pill translate-middle">
@@ -433,7 +430,6 @@ const FlightSearch = () => {
                                       <DatePicker
                                         className="form-control datetimepicker"
                                         placeholder="dd/mm/yyyy"
-                                        defaultValue={defaultDate}
                                         format="DD-MM-YYYY"
                                       />
                                       <p className="fs-12 mb-0">Monday</p>

@@ -97,7 +97,7 @@ const FlightList = () => {
 
                         <div className="col-xl-9 col-lg-9">
                             <div className="d-flex align-items-center justify-content-between flex-wrap">
-                                <h6 className="mb-3">1920 Flights Found on Your Search</h6>
+                                <h6 className="mb-3">Flights matching your search</h6>
                                 <div className="d-flex align-items-center flex-wrap">
                                     <div className="list-item d-flex align-items-center mb-3">
                                         <Link to={routes.flightGrid} className="list-icon me-2"><i className="isax isax-grid-1"></i></Link>
@@ -210,7 +210,7 @@ const FlightList = () => {
                                                 </div>
                                                 <p className=" fs-14 mb-3">Experience top-notch service, in-flight amenities, and smooth takeoffs for a stress-free journey.</p>
                                                 <div className="flight-loc d-flex align-items-center justify-content-between mb-3">
-                                                    <span className="loc-name d-inline-flex justify-content-center align-items-center w-100"><i className="isax isax-airplane rotate-45 me-2"></i>Newyork</span>
+                                                    <span className="loc-name d-inline-flex justify-content-center align-items-center w-100"><i className="isax isax-airplane rotate-45 me-2"></i>Tunis</span>
                                                     <Link to="#" className="arrow-icon flex-shrink-0 mx-2"><i className="isax isax-arrow-2"></i></Link>
                                                     <span className="loc-name d-inline-flex justify-content-center align-items-center w-100"><i className="isax isax-airplane rotate-135 me-2"></i>Sydney</span>
                                                 </div>
@@ -218,7 +218,7 @@ const FlightList = () => {
                                                     <div className="date-info p-2">
                                                         <p className="d-flex align-items-center"><i className="isax isax-calendar-2 me-2"></i>Aug 01, 2024 - Aug 03, 2024</p>
                                                     </div>
-                                                    <h6 className="text-primary"><span className="fs-14 fw-normal text-default">From </span>$500</h6>
+                                                    <h6 className="text-primary"><span className="fs-14 fw-normal text-default">From </span>TND 500</h6>
 
                                                 </div>
                                             </div>
@@ -291,7 +291,7 @@ const FlightList = () => {
                                                     <div className="date-info p-2">
                                                         <p className="d-flex align-items-center"><i className="isax isax-calendar-2 me-2"></i>Aug 13, 2024 - Aug 15, 2024</p>
                                                     </div>
-                                                    <h6 className="text-primary"><span className="fs-14 fw-normal text-default">From </span>$600</h6>
+                                                    <h6 className="text-primary"><span className="fs-14 fw-normal text-default">From </span>TND 600</h6>
 
                                                 </div>
                                             </div>
@@ -364,7 +364,7 @@ const FlightList = () => {
                                                     <div className="date-info p-2">
                                                         <p className="d-flex align-items-center"><i className="isax isax-calendar-2 me-2"></i>Aug 26, 2024 - Aug 27, 2024</p>
                                                     </div>
-                                                    <h6 className="text-primary"><span className="fs-14 fw-normal text-default">From </span>$300</h6>
+                                                    <h6 className="text-primary"><span className="fs-14 fw-normal text-default">From </span>TND 300</h6>
 
                                                 </div>
                                             </div>
@@ -437,7 +437,7 @@ const FlightList = () => {
                                                     <div className="date-info p-2">
                                                         <p className="d-flex align-items-center"><i className="isax isax-calendar-2 me-2"></i>Sep 04, 2024 - Sep 07, 2024</p>
                                                     </div>
-                                                    <h6 className="text-primary"><span className="fs-14 fw-normal text-default">From </span>$300</h6>
+                                                    <h6 className="text-primary"><span className="fs-14 fw-normal text-default">From </span>TND 300</h6>
 
                                                 </div>
                                             </div>
@@ -510,7 +510,7 @@ const FlightList = () => {
                                                     <div className="date-info p-2">
                                                         <p className="d-flex align-items-center"><i className="isax isax-calendar-2 me-2"></i>Sep 11, 2024 - Sep 13, 2024</p>
                                                     </div>
-                                                    <h6 className="text-primary"><span className="fs-14 fw-normal text-default">From </span>$550</h6>
+                                                    <h6 className="text-primary"><span className="fs-14 fw-normal text-default">From </span>TND 550</h6>
 
                                                 </div>
                                             </div>
@@ -583,7 +583,7 @@ const FlightList = () => {
                                                     <div className="date-info p-2">
                                                         <p className="d-flex align-items-center"><i className="isax isax-calendar-2 me-2"></i>Sep 22, 2024 - Sep 24, 2024</p>
                                                     </div>
-                                                    <h6 className="text-primary"><span className="fs-14 fw-normal text-default">From </span>$450</h6>
+                                                    <h6 className="text-primary"><span className="fs-14 fw-normal text-default">From </span>TND 450</h6>
                                                 </div>
                                             </div>
                                         </div>
@@ -655,7 +655,7 @@ const FlightList = () => {
                                                     <div className="date-info p-2">
                                                         <p className="d-flex align-items-center"><i className="isax isax-calendar-2 me-2"></i>Oct 04, 2024 - Oct 07, 2024</p>
                                                     </div>
-                                                    <h6 className="text-primary"><span className="fs-14 fw-normal text-default">From </span>$350</h6>
+                                                    <h6 className="text-primary"><span className="fs-14 fw-normal text-default">From </span>TND 350</h6>
                                                 </div>
                                             </div>
                                         </div>

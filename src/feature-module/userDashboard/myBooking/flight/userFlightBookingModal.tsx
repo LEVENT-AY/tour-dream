@@ -44,7 +44,7 @@ const UserFlightBookingModal = () => {
                                                 />
                                             </div>
                                             <div>
-                                                <h6 className="mb-1">AstraFlight 215</h6>
+                                                <h6 className="mb-1">Flight Request</h6>
                                                 <div className="title-list">
                                                     <p className="d-flex align-items-center pe-2 me-2 border-end border-light fw-normal">
                                                         <ImageWithBasePath
@@ -52,17 +52,17 @@ const UserFlightBookingModal = () => {
                                                             alt="image"
                                                             className="avatar avatar-sm avatar-rounded me-2"
                                                         />
-                                                        Air India
+                                                        Manual Payment
                                                     </p>
                                                     <p className="d-flex align-items-center pe-2 me-2 border-end border-light fw-normal">
                                                         <i className="isax isax-location5 me-2" />
-                                                        15/C Prince Dareen Road, New York
+                                                        Tunisia
                                                     </p>
                                                     <p className="d-flex align-items-center pe-2 me-2  fw-normal">
                                                         <span className="badge badge-warning badge-xs text-gray-9 fs-13 fw-medium me-2">
-                                                            5.0
+                                                            Request
                                                         </span>
-                                                        (400 Reviews)
+                                                        Manual only
                                                     </p>
                                                 </div>
                                             </div>
@@ -79,31 +79,31 @@ const UserFlightBookingModal = () => {
                                         <div className="row gy-3">
                                             <div className="col-lg-3">
                                                 <h6 className="fs-14">From</h6>
-                                                <p className="text-gray-6 fs-16 ">Las Vegas</p>
+                                                <p className="text-gray-6 fs-16 ">To be specified</p>
                                             </div>
                                             <div className="col-lg-3">
                                                 <h6 className="fs-14">To</h6>
-                                                <p className="text-gray-6 fs-16 ">Newyork</p>
+                                                <p className="text-gray-6 fs-16 ">To be specified</p>
                                             </div>
                                             <div className="col-lg-3">
                                                 <h6 className="fs-14">Booked On</h6>
-                                                <p className="text-gray-6 fs-16 ">15 May 2024</p>
+                                                <p className="text-gray-6 fs-16 ">Pending</p>
                                             </div>
                                             <div className="col-lg-3">
                                                 <h6 className="fs-14">Departure Date &amp; Time</h6>
-                                                <p className="text-gray-6 fs-16 ">20 May 2024, 10:50 AM</p>
+                                                <p className="text-gray-6 fs-16 ">To be confirmed</p>
                                             </div>
                                             <div className="col-lg-3">
                                                 <h6 className="fs-14">Return Date &amp; Time</h6>
-                                                <p className="text-gray-6 fs-16 ">25 May 2024, 10:50 AM</p>
+                                                <p className="text-gray-6 fs-16 ">To be confirmed</p>
                                             </div>
                                             <div className="col-lg-3">
                                                 <h6 className="fs-14">Travellers</h6>
-                                                <p className="text-gray-6 fs-16 ">4 Adults, 2 Child</p>
+                                                <p className="text-gray-6 fs-16 ">To be specified</p>
                                             </div>
                                             <div className="col-lg-3">
                                                 <h6 className="fs-14">Stopping</h6>
-                                                <p className="text-gray-6 fs-16 ">1 Stop at Texas</p>
+                                                <p className="text-gray-6 fs-16 ">To be confirmed</p>
                                             </div>
                                         </div>
                                     </div>
@@ -131,20 +131,20 @@ const UserFlightBookingModal = () => {
                                         <div className="row gy-3">
                                             <div className="col-lg-3">
                                                 <h6 className="fs-14">Name</h6>
-                                                <p className="text-gray-6 fs-16 ">Chris Foxy</p>
+                                                <p className="text-gray-6 fs-16 ">Provided at booking</p>
                                             </div>
                                             <div className="col-lg-3">
                                                 <h6 className="fs-14">Email</h6>
-                                                <p className="text-gray-6 fs-16 ">chrfo2356@example.com</p>
+                                                <p className="text-gray-6 fs-16 ">Provided at booking</p>
                                             </div>
                                             <div className="col-lg-3">
                                                 <h6 className="fs-14">Phone</h6>
-                                                <p className="text-gray-6 fs-16 ">+1 12656 26654</p>
+                                                <p className="text-gray-6 fs-16 ">Provided at booking</p>
                                             </div>
                                             <div className="col-lg-3">
                                                 <h6 className="fs-14">Address</h6>
                                                 <p className="text-gray-6 fs-16 ">
-                                                    15/C Prince Dareen Road, New York
+                                                    Provided at booking
                                                 </p>
                                             </div>
                                         </div>
@@ -154,35 +154,35 @@ const UserFlightBookingModal = () => {
                                         <div className="row gy-3">
                                             <div className="col-lg-3">
                                                 <h6 className="fs-14">Order Id</h6>
-                                                <p className="text-primary fs-16 ">#45669</p>
+                                                <p className="text-primary fs-16 ">Pending</p>
                                             </div>
                                             <div className="col-lg-3">
                                                 <h6 className="fs-14">Payment Method</h6>
-                                                <p className="text-gray-6 fs-16 ">Credit Card (Visa)</p>
+                                                <p className="text-gray-6 fs-16 ">Manual (no online payment)</p>
                                             </div>
                                             <div className="col-lg-3">
                                                 <h6 className="fs-14">Payment Status</h6>
-                                                <p className="text-success fs-16 ">Paid</p>
+                                                <p className="text-gray-6 fs-16 ">Pending</p>
                                             </div>
                                             <div className="col-lg-3">
                                                 <h6 className="fs-14">Date of Payment</h6>
-                                                <p className="text-gray-6 fs-16 ">20 May 2024, 10:50 AM</p>
+                                                <p className="text-gray-6 fs-16 ">N/A</p>
                                             </div>
                                             <div className="col-lg-3">
                                                 <h6 className="fs-14">Tax</h6>
-                                                <p className="text-gray-6 fs-16 ">15% ($60)</p>
+                                                <p className="text-gray-6 fs-16 ">Contact for pricing</p>
                                             </div>
                                             <div className="col-lg-3">
                                                 <h6 className="fs-14">Discount</h6>
-                                                <p className="text-gray-6 fs-16 ">20% ($15)</p>
+                                                <p className="text-gray-6 fs-16 ">Contact for pricing</p>
                                             </div>
                                             <div className="col-lg-3">
                                                 <h6 className="fs-14">Booking Fees</h6>
-                                                <p className="text-gray-6 fs-16 ">$25</p>
+                                                <p className="text-gray-6 fs-16 ">Contact for pricing</p>
                                             </div>
                                             <div className="col-lg-3">
-                                                <h6 className="fs-14">Total Paid</h6>
-                                                <p className="text-gray-6 fs-16 ">$6569</p>
+                                                <h6 className="fs-14">Total</h6>
+                                                <p className="text-gray-6 fs-16 ">Contact for pricing</p>
                                             </div>
                                         </div>
                                     </div>
@@ -236,7 +236,7 @@ const UserFlightBookingModal = () => {
                                                 />
                                             </div>
                                             <div>
-                                                <h6 className="mb-1">AstraFlight 215</h6>
+                                                <h6 className="mb-1">Flight Request</h6>
                                                 <div className="title-list">
                                                     <p className="d-flex align-items-center pe-2 me-2 border-end border-light fw-normal">
                                                         <ImageWithBasePath
@@ -244,17 +244,17 @@ const UserFlightBookingModal = () => {
                                                             alt="image"
                                                             className="avatar avatar-sm avatar-rounded me-2"
                                                         />
-                                                        Air India
+                                                        Manual Payment
                                                     </p>
                                                     <p className="d-flex align-items-center pe-2 me-2 border-end border-light fw-normal">
                                                         <i className="isax isax-location5 me-2" />
-                                                        15/C Prince Dareen Road, New York
+                                                        Tunisia
                                                     </p>
                                                     <p className="d-flex align-items-center pe-2 me-2  fw-normal">
                                                         <span className="badge badge-warning badge-xs text-gray-9 fs-13 fw-medium me-2">
-                                                            5.0
+                                                            Request
                                                         </span>
-                                                        (400 Reviews)
+                                                        Manual only
                                                     </p>
                                                 </div>
                                             </div>
@@ -271,31 +271,31 @@ const UserFlightBookingModal = () => {
                                         <div className="row gy-3">
                                             <div className="col-lg-3">
                                                 <h6 className="fs-14">From</h6>
-                                                <p className="text-gray-6 fs-16 ">Las Vegas</p>
+                                                <p className="text-gray-6 fs-16 ">To be specified</p>
                                             </div>
                                             <div className="col-lg-3">
                                                 <h6 className="fs-14">To</h6>
-                                                <p className="text-gray-6 fs-16 ">Newyork</p>
+                                                <p className="text-gray-6 fs-16 ">To be specified</p>
                                             </div>
                                             <div className="col-lg-3">
                                                 <h6 className="fs-14">Booked On</h6>
-                                                <p className="text-gray-6 fs-16 ">15 May 2024</p>
+                                                <p className="text-gray-6 fs-16 ">Pending</p>
                                             </div>
                                             <div className="col-lg-3">
                                                 <h6 className="fs-14">Departure Date &amp; Time</h6>
-                                                <p className="text-gray-6 fs-16 ">20 May 2024, 10:50 AM</p>
+                                                <p className="text-gray-6 fs-16 ">To be confirmed</p>
                                             </div>
                                             <div className="col-lg-3">
                                                 <h6 className="fs-14">Return Date &amp; Time</h6>
-                                                <p className="text-gray-6 fs-16 ">25 May 2024, 10:50 AM</p>
+                                                <p className="text-gray-6 fs-16 ">To be confirmed</p>
                                             </div>
                                             <div className="col-lg-3">
                                                 <h6 className="fs-14">Travellers</h6>
-                                                <p className="text-gray-6 fs-16 ">4 Adults, 2 Child</p>
+                                                <p className="text-gray-6 fs-16 ">To be specified</p>
                                             </div>
                                             <div className="col-lg-3">
                                                 <h6 className="fs-14">Stopping</h6>
-                                                <p className="text-gray-6 fs-16 ">1 Stop at Texas</p>
+                                                <p className="text-gray-6 fs-16 ">To be confirmed</p>
                                             </div>
                                         </div>
                                     </div>
@@ -323,20 +323,20 @@ const UserFlightBookingModal = () => {
                                         <div className="row gy-3">
                                             <div className="col-lg-3">
                                                 <h6 className="fs-14">Name</h6>
-                                                <p className="text-gray-6 fs-16 ">Chris Foxy</p>
+                                                <p className="text-gray-6 fs-16 ">Provided at booking</p>
                                             </div>
                                             <div className="col-lg-3">
                                                 <h6 className="fs-14">Email</h6>
-                                                <p className="text-gray-6 fs-16 ">chrfo2356@example.com</p>
+                                                <p className="text-gray-6 fs-16 ">Provided at booking</p>
                                             </div>
                                             <div className="col-lg-3">
                                                 <h6 className="fs-14">Phone</h6>
-                                                <p className="text-gray-6 fs-16 ">+1 12656 26654</p>
+                                                <p className="text-gray-6 fs-16 ">Provided at booking</p>
                                             </div>
                                             <div className="col-lg-3">
                                                 <h6 className="fs-14">Address</h6>
                                                 <p className="text-gray-6 fs-16 ">
-                                                    15/C Prince Dareen Road, New York
+                                                    Provided at booking
                                                 </p>
                                             </div>
                                         </div>
@@ -346,35 +346,35 @@ const UserFlightBookingModal = () => {
                                         <div className="row gy-3">
                                             <div className="col-lg-3">
                                                 <h6 className="fs-14">Order Id</h6>
-                                                <p className="text-primary fs-16 ">#45669</p>
+                                                <p className="text-primary fs-16 ">Pending</p>
                                             </div>
                                             <div className="col-lg-3">
                                                 <h6 className="fs-14">Payment Method</h6>
-                                                <p className="text-gray-6 fs-16 ">Credit Card (Visa)</p>
+                                                <p className="text-gray-6 fs-16 ">Manual (no online payment)</p>
                                             </div>
                                             <div className="col-lg-3">
                                                 <h6 className="fs-14">Payment Status</h6>
-                                                <p className="text-success fs-16 ">Paid</p>
+                                                <p className="text-gray-6 fs-16 ">Pending</p>
                                             </div>
                                             <div className="col-lg-3">
                                                 <h6 className="fs-14">Date of Payment</h6>
-                                                <p className="text-gray-6 fs-16 ">20 May 2024, 10:50 AM</p>
+                                                <p className="text-gray-6 fs-16 ">N/A</p>
                                             </div>
                                             <div className="col-lg-3">
                                                 <h6 className="fs-14">Tax</h6>
-                                                <p className="text-gray-6 fs-16 ">15% ($60)</p>
+                                                <p className="text-gray-6 fs-16 ">Contact for pricing</p>
                                             </div>
                                             <div className="col-lg-3">
                                                 <h6 className="fs-14">Discount</h6>
-                                                <p className="text-gray-6 fs-16 ">20% ($15)</p>
+                                                <p className="text-gray-6 fs-16 ">Contact for pricing</p>
                                             </div>
                                             <div className="col-lg-3">
                                                 <h6 className="fs-14">Booking Fees</h6>
-                                                <p className="text-gray-6 fs-16 ">$25</p>
+                                                <p className="text-gray-6 fs-16 ">Contact for pricing</p>
                                             </div>
                                             <div className="col-lg-3">
-                                                <h6 className="fs-14">Total Paid</h6>
-                                                <p className="text-gray-6 fs-16 ">$6569</p>
+                                                <h6 className="fs-14">Total</h6>
+                                                <p className="text-gray-6 fs-16 ">Contact for pricing</p>
                                             </div>
                                         </div>
                                     </div>
@@ -428,7 +428,7 @@ const UserFlightBookingModal = () => {
                                                 />
                                             </div>
                                             <div>
-                                                <h6 className="mb-1">AstraFlight 215</h6>
+                                                <h6 className="mb-1">Flight Request</h6>
                                                 <div className="title-list">
                                                     <p className="d-flex align-items-center pe-2 me-2 border-end border-light fw-normal">
                                                         <ImageWithBasePath
@@ -436,17 +436,17 @@ const UserFlightBookingModal = () => {
                                                             alt="image"
                                                             className="avatar avatar-sm avatar-rounded me-2"
                                                         />
-                                                        Air India
+                                                        Manual Payment
                                                     </p>
                                                     <p className="d-flex align-items-center pe-2 me-2 border-end border-light fw-normal">
                                                         <i className="isax isax-location5 me-2" />
-                                                        15/C Prince Dareen Road, New York
+                                                        Tunisia
                                                     </p>
                                                     <p className="d-flex align-items-center pe-2 me-2  fw-normal">
                                                         <span className="badge badge-warning badge-xs text-gray-9 fs-13 fw-medium me-2">
-                                                            5.0
+                                                            Request
                                                         </span>
-                                                        (400 Reviews)
+                                                        Manual only
                                                     </p>
                                                 </div>
                                             </div>
@@ -463,31 +463,31 @@ const UserFlightBookingModal = () => {
                                         <div className="row gy-3">
                                             <div className="col-lg-3">
                                                 <h6 className="fs-14">From</h6>
-                                                <p className="text-gray-6 fs-16 ">Las Vegas</p>
+                                                <p className="text-gray-6 fs-16 ">To be specified</p>
                                             </div>
                                             <div className="col-lg-3">
                                                 <h6 className="fs-14">To</h6>
-                                                <p className="text-gray-6 fs-16 ">Newyork</p>
+                                                <p className="text-gray-6 fs-16 ">To be specified</p>
                                             </div>
                                             <div className="col-lg-3">
                                                 <h6 className="fs-14">Booked On</h6>
-                                                <p className="text-gray-6 fs-16 ">15 May 2024</p>
+                                                <p className="text-gray-6 fs-16 ">Pending</p>
                                             </div>
                                             <div className="col-lg-3">
                                                 <h6 className="fs-14">Departure Date &amp; Time</h6>
-                                                <p className="text-gray-6 fs-16 ">20 May 2024, 10:50 AM</p>
+                                                <p className="text-gray-6 fs-16 ">To be confirmed</p>
                                             </div>
                                             <div className="col-lg-3">
                                                 <h6 className="fs-14">Return Date &amp; Time</h6>
-                                                <p className="text-gray-6 fs-16 ">25 May 2024, 10:50 AM</p>
+                                                <p className="text-gray-6 fs-16 ">To be confirmed</p>
                                             </div>
                                             <div className="col-lg-3">
                                                 <h6 className="fs-14">Travellers</h6>
-                                                <p className="text-gray-6 fs-16 ">4 Adults, 2 Child</p>
+                                                <p className="text-gray-6 fs-16 ">To be specified</p>
                                             </div>
                                             <div className="col-lg-3">
                                                 <h6 className="fs-14">Stopping</h6>
-                                                <p className="text-gray-6 fs-16 ">1 Stop at Texas</p>
+                                                <p className="text-gray-6 fs-16 ">To be confirmed</p>
                                             </div>
                                         </div>
                                     </div>
@@ -515,20 +515,20 @@ const UserFlightBookingModal = () => {
                                         <div className="row gy-3">
                                             <div className="col-lg-3">
                                                 <h6 className="fs-14">Name</h6>
-                                                <p className="text-gray-6 fs-16 ">Chris Foxy</p>
+                                                <p className="text-gray-6 fs-16 ">Provided at booking</p>
                                             </div>
                                             <div className="col-lg-3">
                                                 <h6 className="fs-14">Email</h6>
-                                                <p className="text-gray-6 fs-16 ">chrfo2356@example.com</p>
+                                                <p className="text-gray-6 fs-16 ">Provided at booking</p>
                                             </div>
                                             <div className="col-lg-3">
                                                 <h6 className="fs-14">Phone</h6>
-                                                <p className="text-gray-6 fs-16 ">+1 12656 26654</p>
+                                                <p className="text-gray-6 fs-16 ">Provided at booking</p>
                                             </div>
                                             <div className="col-lg-3">
                                                 <h6 className="fs-14">Address</h6>
                                                 <p className="text-gray-6 fs-16 ">
-                                                    15/C Prince Dareen Road, New York
+                                                    Provided at booking
                                                 </p>
                                             </div>
                                         </div>
@@ -538,35 +538,35 @@ const UserFlightBookingModal = () => {
                                         <div className="row gy-3">
                                             <div className="col-lg-3">
                                                 <h6 className="fs-14">Order Id</h6>
-                                                <p className="text-primary fs-16 ">#45669</p>
+                                                <p className="text-primary fs-16 ">Pending</p>
                                             </div>
                                             <div className="col-lg-3">
                                                 <h6 className="fs-14">Payment Method</h6>
-                                                <p className="text-gray-6 fs-16 ">Credit Card (Visa)</p>
+                                                <p className="text-gray-6 fs-16 ">Manual (no online payment)</p>
                                             </div>
                                             <div className="col-lg-3">
                                                 <h6 className="fs-14">Payment Status</h6>
-                                                <p className="text-success fs-16 ">Paid</p>
+                                                <p className="text-gray-6 fs-16 ">Pending</p>
                                             </div>
                                             <div className="col-lg-3">
                                                 <h6 className="fs-14">Date of Payment</h6>
-                                                <p className="text-gray-6 fs-16 ">20 May 2024, 10:50 AM</p>
+                                                <p className="text-gray-6 fs-16 ">N/A</p>
                                             </div>
                                             <div className="col-lg-3">
                                                 <h6 className="fs-14">Tax</h6>
-                                                <p className="text-gray-6 fs-16 ">15% ($60)</p>
+                                                <p className="text-gray-6 fs-16 ">Contact for pricing</p>
                                             </div>
                                             <div className="col-lg-3">
                                                 <h6 className="fs-14">Discount</h6>
-                                                <p className="text-gray-6 fs-16 ">20% ($15)</p>
+                                                <p className="text-gray-6 fs-16 ">Contact for pricing</p>
                                             </div>
                                             <div className="col-lg-3">
                                                 <h6 className="fs-14">Booking Fees</h6>
-                                                <p className="text-gray-6 fs-16 ">$25</p>
+                                                <p className="text-gray-6 fs-16 ">Contact for pricing</p>
                                             </div>
                                             <div className="col-lg-3">
-                                                <h6 className="fs-14">Total Paid</h6>
-                                                <p className="text-gray-6 fs-16 ">$6569</p>
+                                                <h6 className="fs-14">Total</h6>
+                                                <p className="text-gray-6 fs-16 ">Contact for pricing</p>
                                             </div>
                                         </div>
                                     </div>
@@ -615,7 +615,7 @@ const UserFlightBookingModal = () => {
                                                 />
                                             </div>
                                             <div>
-                                                <h6 className="mb-1">AstraFlight 215</h6>
+                                                <h6 className="mb-1">Flight Request</h6>
                                                 <div className="title-list">
                                                     <p className="d-flex align-items-center pe-2 me-2 border-end border-light fw-normal">
                                                         <ImageWithBasePath
@@ -623,17 +623,17 @@ const UserFlightBookingModal = () => {
                                                             alt="image"
                                                             className="avatar avatar-sm avatar-rounded me-2"
                                                         />
-                                                        Air India
+                                                        Manual Payment
                                                     </p>
                                                     <p className="d-flex align-items-center pe-2 me-2 border-end border-light fw-normal">
                                                         <i className="isax isax-location5 me-2" />
-                                                        15/C Prince Dareen Road, New York
+                                                        Tunisia
                                                     </p>
                                                     <p className="d-flex align-items-center pe-2 me-2  fw-normal">
                                                         <span className="badge badge-warning badge-xs text-gray-9 fs-13 fw-medium me-2">
-                                                            5.0
+                                                            Request
                                                         </span>
-                                                        (400 Reviews)
+                                                        Manual only
                                                     </p>
                                                 </div>
                                             </div>
@@ -650,31 +650,31 @@ const UserFlightBookingModal = () => {
                                         <div className="row gy-3">
                                             <div className="col-lg-3">
                                                 <h6 className="fs-14">From</h6>
-                                                <p className="text-gray-6 fs-16 ">Las Vegas</p>
+                                                <p className="text-gray-6 fs-16 ">To be specified</p>
                                             </div>
                                             <div className="col-lg-3">
                                                 <h6 className="fs-14">To</h6>
-                                                <p className="text-gray-6 fs-16 ">Newyork</p>
+                                                <p className="text-gray-6 fs-16 ">To be specified</p>
                                             </div>
                                             <div className="col-lg-3">
                                                 <h6 className="fs-14">Booked On</h6>
-                                                <p className="text-gray-6 fs-16 ">15 May 2024</p>
+                                                <p className="text-gray-6 fs-16 ">Pending</p>
                                             </div>
                                             <div className="col-lg-3">
                                                 <h6 className="fs-14">Departure Date &amp; Time</h6>
-                                                <p className="text-gray-6 fs-16 ">20 May 2024, 10:50 AM</p>
+                                                <p className="text-gray-6 fs-16 ">To be confirmed</p>
                                             </div>
                                             <div className="col-lg-3">
                                                 <h6 className="fs-14">Return Date &amp; Time</h6>
-                                                <p className="text-gray-6 fs-16 ">25 May 2024, 10:50 AM</p>
+                                                <p className="text-gray-6 fs-16 ">To be confirmed</p>
                                             </div>
                                             <div className="col-lg-3">
                                                 <h6 className="fs-14">Travellers</h6>
-                                                <p className="text-gray-6 fs-16 ">4 Adults, 2 Child</p>
+                                                <p className="text-gray-6 fs-16 ">To be specified</p>
                                             </div>
                                             <div className="col-lg-3">
                                                 <h6 className="fs-14">Stopping</h6>
-                                                <p className="text-gray-6 fs-16 ">1 Stop at Texas</p>
+                                                <p className="text-gray-6 fs-16 ">To be confirmed</p>
                                             </div>
                                         </div>
                                     </div>
@@ -702,20 +702,20 @@ const UserFlightBookingModal = () => {
                                         <div className="row">
                                             <div className="col-lg-3">
                                                 <h6 className="fs-14">Name</h6>
-                                                <p className="text-gray-6 fs-16 ">Chris Foxy</p>
+                                                <p className="text-gray-6 fs-16 ">Provided at booking</p>
                                             </div>
                                             <div className="col-lg-3">
                                                 <h6 className="fs-14">Email</h6>
-                                                <p className="text-gray-6 fs-16 ">chrfo2356@example.com</p>
+                                                <p className="text-gray-6 fs-16 ">Provided at booking</p>
                                             </div>
                                             <div className="col-lg-3">
                                                 <h6 className="fs-14">Phone</h6>
-                                                <p className="text-gray-6 fs-16 ">+1 12656 26654</p>
+                                                <p className="text-gray-6 fs-16 ">Provided at booking</p>
                                             </div>
                                             <div className="col-lg-3">
                                                 <h6 className="fs-14">Address</h6>
                                                 <p className="text-gray-6 fs-16 ">
-                                                    15/C Prince Dareen Road, New York
+                                                    Provided at booking
                                                 </p>
                                             </div>
                                         </div>
@@ -725,35 +725,35 @@ const UserFlightBookingModal = () => {
                                         <div className="row gy-3">
                                             <div className="col-lg-3">
                                                 <h6 className="fs-14">Order Id</h6>
-                                                <p className="text-primary fs-16 ">#45669</p>
+                                                <p className="text-primary fs-16 ">Pending</p>
                                             </div>
                                             <div className="col-lg-3">
                                                 <h6 className="fs-14">Payment Method</h6>
-                                                <p className="text-gray-6 fs-16 ">Credit Card (Visa)</p>
+                                                <p className="text-gray-6 fs-16 ">Manual (no online payment)</p>
                                             </div>
                                             <div className="col-lg-3">
                                                 <h6 className="fs-14">Payment Status</h6>
-                                                <p className="text-success fs-16 ">Paid</p>
+                                                <p className="text-gray-6 fs-16 ">Pending</p>
                                             </div>
                                             <div className="col-lg-3">
                                                 <h6 className="fs-14">Date of Payment</h6>
-                                                <p className="text-gray-6 fs-16 ">20 May 2024, 10:50 AM</p>
+                                                <p className="text-gray-6 fs-16 ">N/A</p>
                                             </div>
                                             <div className="col-lg-3">
                                                 <h6 className="fs-14">Tax</h6>
-                                                <p className="text-gray-6 fs-16 ">15% ($60)</p>
+                                                <p className="text-gray-6 fs-16 ">Contact for pricing</p>
                                             </div>
                                             <div className="col-lg-3">
                                                 <h6 className="fs-14">Discount</h6>
-                                                <p className="text-gray-6 fs-16 ">20% ($15)</p>
+                                                <p className="text-gray-6 fs-16 ">Contact for pricing</p>
                                             </div>
                                             <div className="col-lg-3">
                                                 <h6 className="fs-14">Booking Fees</h6>
-                                                <p className="text-gray-6 fs-16 ">$25</p>
+                                                <p className="text-gray-6 fs-16 ">Contact for pricing</p>
                                             </div>
                                             <div className="col-lg-3">
-                                                <h6 className="fs-14">Total Paid</h6>
-                                                <p className="text-gray-6 fs-16 ">$6569</p>
+                                                <h6 className="fs-14">Total</h6>
+                                                <p className="text-gray-6 fs-16 ">Contact for pricing</p>
                                             </div>
                                         </div>
                                     </div>

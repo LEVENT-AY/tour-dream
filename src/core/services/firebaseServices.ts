@@ -584,7 +584,7 @@ export const deleteCatalogItem = async (collectionName: string, itemId: string):
 // SERVICE REQUESTS
 
 export type ServiceRequestStatus = "pending" | "contacted" | "confirmed" | "cancelled";
-export type ServiceType = "cruise" | "bus" | "visa" | "guide" | "tour" | "hotel" | "activity" | "other";
+export type ServiceType = "cruise" | "bus" | "visa" | "guide" | "tour" | "hotel" | "activity" | "flight" | "other";
 export type ServiceRequestPriority = "low" | "normal" | "high" | "urgent";
 export type PreferredPaymentMethod = "not_sure" | "wafa_cash" | "bank_transfer";
 export type ManualPaymentStatus = "not_requested" | "pending_confirmation";
@@ -613,6 +613,13 @@ export interface ServiceRequest {
   paymentStatus?: ManualPaymentStatus;
   preferredPaymentMethod?: PreferredPaymentMethod;
   paymentReference?: string;
+  /** Flight-specific fields */
+  departureCity?: string;
+  arrivalCity?: string;
+  departureDate?: string;
+  returnDate?: string;
+  passengers?: number;
+  preferredClass?: string;
 }
 
 export const fetchServiceRequests = async (
@@ -687,6 +694,13 @@ export interface CreateServiceRequestInput {
   message?: string;
   preferredPaymentMethod?: PreferredPaymentMethod;
   paymentReference?: string;
+  /** Flight-specific fields */
+  departureCity?: string;
+  arrivalCity?: string;
+  departureDate?: string;
+  returnDate?: string;
+  passengers?: number;
+  preferredClass?: string;
 }
 
 export const createServiceRequest = async (
@@ -712,6 +726,12 @@ export const createServiceRequest = async (
   if (input.message) payload.message = input.message;
   if (input.preferredPaymentMethod) payload.preferredPaymentMethod = input.preferredPaymentMethod;
   if (input.paymentReference?.trim()) payload.paymentReference = input.paymentReference.trim();
+  if (input.departureCity) payload.departureCity = input.departureCity;
+  if (input.arrivalCity) payload.arrivalCity = input.arrivalCity;
+  if (input.departureDate) payload.departureDate = input.departureDate;
+  if (input.returnDate) payload.returnDate = input.returnDate;
+  if (typeof input.passengers === 'number') payload.passengers = input.passengers;
+  if (input.preferredClass) payload.preferredClass = input.preferredClass;
 
   const docRef = await addDoc(collection(db, 'serviceRequests'), payload);
   return docRef.id;

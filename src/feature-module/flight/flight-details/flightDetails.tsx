@@ -45,24 +45,24 @@ type FlightDetailsView = {
 
 const fallbackFlightDetails: FlightDetailsView = {
     id: "fallback-flight-details",
-    title: "Antonov An-32",
-    badge: "Cheapest",
-    airline: "Air India",
-    stopInfo: "1-stop at Dubai",
-    departureCity: "Newyork",
-    arrivalCity: "Sydney",
-    routeLabel: "Newyork - Sydney",
-    location: "15,Adri Street,Ciutat Vella,Barcelona",
+    title: "Sample Flight",
+    badge: "Available",
+    airline: "Tunisair",
+    stopInfo: "Direct",
+    departureCity: "Tunis",
+    arrivalCity: "Sfax",
+    routeLabel: "Tunis - Sfax",
+    location: "Tunis, Tunisia",
     dates: "Flexible dates",
     departureDateLabel: "Flexible dates",
-    rating: "5.0",
-    reviewsLabel: "(400 Reviews)",
-    reviewsCount: 400,
-    price: 300,
-    seatsLabel: "40 Seats Left",
-    priceLabel: "$300",
+    rating: "4.0",
+    reviewsLabel: "",
+    reviewsCount: 0,
+    price: 0,
+    seatsLabel: "",
+    priceLabel: "Contact for pricing",
     description:
-        'Experience top-notch service, in-flight amenities, and smooth takeoffs for a stress-free journey.',
+        'Send a request to check flight availability and pricing.',
     mainImage: "assets/img/flight/flight-large-01.jpg",
     galleryImages: [
         "assets/img/flight/flight-large-01.jpg",
@@ -72,9 +72,9 @@ const fallbackFlightDetails: FlightDetailsView = {
         "assets/img/flight/flight-large-05.jpg",
         "assets/img/flight/flight-large-06.jpg",
     ],
-    mapRouteLabel: "Newyork - Sydney",
-    fromAirportLabel: "Ken International Airport",
-    toAirportLabel: "Martini International Airport",
+    mapRouteLabel: "Tunis - Sfax",
+    fromAirportLabel: "Carthage International Airport",
+    toAirportLabel: "Sfax Thyna International Airport",
     published: true,
     featured: true,
 };
@@ -898,9 +898,9 @@ const FlightDetails = () => {
                                                                                         to="#"
                                                                                     >
                                                                                         <h6 className="fs-16 fw-medium">
-                                                                                            Newyork
+                                                                                            Tunis
                                                                                         </h6>
-                                                                                        <p>Ken International Airport</p>
+                                                                                        <p>Carthage International Airport</p>
                                                                                     </Link>
                                                                                 </li>
                                                                                 <li className="border-bottom">
@@ -990,9 +990,9 @@ const FlightDetails = () => {
                                                                                         to="#"
                                                                                     >
                                                                                         <h6 className="fs-16 fw-medium">
-                                                                                            Newyork
+                                                                                            Tunis
                                                                                         </h6>
-                                                                                        <p>Ken International Airport</p>
+                                                                                        <p>Carthage International Airport</p>
                                                                                     </Link>
                                                                                 </li>
                                                                                 <li className="border-bottom">
@@ -1242,7 +1242,7 @@ const FlightDetails = () => {
                                                                     defaultValue={displayFlight.departureCity}
                                                                             />
                                                                             <p className="fs-12 mb-0">
-                                                                                Ken International Airport
+                                                                                Carthage International Airport
                                                                             </p>
                                                                         </div>
                                                                         <div className="dropdown-menu dropdown-md p-0">
@@ -1265,9 +1265,9 @@ const FlightDetails = () => {
                                                                                         to="#"
                                                                                     >
                                                                                         <h6 className="fs-16 fw-medium">
-                                                                                            Newyork
+                                                                                            Tunis
                                                                                         </h6>
-                                                                                        <p>Ken International Airport</p>
+                                                                                        <p>Carthage International Airport</p>
                                                                                     </Link>
                                                                                 </li>
                                                                                 <li className="border-bottom">
@@ -1356,9 +1356,9 @@ const FlightDetails = () => {
                                                                                         to="#"
                                                                                     >
                                                                                         <h6 className="fs-16 fw-medium">
-                                                                                            Newyork
+                                                                                            Tunis
                                                                                         </h6>
-                                                                                        <p>Ken International Airport</p>
+                                                                                        <p>Carthage International Airport</p>
                                                                                     </Link>
                                                                                 </li>
                                                                                 <li className="border-bottom">
@@ -2052,7 +2052,7 @@ const FlightDetails = () => {
                                                                         className="form-control"
                                                                         defaultValue={displayFlight.departureCity}
                                                                     />
-                                                                    <p className="fs-12 mb-0">Ken International Airport</p>
+                                                                    <p className="fs-12 mb-0">Carthage International Airport</p>
                                                                 </div>
                                                                 <div className="dropdown-menu dropdown-md p-0">
                                                                     <div className="input-search p-3 border-bottom">
@@ -2070,8 +2070,8 @@ const FlightDetails = () => {
                                                                     <ul>
                                                                         <li className="border-bottom">
                                                                             <Link className="dropdown-item" to="#">
-                                                                                <h6 className="fs-16 fw-medium">Newyork</h6>
-                                                                                <p>Ken International Airport</p>
+                                                                                <h6 className="fs-16 fw-medium">Tunis</h6>
+                                                                                <p>Carthage International Airport</p>
                                                                             </Link>
                                                                         </li>
                                                                         <li className="border-bottom">
@@ -2133,8 +2133,8 @@ const FlightDetails = () => {
                                                                     <ul>
                                                                         <li className="border-bottom">
                                                                             <Link className="dropdown-item" to="#">
-                                                                                <h6 className="fs-16 fw-medium">Newyork</h6>
-                                                                                <p>Ken International Airport</p>
+                                                                                <h6 className="fs-16 fw-medium">Tunis</h6>
+                                                                                <p>Carthage International Airport</p>
                                                                             </Link>
                                                                         </li>
                                                                         <li className="border-bottom">

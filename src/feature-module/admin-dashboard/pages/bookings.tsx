@@ -827,6 +827,37 @@ const AdminBookings: React.FC<AdminBookingsProps> = ({ title = 'All Bookings', d
                       </div>
                     </div>
                   </div>
+                  {selectedRequest.serviceType === 'flight' && (
+                    <div className="col-12">
+                      <h6 className="text-muted border-bottom pb-1">Flight Details</h6>
+                      <div className="row g-2">
+                        <div className="col-md-3">
+                          <span className="fs-13 text-muted">Departure city</span>
+                          <p className="mb-0">{selectedRequest.departureCity || <em className="text-muted">Not provided</em>}</p>
+                        </div>
+                        <div className="col-md-3">
+                          <span className="fs-13 text-muted">Arrival city</span>
+                          <p className="mb-0">{selectedRequest.arrivalCity || <em className="text-muted">Not provided</em>}</p>
+                        </div>
+                        <div className="col-md-3">
+                          <span className="fs-13 text-muted">Departure date</span>
+                          <p className="mb-0">{selectedRequest.departureDate || <em className="text-muted">Not provided</em>}</p>
+                        </div>
+                        <div className="col-md-3">
+                          <span className="fs-13 text-muted">Return date</span>
+                          <p className="mb-0">{selectedRequest.returnDate || <em className="text-muted">Not provided</em>}</p>
+                        </div>
+                        <div className="col-md-3">
+                          <span className="fs-13 text-muted">Passengers</span>
+                          <p className="mb-0">{selectedRequest.passengers ? String(selectedRequest.passengers) : <em className="text-muted">Not provided</em>}</p>
+                        </div>
+                        <div className="col-md-3">
+                          <span className="fs-13 text-muted">Preferred class</span>
+                          <p className="mb-0">{selectedRequest.preferredClass || <em className="text-muted">Not provided</em>}</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                   <div className="col-12">
                     <h6 className="text-muted border-bottom pb-1">Operations</h6>
                     <div className="row g-2">
