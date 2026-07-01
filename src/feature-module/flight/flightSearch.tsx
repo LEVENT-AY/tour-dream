@@ -1,5 +1,7 @@
 import  { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
+import type { DuffelOffer } from '../../core/services/duffelApi'
+import { searchFlightOffers } from '../../core/services/duffelApi'
 import ImageWithBasePath from '../../core/common/imageWithBasePath'
 import { DatePicker } from 'antd'
 
@@ -55,6 +57,59 @@ const FlightSearch = () => {
           appliedData.flight.children +
           appliedData.flight.infants;
       const totalFlightPassengers = flightPassengers === 0 ? 1 : flightPassengers;
+
+  const [duffelOrigin, setDuffelOrigin] = useState('TUN');
+  const [duffelDest, setDuffelDest] = useState('IST');
+  const [duffelDate, setDuffelDate] = useState('');
+  const [duffelReturn, setDuffelReturn] = useState('');
+  const [duffelAdults, setDuffelAdults] = useState(1);
+  const [duffelClass, setDuffelClass] = useState('economy');
+  const [duffelResults, setDuffelResults] = useState<DuffelOffer[]>([]);
+  const [duffelLoading, setDuffelLoading] = useState(false);
+  const [duffelError, setDuffelError] = useState('');
+  const navigate = useNavigate();
+
+  const handleDuffelSearch = async () => {
+    if (!duffelOrigin || !duffelDest || !duffelDate) {
+      setDuffelError('Origin, destination, and date are required');
+      return;
+    }
+    setDuffelLoading(true);
+    setDuffelError('');
+    setDuffelResults([]);
+    try {
+      const result = await searchFlightOffers({
+        origin: duffelOrigin,
+        destination: duffelDest,
+        departureDate: duffelDate,
+        returnDate: duffelReturn || undefined,
+        adults: duffelAdults,
+        cabinClass: duffelClass,
+      });
+      setDuffelResults(result.offers);
+    } catch (err) {
+      setDuffelError(err instanceof Error ? err.message : 'Search failed. Is the proxy running?');
+    } finally {
+      setDuffelLoading(false);
+    }
+  };
+
+  const handleRequestFlight = (offer: DuffelOffer) => {
+    sessionStorage.setItem('duffelOffer', JSON.stringify(offer));
+    navigate('/flight/flight-booking');
+  };
+
+  const formatTime = (iso: string) => {
+    if (!iso) return '--';
+    try { return new Date(iso).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }); }
+    catch { return iso; }
+  };
+
+  const formatPrice = (amount: string, currency: string) => {
+    const symbols: Record<string, string> = { EUR: '\u20AC', USD: '$', GBP: '\u00A3', TND: 'TND' };
+    return `${symbols[currency] || currency} ${amount}`;
+  };
+
   return (
     <>
      {/* Flight Search */}
@@ -524,6 +579,101 @@ const FlightSearch = () => {
         </div>
     </div>
     {/* /Flight Types */}
+
+    {/* Duffel Flight Search */}
+    <div className="card mt-4">
+      <div className="card-header">
+        <h5 className="mb-0">Search Flights via Duffel API <span className="badge bg-secondary fs-11 align-middle ms-2">POC</span></h5>
+      </div>
+      <div className="card-body">
+        <div className="row g-3 align-items-end">
+          <div className="col-md-2">
+            <label className="form-label fs-14">Origin</label>
+            <input className="form-control" value={duffelOrigin} onChange={e => setDuffelOrigin(e.target.value.toUpperCase())} placeholder="e.g. TUN" maxLength={3} />
+          </div>
+          <div className="col-md-2">
+            <label className="form-label fs-14">Destination</label>
+            <input className="form-control" value={duffelDest} onChange={e => setDuffelDest(e.target.value.toUpperCase())} placeholder="e.g. IST" maxLength={3} />
+          </div>
+          <div className="col-md-2">
+            <label className="form-label fs-14">Departure</label>
+            <input type="date" className="form-control" value={duffelDate} onChange={e => setDuffelDate(e.target.value)} />
+          </div>
+          <div className="col-md-2">
+            <label className="form-label fs-14">Return (optional)</label>
+            <input type="date" className="form-control" value={duffelReturn} onChange={e => setDuffelReturn(e.target.value)} />
+          </div>
+          <div className="col-md-1">
+            <label className="form-label fs-14">Adults</label>
+            <input type="number" min={1} className="form-control" value={duffelAdults} onChange={e => setDuffelAdults(Math.max(1, Number(e.target.value)))} />
+          </div>
+          <div className="col-md-1">
+            <label className="form-label fs-14">Class</label>
+            <select className="form-select" value={duffelClass} onChange={e => setDuffelClass(e.target.value)}>
+              <option value="economy">Economy</option>
+              <option value="business">Business</option>
+              <option value="first">First</option>
+            </select>
+          </div>
+          <div className="col-md-2">
+            <button className="btn btn-primary w-100" onClick={handleDuffelSearch} disabled={duffelLoading}>
+              {duffelLoading ? <><span className="spinner-border spinner-border-sm me-2" />Searching...</> : 'Search'}
+            </button>
+          </div>
+        </div>
+
+        {duffelError && <div className="alert alert-danger mt-3 py-2 fs-14 mb-0">{duffelError}</div>}
+
+        {duffelResults.length > 0 && (
+          <div className="mt-4">
+            <h6 className="mb-3">{duffelResults.length} offer{duffelResults.length > 1 ? 's' : ''} found</h6>
+            <div className="row g-3">
+              {duffelResults.map((offer) => (
+                <div key={offer.offerId} className="col-md-6">
+                  <div className="card border h-100">
+                    <div className="card-body">
+                      <div className="d-flex justify-content-between align-items-start mb-2">
+                        <div>
+                          <h6 className="mb-1">{offer.airline} ({offer.airlineIata})</h6>
+                          <span className="badge bg-light text-dark fs-11">{offer.cabinClass || 'economy'}</span>
+                        </div>
+                        <h5 className="text-primary mb-0">{formatPrice(offer.totalAmount, offer.totalCurrency)}</h5>
+                      </div>
+                      {offer.slices.map((slice, i) => (
+                        <div key={i} className="mb-2 pb-2 border-bottom">
+                          <div className="d-flex justify-content-between">
+                            <span className="fw-medium">{slice.origin}</span>
+                            <span className="text-muted">{formatTime(slice.departureTime)}</span>
+                          </div>
+                          <div className="d-flex justify-content-between">
+                            <span className="fw-medium">{slice.destination}</span>
+                            <span className="text-muted">{formatTime(slice.arrivalTime)}</span>
+                          </div>
+                          <div className="fs-12 text-muted">
+                            {slice.duration} &middot; {slice.stops === 0 ? 'Direct' : `${slice.stops} stop${slice.stops > 1 ? 's' : ''}`}
+                          </div>
+                        </div>
+                      ))}
+                      <div className="d-flex justify-content-between align-items-center mt-2">
+                        <span className="fs-12 text-muted">Expires: {formatTime(offer.expiresAt)}</span>
+                        <button className="btn btn-sm btn-primary" onClick={() => handleRequestFlight(offer)}>
+                          Request this flight
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {!duffelLoading && duffelResults.length === 0 && !duffelError && (
+          <p className="text-muted fs-14 mt-3 mb-0">Enter origin/destination IATA codes and a date, then click Search. Test examples: TUN &rarr; IST, TUN &rarr; CDG.</p>
+        )}
+      </div>
+    </div>
+    {/* /Duffel Flight Search */}
     </>
   )
 }

@@ -620,6 +620,10 @@ export interface ServiceRequest {
   returnDate?: string;
   passengers?: number;
   preferredClass?: string;
+  /** Provider info (e.g. duffel_test) */
+  provider?: string;
+  /** Snapshot of a flight offer (e.g. from Duffel) */
+  offerSnapshot?: Record<string, unknown>;
 }
 
 export const fetchServiceRequests = async (
@@ -701,6 +705,10 @@ export interface CreateServiceRequestInput {
   returnDate?: string;
   passengers?: number;
   preferredClass?: string;
+  /** Provider info (e.g. duffel_test) */
+  provider?: string;
+  /** Snapshot of a flight offer (e.g. from Duffel) */
+  offerSnapshot?: Record<string, unknown>;
 }
 
 export const createServiceRequest = async (
@@ -732,6 +740,8 @@ export const createServiceRequest = async (
   if (input.returnDate) payload.returnDate = input.returnDate;
   if (typeof input.passengers === 'number') payload.passengers = input.passengers;
   if (input.preferredClass) payload.preferredClass = input.preferredClass;
+  if (input.provider) payload.provider = input.provider;
+  if (input.offerSnapshot) payload.offerSnapshot = input.offerSnapshot;
 
   const docRef = await addDoc(collection(db, 'serviceRequests'), payload);
   return docRef.id;

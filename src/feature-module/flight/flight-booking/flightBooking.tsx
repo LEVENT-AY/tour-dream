@@ -5,6 +5,8 @@ import Breadcrumb from '../../../core/common/Breadcrumb/breadcrumb';
 import { Link } from 'react-router-dom';
 import ImageWithBasePath from '../../../core/common/imageWithBasePath';
 import { createServiceRequest } from '../../../core/services/firebaseServices';
+import type { CreateServiceRequestInput } from '../../../core/services/firebaseServices';
+import type { DuffelOffer } from '../../../core/services/duffelApi';
 
 const FlightBooking = () => {
     const navigate = useNavigate();
@@ -15,15 +17,21 @@ const FlightBooking = () => {
         { label: 'Flight Booking', active: true },
     ];
 
+    const storedOfferRaw = sessionStorage.getItem('duffelOffer');
+    const storedOffer: DuffelOffer | null = storedOfferRaw ? JSON.parse(storedOfferRaw) : null;
+    if (storedOfferRaw) {
+        sessionStorage.removeItem('duffelOffer');
+    }
+
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
     const [phone, setPhone] = useState('');
-    const [departureCity, setDepartureCity] = useState('');
-    const [arrivalCity, setArrivalCity] = useState('');
+    const [departureCity, setDepartureCity] = useState(storedOffer?.slices?.[0]?.origin || '');
+    const [arrivalCity, setArrivalCity] = useState(storedOffer?.slices?.[0]?.destination || '');
     const [departureDate, setDepartureDate] = useState('');
     const [returnDate, setReturnDate] = useState('');
     const [passengers, setPassengers] = useState(1);
-    const [preferredClass, setPreferredClass] = useState('Economy');
+    const [preferredClass, setPreferredClass] = useState(storedOffer?.cabinClass ? storedOffer.cabinClass.charAt(0).toUpperCase() + storedOffer.cabinClass.slice(1) : 'Economy');
     const [message, setMessage] = useState('');
     const [submitting, setSubmitting] = useState(false);
     const [submitted, setSubmitted] = useState(false);
@@ -38,10 +46,10 @@ const FlightBooking = () => {
         }
         setSubmitting(true);
         try {
-            await createServiceRequest({
+            const payload: CreateServiceRequestInput = {
                 serviceType: 'flight',
                 serviceId: 'flight-request',
-                serviceTitle: 'Flight Request',
+                serviceTitle: storedOffer ? `Flight Request - ${storedOffer.airline} (${storedOffer.airlineIata})` : 'Flight Request',
                 customerName: name.trim(),
                 customerEmail: email.trim(),
                 customerPhone: phone.trim() || undefined,
@@ -52,7 +60,12 @@ const FlightBooking = () => {
                 returnDate: returnDate || undefined,
                 passengers,
                 preferredClass: preferredClass || undefined,
-            });
+            };
+            if (storedOffer) {
+                payload.provider = 'duffel_test';
+                payload.offerSnapshot = storedOffer as unknown as Record<string, unknown>;
+            }
+            await createServiceRequest(payload);
             setSubmitted(true);
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Failed to submit request');
@@ -172,7 +185,7 @@ const FlightBooking = () => {
                             </div>
                         </div>
                         <div className="col-lg-4">
-                            <div className="card order-details theiaStickySidebar">
+                                <div className="card order-details theiaStickySidebar">
                                 <div className="card-header">
                                     <div className="d-flex align-items-center justify-content-between header-content">
                                         <h5>Review Order Details</h5>
@@ -185,19 +198,39 @@ const FlightBooking = () => {
                                 </div>
                                 <div className="card-body">
                                     <div className="pb-3 border-bottom">
-                                        <div className="mb-3 review-img">
-                                            <ImageWithBasePath src="assets/img/flight/flight-large-01.jpg" alt="Img" className="img-fluid" />
-                                        </div>
-                                        <div className="d-flex align-items-center justify-content-between">
-                                            <div>
-                                                <h6 className="mb-2">Flight Request</h6>
-                                                <p className="fs-14">
-                                                    <span className="badge badge-warning text-gray-9 fs-13 fw-medium me-2">Request</span>
-                                                    Send a request
-                                                </p>
-                                            </div>
-                                            <h6 className="fs-14 fw-normal text-gray-9">Contact for pricing</h6>
-                                        </div>
+                                        {storedOffer ? (
+                                            <>
+                                                <div className="d-flex align-items-center justify-content-between mb-2">
+                                                    <div>
+                                                        <h6 className="mb-1">{storedOffer.airline} ({storedOffer.airlineIata})</h6>
+                                                        <span className="badge bg-secondary fs-11">Duffel offer</span>
+                                                    </div>
+                                                    <h5 className="text-primary mb-0">{storedOffer.totalCurrency} {storedOffer.totalAmount}</h5>
+                                                </div>
+                                                {storedOffer.slices.map((slice, i) => (
+                                                    <div key={i} className="fs-14 mb-1">
+                                                        <span className="fw-medium">{slice.origin}</span> &rarr; <span className="fw-medium">{slice.destination}</span>
+                                                        <span className="text-muted ms-2">{slice.stops === 0 ? 'Direct' : `${slice.stops} stop${slice.stops > 1 ? 's' : ''}`}</span>
+                                                    </div>
+                                                ))}
+                                            </>
+                                        ) : (
+                                            <>
+                                                <div className="mb-3 review-img">
+                                                    <ImageWithBasePath src="assets/img/flight/flight-large-01.jpg" alt="Img" className="img-fluid" />
+                                                </div>
+                                                <div className="d-flex align-items-center justify-content-between">
+                                                    <div>
+                                                        <h6 className="mb-2">Flight Request</h6>
+                                                        <p className="fs-14">
+                                                            <span className="badge badge-warning text-gray-9 fs-13 fw-medium me-2">Request</span>
+                                                            Send a request
+                                                        </p>
+                                                    </div>
+                                                    <h6 className="fs-14 fw-normal text-gray-9">Contact for pricing</h6>
+                                                </div>
+                                            </>
+                                        )}
                                     </div>
                                     <div className="mt-3 pb-3 border-bottom">
                                         <h6 className="text-primary mb-3">Your Details</h6>
@@ -222,7 +255,7 @@ const FlightBooking = () => {
                                         <h6 className="text-primary mb-3">Pricing</h6>
                                         <div className="d-flex align-items-center justify-content-between mb-3">
                                             <h6 className="fs-16">Price</h6>
-                                            <p className="fs-16">Contact for pricing</p>
+                                            <p className="fs-16">{storedOffer ? `${storedOffer.totalCurrency} ${storedOffer.totalAmount}` : 'Contact for pricing'}</p>
                                         </div>
                                         <div className="d-flex align-items-center justify-content-between mb-3">
                                             <h6 className="fs-16">Manual payment only</h6>

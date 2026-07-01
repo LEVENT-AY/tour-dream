@@ -855,7 +855,33 @@ const AdminBookings: React.FC<AdminBookingsProps> = ({ title = 'All Bookings', d
                           <span className="fs-13 text-muted">Preferred class</span>
                           <p className="mb-0">{selectedRequest.preferredClass || <em className="text-muted">Not provided</em>}</p>
                         </div>
+                        {selectedRequest.provider && (
+                          <div className="col-md-3">
+                            <span className="fs-13 text-muted">Provider</span>
+                            <p className="mb-0"><span className="badge bg-secondary">{selectedRequest.provider}</span></p>
+                          </div>
+                        )}
                       </div>
+                      {selectedRequest.offerSnapshot && (
+                        <div className="mt-2 p-2 bg-light rounded">
+                          <span className="fs-13 text-muted d-block mb-1">Offer snapshot</span>
+                          <div className="fs-12">
+                            {(() => {
+                              const os = selectedRequest.offerSnapshot as Record<string, unknown> | undefined;
+                              if (!os) return null;
+                              return (
+                                <>
+                                  {os.airline && <div>Airline: {String(os.airline)} ({String(os.airlineIata || '')})</div>}
+                                  {os.totalAmount && <div>Price: {String(os.totalCurrency || '')} {String(os.totalAmount)}</div>}
+                                  {Array.isArray(os.slices) && (os.slices as Array<Record<string, unknown>>).map((s, i) => (
+                                    <div key={i}>{String(s.origin || '')} &rarr; {String(s.destination || '')} &middot; {String(s.stops || 0) === '0' ? 'Direct' : `${String(s.stops)} stop(s)`}</div>
+                                  ))}
+                                </>
+                              );
+                            })()}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
                   <div className="col-12">

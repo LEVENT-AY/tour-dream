@@ -15,6 +15,10 @@
     ],
     "rewrites": [
       {
+        "source": "/api/flight-offers/search",
+        "function": "flightOffersSearch"
+      },
+      {
         "source": "**",
         "destination": "/index.html"
       }
