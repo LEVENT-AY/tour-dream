@@ -30,33 +30,27 @@ const FlightFilter = () => {
                         <div className="accordion-item border-bottom p-3">
                             <div className="accordion-header">
                                 <div className="accordion-button p-0" data-bs-toggle="collapse" data-bs-target="#accordion-populars" aria-expanded="true" aria-controls="accordion-populars" role="button">
-                                    <i className="isax isax-ranking me-2 text-primary"></i>Popular
+                                    <i className="isax isax-ranking me-2 text-primary"></i>Stops
                                 </div>
                             </div>
                             <div id="accordion-populars" className="accordion-collapse collapse show">
                                 <div className="accordion-body pt-2">
                                     <div className="form-checkbox form-check form-check-inline d-inline-flex align-items-center mt-2 me-2">
-                                        <input className="form-check-input ms-0 mt-0" name="popular1" type="checkbox" id="popular1" defaultChecked/>
-                                        <label className="form-check-label ms-2" htmlFor="popular1">
-                                            Breakfast Included
+                                        <input className="form-check-input ms-0 mt-0" name="stops1" type="checkbox" id="stops1" defaultChecked/>
+                                        <label className="form-check-label ms-2" htmlFor="stops1">
+                                            Direct
                                         </label>
                                     </div>
                                     <div className="form-checkbox form-check form-check-inline d-inline-flex align-items-center mt-2 me-2">
-                                        <input className="form-check-input ms-0 mt-0" name="popular2" type="checkbox" id="popular2"/>
-                                        <label className="form-check-label ms-2" htmlFor="popular2">
-                                            Budget
+                                        <input className="form-check-input ms-0 mt-0" name="stops2" type="checkbox" id="stops2"/>
+                                        <label className="form-check-label ms-2" htmlFor="stops2">
+                                            1 Stop
                                         </label>
                                     </div>
                                     <div className="form-checkbox form-check form-check-inline d-inline-flex align-items-center mt-2 me-2">
-                                        <input className="form-check-input ms-0 mt-0" name="popular3" type="checkbox" id="popular3"/>
-                                        <label className="form-check-label ms-2" htmlFor="popular3">
-                                            4 Star Hotels
-                                        </label>
-                                    </div>
-                                    <div className="form-checkbox form-check form-check-inline d-inline-flex align-items-center mt-2 me-2">
-                                        <input className="form-check-input ms-0 mt-0" name="popular4" type="checkbox" id="popular4"/>
-                                        <label className="form-check-label ms-2" htmlFor="popular4">
-                                            5 Star Hotels
+                                        <input className="form-check-input ms-0 mt-0" name="stops3" type="checkbox" id="stops3"/>
+                                        <label className="form-check-label ms-2" htmlFor="stops3">
+                                            2+ Stops
                                         </label>
                                     </div>
                                 </div>
@@ -65,7 +59,7 @@ const FlightFilter = () => {
                         <div className="accordion-item border-bottom p-3">
                             <div className="accordion-header">
                                 <div className="accordion-button p-0" data-bs-toggle="collapse" data-bs-target="#accordion-popular" aria-expanded="true" aria-controls="accordion-popular" role="button">
-                                    <i className="isax isax-coin me-2 text-primary"></i>Price Per Night
+                                    <i className="isax isax-coin me-2 text-primary"></i>Price Range
                                 </div>
                             </div>
                             <div id="accordion-popular" className="accordion-collapse collapse show">
@@ -247,41 +241,7 @@ const FlightFilter = () => {
                                 </div>
                             </div>
                         </div>
-                        <div className="accordion-item border-bottom p-3">
-                            <div className="accordion-header">
-                                <div className="accordion-button p-0" data-bs-toggle="collapse" data-bs-target="#accordion-meal" aria-expanded="true" aria-controls="accordion-meal" role="button">
-                                    <i className="isax isax-reserve me-2 text-primary"></i>Meal plans available
-                                </div>
-                            </div>
-                            <div id="accordion-meal" className="accordion-collapse collapse show">
-                                <div className="accordion-body pt-2">
-                                    <div className="form-checkbox form-check form-check-inline d-inline-flex align-items-center mt-2 me-2">
-                                        <input className="form-check-input ms-0 mt-0" name="meals1" type="checkbox" id="meals1"/>
-                                        <label className="form-check-label ms-2" htmlFor="meals1">
-                                            All inclusive
-                                        </label>
-                                    </div>
-                                    <div className="form-checkbox form-check form-check-inline d-inline-flex align-items-center mt-2 me-2">
-                                        <input className="form-check-input ms-0 mt-0" name="meals2" type="checkbox" id="meals2"/>
-                                        <label className="form-check-label ms-2" htmlFor="meals2">
-                                            Breakfast
-                                        </label>
-                                    </div>
-                                    <div className="form-checkbox form-check form-check-inline d-inline-flex align-items-center mt-2 me-2">
-                                        <input className="form-check-input ms-0 mt-0" name="meals3" type="checkbox" id="meals3"/>
-                                        <label className="form-check-label ms-2" htmlFor="meals3">
-                                            Lunch
-                                        </label>
-                                    </div>
-                                    <div className="form-checkbox form-check form-check-inline d-inline-flex align-items-center mt-2 me-2">
-                                        <input className="form-check-input ms-0 mt-0" name="meals4" type="checkbox" id="meals4"/>
-                                        <label className="form-check-label ms-2" htmlFor="meals4">
-                                            Dinner
-                                        </label>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+
                         <div className="accordion-item border-bottom p-3">
                             <div className="accordion-header">
                                 <div className="accordion-button p-0" data-bs-toggle="collapse" data-bs-target="#accordion-brand" aria-expanded="true" aria-controls="accordion-brand" role="button">

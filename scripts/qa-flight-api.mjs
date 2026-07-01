@@ -94,7 +94,7 @@ check('createServiceRequest passes offerSnapshot', fbServices.includes('if (inpu
 
 const fsSearch = readFile('src/feature-module/flight/flightSearch.tsx');
 check('flightSearch imports searchFlightOffers', fsSearch.includes("from '../../core/services/duffelApi'"));
-check('flightSearch has Duffel search UI', fsSearch.includes('Search Flights via Duffel API'));
+check('flightSearch Search button triggers handleSearch', fsSearch.includes('handleSearch'));
 
 const fbBooking = readFile('src/feature-module/flight/flight-booking/flightBooking.tsx');
 check('flightBooking reads duffelOffer from sessionStorage', fbBooking.includes("sessionStorage.getItem('duffelOffer')"));

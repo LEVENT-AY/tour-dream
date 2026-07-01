@@ -10,6 +10,7 @@ type Props = {
   defaultValue: string;
   defaultSubValue: string;
   locations: Location[];
+  onChange?: (value: string) => void;
 };
 
 export default function BookingDropdown({
@@ -17,6 +18,7 @@ export default function BookingDropdown({
   defaultValue,
   defaultSubValue,
   locations,
+  onChange,
 }: Props) {
   const [value, setValue] = useState(defaultValue);
   const [subValue, setSubValue] = useState(defaultSubValue);
@@ -24,6 +26,7 @@ export default function BookingDropdown({
   const handleSelect = (loc: Location) => {
     setValue(loc.value);
     setSubValue(loc.subValue??"");
+    onChange?.(loc.value);
   };
 
   return (

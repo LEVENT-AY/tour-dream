@@ -1,13 +1,38 @@
-import  { useState } from 'react'
+import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import type { DuffelOffer } from '../../core/services/duffelApi'
 import { searchFlightOffers } from '../../core/services/duffelApi'
 import ImageWithBasePath from '../../core/common/imageWithBasePath'
 import { DatePicker } from 'antd'
+import type { Dayjs } from 'dayjs'
 
 import BannerCounter from '../../core/common/banner-counter/counter';
-import { all_routes } from '../router/all_routes';
+
 import BookingDropdown from '../../core/common/booking-dropdown/bookingDropdown';
+
+const AIRPORT_IATA: Record<string, string> = {
+  "Tunis (TUN)": "TUN",
+  "Sfax (SFA)": "SFA",
+  "Monastir (MIR)": "MIR",
+  "Djerba (DJE)": "DJE",
+  "Tozeur (TOE)": "TOE",
+  "Istanbul (IST)": "IST",
+  "Paris (CDG)": "CDG",
+  "Dubai (DXB)": "DXB",
+  "London (LHR)": "LHR",
+  "Frankfurt (FRA)": "FRA",
+  "Rome (FCO)": "FCO",
+  "Madrid (MAD)": "MAD",
+  "Casablanca (CMN)": "CMN",
+  "Cairo (CAI)": "CAI",
+  "Doha (DOH)": "DOH",
+};
+
+const LOCATIONS = Object.entries(AIRPORT_IATA).map(([label, code]) => {
+  const name = label.replace(/ \(...\)$/, '');
+  return { value: label, subValue: `${code} — ${name}` };
+});
+
 type Mode = "flight";
 type BookingState = {
   flight: {
@@ -17,8 +42,7 @@ type BookingState = {
     infants: number;
   }
 };
-const FlightSearch = () => {
-        const routes = all_routes
+const FlightSearch = ({ onSearch }: { onSearch?: (active: boolean) => void }) => {
       const [flightRadio,setFlightRadio] = useState<string>('oneway')
         const [formData, setFormData] = useState<BookingState>({
           flight: {
@@ -45,7 +69,7 @@ const FlightSearch = () => {
           }));
         };
         const [appliedData, setAppliedData] = useState(formData);
-      
+
         const handleCounter = (mode: "flight") => {
           setAppliedData((prev) => ({
             ...prev,
@@ -58,37 +82,45 @@ const FlightSearch = () => {
           appliedData.flight.infants;
       const totalFlightPassengers = flightPassengers === 0 ? 1 : flightPassengers;
 
-  const [duffelOrigin, setDuffelOrigin] = useState('TUN');
-  const [duffelDest, setDuffelDest] = useState('IST');
-  const [duffelDate, setDuffelDate] = useState('');
-  const [duffelReturn, setDuffelReturn] = useState('');
-  const [duffelAdults, setDuffelAdults] = useState(1);
-  const [duffelClass, setDuffelClass] = useState('economy');
+  const [fromValue, setFromValue] = useState('Select');
+  const [toValue, setToValue] = useState('Select');
+  const [departurePicker, setDeparturePicker] = useState<Dayjs | null>(null);
+  const [returnPicker, setReturnPicker] = useState<Dayjs | null>(null);
+  const [cabinClass, setCabinClass] = useState('Economy');
   const [duffelResults, setDuffelResults] = useState<DuffelOffer[]>([]);
   const [duffelLoading, setDuffelLoading] = useState(false);
   const [duffelError, setDuffelError] = useState('');
+  const [hasSearched, setHasSearched] = useState(false);
   const navigate = useNavigate();
 
-  const handleDuffelSearch = async () => {
-    if (!duffelOrigin || !duffelDest || !duffelDate) {
-      setDuffelError('Origin, destination, and date are required');
+  const handleSearch = async () => {
+    const origin = AIRPORT_IATA[fromValue];
+    const destination = AIRPORT_IATA[toValue];
+    if (!origin || !destination) {
+      setDuffelError('Please select both origin and destination airports');
       return;
     }
+    if (!departurePicker) {
+      setDuffelError('Please select a departure date');
+      return;
+    }
+    setHasSearched(true);
+    onSearch?.(true);
     setDuffelLoading(true);
     setDuffelError('');
     setDuffelResults([]);
     try {
       const result = await searchFlightOffers({
-        origin: duffelOrigin,
-        destination: duffelDest,
-        departureDate: duffelDate,
-        returnDate: duffelReturn || undefined,
-        adults: duffelAdults,
-        cabinClass: duffelClass,
+        origin,
+        destination,
+        departureDate: departurePicker.format('YYYY-MM-DD'),
+        returnDate: returnPicker ? returnPicker.format('YYYY-MM-DD') : undefined,
+        adults: totalFlightPassengers,
+        cabinClass: cabinClass.toLowerCase(),
       });
       setDuffelResults(result.offers);
     } catch (err) {
-      setDuffelError(err instanceof Error ? err.message : 'Search failed. Is the proxy running?');
+      setDuffelError('Flight search is temporarily unavailable. Please try again.');
     } finally {
       setDuffelLoading(false);
     }
@@ -197,16 +229,11 @@ const FlightSearch = () => {
                                           label="From"
                                           defaultValue="Select"
                                           defaultSubValue="Select airport"
-                                          locations={[
-                                            { value: "Tunis", subValue: "Carthage International Airport" },
-                                            { value: "Sfax", subValue: "Sfax Thyna International Airport" },
-                                            { value: "Monastir", subValue: "Monastir Habib Bourguiba Airport" },
-                                            { value: "Djerba", subValue: "Djerba Zarzis International Airport" },
-                                            { value: "Tozeur", subValue: "Tozeur Nefta International Airport" }
-                                          ]}
+                                          locations={LOCATIONS}
+                                          onChange={(v) => setFromValue(v)}
                                         />
                                       </div>
-            
+
                                     </div>
                                     <div className="form-item dropdown ps-2 ps-sm-3">
                                       <div
@@ -218,13 +245,8 @@ const FlightSearch = () => {
                                           label="To"
                                           defaultValue="Select"
                                           defaultSubValue="Select airport"
-                                          locations={[
-                                            { value: "Tunis", subValue: "Carthage International Airport" },
-                                            { value: "Sfax", subValue: "Sfax Thyna International Airport" },
-                                            { value: "Monastir", subValue: "Monastir Habib Bourguiba Airport" },
-                                            { value: "Djerba", subValue: "Djerba Zarzis International Airport" },
-                                            { value: "Tozeur", subValue: "Tozeur Nefta International Airport" }
-                                          ]}
+                                          locations={LOCATIONS}
+                                          onChange={(v) => setToValue(v)}
                                         />
                                         <span className="way-icon badge badge-primary rounded-pill translate-middle">
                                           <i className="fa-solid fa-arrow-right-arrow-left" />
@@ -239,6 +261,8 @@ const FlightSearch = () => {
                                         className="form-control datetimepicker"
                                         placeholder="dd/mm/yyyy"
                                         format="DD-MM-YYYY"
+                                        value={departurePicker}
+                                        onChange={(v) => setDeparturePicker(v)}
                                       />
                                       <p className="fs-12 mb-0">Monday</p>
                                     </div>
@@ -258,6 +282,8 @@ const FlightSearch = () => {
                                         className="form-control datetimepicker"
                                         placeholder="dd/mm/yyyy"
                                         format="DD-MM-YYYY"
+                                        value={returnPicker}
+                                        onChange={(v) => setReturnPicker(v)}
                                       />
                                       <p className="fs-12 mb-0">Wednesday</p>
                                     </div>
@@ -340,10 +366,11 @@ const FlightSearch = () => {
                                               <input
                                                 className="form-check-input"
                                                 type="radio"
-                                                defaultValue="Economy"
+                                                value="Economy"
                                                 name="cabin-class"
                                                 id="economy"
-                                                defaultChecked
+                                                checked={cabinClass === 'Economy'}
+                                                onChange={(e) => setCabinClass(e.target.value)}
                                               />
                                               <label
                                                 className="form-check-label"
@@ -356,9 +383,11 @@ const FlightSearch = () => {
                                               <input
                                                 className="form-check-input"
                                                 type="radio"
-                                                defaultValue="Economy"
+                                                value="Premium Economy"
                                                 name="cabin-class"
                                                 id="premium-economy"
+                                                checked={cabinClass === 'Premium Economy'}
+                                                onChange={(e) => setCabinClass(e.target.value)}
                                               />
                                               <label
                                                 className="form-check-label"
@@ -371,9 +400,11 @@ const FlightSearch = () => {
                                               <input
                                                 className="form-check-input"
                                                 type="radio"
-                                                defaultValue="Business"
+                                                value="Business"
                                                 name="cabin-class"
                                                 id="business"
+                                                checked={cabinClass === 'Business'}
+                                                onChange={(e) => setCabinClass(e.target.value)}
                                               />
                                               <label
                                                 className="form-check-label"
@@ -386,9 +417,11 @@ const FlightSearch = () => {
                                               <input
                                                 className="form-check-input"
                                                 type="radio"
-                                                defaultValue="First Class"
+                                                value="First Class"
                                                 name="cabin-class"
                                                 id="first-class"
+                                                checked={cabinClass === 'First Class'}
+                                                onChange={(e) => setCabinClass(e.target.value)}
                                               />
                                               <label
                                                 className="form-check-label"
@@ -406,7 +439,7 @@ const FlightSearch = () => {
                                           >
                                             Cancel
                                           </Link>
-            
+
                                           <button type="button"
                                             className="btn btn-primary btn-sm"
                                             onClick={() => handleCounter("flight")}
@@ -417,13 +450,14 @@ const FlightSearch = () => {
                                       </div>
                                     </div>
                                   </div>
-            
-                                  <Link
-                                    to={all_routes.flightGrid}
+
+                                  <button type="button"
                                     className="btn btn-primary search-btn rounded"
+                                    onClick={handleSearch}
+                                    disabled={duffelLoading}
                                   >
-                                    Search
-                                  </Link>
+                                    {duffelLoading ? <><span className="spinner-border spinner-border-sm me-2" />Searching...</> : 'Search'}
+                                  </button>
                                 </div>
                               </div>
                               <div
@@ -445,13 +479,8 @@ const FlightSearch = () => {
                                           label="From"
                                           defaultValue="Select"
                                           defaultSubValue="Select airport"
-                                          locations={[
-                                            { value: "Tunis", subValue: "Carthage International Airport" },
-                                            { value: "Sfax", subValue: "Sfax Thyna International Airport" },
-                                            { value: "Monastir", subValue: "Monastir Habib Bourguiba Airport" },
-                                            { value: "Djerba", subValue: "Djerba Zarzis International Airport" },
-                                            { value: "Tozeur", subValue: "Tozeur Nefta International Airport" }
-                                          ]}
+                                          locations={LOCATIONS}
+                                          onChange={(v) => setFromValue(v)}
                                         />
                                       </div>
                                     </div>
@@ -465,13 +494,8 @@ const FlightSearch = () => {
                                           label="To"
                                           defaultValue="Select"
                                           defaultSubValue="Select airport"
-                                          locations={[
-                                            { value: "Tunis", subValue: "Carthage International Airport" },
-                                            { value: "Sfax", subValue: "Sfax Thyna International Airport" },
-                                            { value: "Monastir", subValue: "Monastir Habib Bourguiba Airport" },
-                                            { value: "Djerba", subValue: "Djerba Zarzis International Airport" },
-                                            { value: "Tozeur", subValue: "Tozeur Nefta International Airport" }
-                                          ]}
+                                          locations={LOCATIONS}
+                                          onChange={(v) => setToValue(v)}
                                         />
                                         <span className="way-icon badge badge-primary rounded-pill translate-middle">
                                           <i className="fa-solid fa-arrow-right-arrow-left" />
@@ -486,16 +510,19 @@ const FlightSearch = () => {
                                         className="form-control datetimepicker"
                                         placeholder="dd/mm/yyyy"
                                         format="DD-MM-YYYY"
+                                        value={departurePicker}
+                                        onChange={(v) => setDeparturePicker(v)}
                                       />
                                       <p className="fs-12 mb-0">Monday</p>
                                     </div>
                                   </div>
-                                  <Link
-                                    to={all_routes.flightGrid}
+                                  <button type="button"
                                     className="btn btn-primary search-btn rounded"
+                                    onClick={handleSearch}
+                                    disabled={duffelLoading}
                                   >
-                                    Search
-                                  </Link>
+                                    {duffelLoading ? <><span className="spinner-border spinner-border-sm me-2" />Searching...</> : 'Search'}
+                                  </button>
                                 </div>
                               </div>
                             </form>
@@ -504,176 +531,159 @@ const FlightSearch = () => {
     </div>
     {/* /Flight Search */}
 
-    {/* Flight Types */}
+    {/* Flight results */}
     <div className="mb-2">
+      {hasSearched && (
         <div className="mb-3">
-            <h5 className="mb-2">Choose type of Flights you are interested</h5>
+          <h5 className="mb-2">
+            {duffelLoading ? 'Searching flights...' : duffelResults.length > 0 ? `${duffelResults.length} offer${duffelResults.length > 1 ? 's' : ''} found` : 'Flight search results'}
+          </h5>
         </div>
+      )}
+
+      {duffelLoading && (
+        <div className="text-center py-5">
+          <div className="spinner-border text-primary mb-3" role="status">
+            <span className="visually-hidden">Loading...</span>
+          </div>
+          <p className="text-muted">Searching for the best flight offers...</p>
+        </div>
+      )}
+
+      {duffelError && (
+        <div className="alert alert-danger py-2 fs-14">{duffelError}</div>
+      )}
+
+      {!duffelLoading && !duffelError && hasSearched && duffelResults.length === 0 && (
+        <div className="text-center py-5">
+          <div className="mb-3">
+            <i className="isax isax-search-normal-1" style={{ fontSize: '3rem', opacity: 0.3 }}></i>
+          </div>
+          <h5>No flight offers found</h5>
+          <p className="text-muted">No flight offers found for this search. Try another route or date.</p>
+        </div>
+      )}
+
+      {!duffelLoading && duffelResults.length > 0 && (
         <div className="row">
-            <div className="col-xxl-2 col-lg-3 col-md-4 col-sm-6">
-                <div className="d-flex align-items-center hotel-type-item mb-3">
-                    <Link to={routes.flightGrid} className="avatar avatar-lg">
-                        <ImageWithBasePath src="assets/img/flight/flight-company-01.svg" className="rounded-circle" alt="img" />
-                    </Link>
-                    <div className="ms-2">
-                        <h6 className="fs-16 fw-medium"><Link to={routes.flightGrid}>American Airline</Link></h6>
-                        <p className="fs-14">216 Flights</p>
+          {duffelResults.map((offer) => (
+            <div key={offer.offerId} className="col-xxl-4 col-lg-6 col-md-6 mb-3">
+              <div className="card h-100">
+                <div className="card-body">
+                  <div className="d-flex justify-content-between align-items-start mb-3">
+                    <div>
+                      <h6 className="mb-1">{offer.airline} <span className="text-muted fw-normal">({offer.airlineIata})</span></h6>
+                      <span className="badge bg-light text-dark fs-11">{offer.cabinClass || 'economy'}</span>
                     </div>
-                </div>
-            </div>
-            <div className="col-xxl-2 col-lg-3 col-md-4 col-sm-6">
-                <div className="d-flex align-items-center hotel-type-item mb-3">
-                    <Link to={routes.flightGrid} className="avatar avatar-lg">
-                        <ImageWithBasePath src="assets/img/flight/flight-company-02.svg" className="rounded-circle" alt="img" />
-                    </Link>
-                    <div className="ms-2">
-                        <h6 className="fs-16 fw-medium"><Link to={routes.flightGrid}>Delta Airlines</Link></h6>
-                        <p className="fs-14">569 Flights</p>
-                    </div>
-                </div>
-            </div>
-            <div className="col-xxl-2 col-lg-3 col-md-4 col-sm-6">
-                <div className="d-flex align-items-center hotel-type-item mb-3">
-                    <Link to={routes.flightGrid} className="avatar avatar-lg">
-                        <ImageWithBasePath src="assets/img/flight/flight-company-03.svg" className="rounded-circle" alt="img" />
-                    </Link>
-                    <div className="ms-2">
-                        <h6 className="fs-16 fw-medium"><Link to={routes.flightGrid}>Emirates</Link></h6>
-                        <p className="fs-14">129 Flights</p>
-                    </div>
-                </div>
-            </div>
-            <div className="col-xxl-2 col-lg-3 col-md-4 col-sm-6">
-                <div className="d-flex align-items-center hotel-type-item mb-3">
-                    <Link to={routes.flightGrid} className="avatar avatar-lg">
-                        <ImageWithBasePath src="assets/img/flight/flight-company-04.svg" className="rounded-circle" alt="img" />
-                    </Link>
-                    <div className="ms-2">
-                        <h6 className="fs-16 fw-medium"><Link to={routes.flightGrid}>Air France</Link></h6>
-                        <p className="fs-14">600 Flights</p>
-                    </div>
-                </div>
-            </div>
-            <div className="col-xxl-2 col-lg-3 col-md-4 col-sm-6">
-                <div className="d-flex align-items-center hotel-type-item mb-3">
-                    <Link to={routes.flightGrid} className="avatar avatar-lg">
-                        <ImageWithBasePath src="assets/img/flight/flight-company-05.svg" className="rounded-circle" alt="img" />
-                    </Link>
-                    <div className="ms-2">
-                        <h6 className="fs-16 fw-medium"><Link to={routes.flightGrid}>Qatar Airways</Link></h6>
-                        <p className="fs-14">200 Flights</p>
-                    </div>
-                </div>
-            </div>
-            <div className="col-xxl-2 col-lg-3 col-md-4 col-sm-6">
-                <div className="d-flex align-items-center hotel-type-item mb-3">
-                    <Link to={routes.flightGrid} className="avatar avatar-lg">
-                        <ImageWithBasePath src="assets/img/flight/flight-company-06.svg" className="rounded-circle" alt="img" />
-                    </Link>
-                    <div className="ms-2">
-                        <h6 className="fs-16 fw-medium"><Link to={routes.flightGrid}>Air India</Link></h6>
-                        <p className="fs-14">180 Flights</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    {/* /Flight Types */}
-
-    {/* Duffel Flight Search */}
-    <div className="card mt-4">
-      <div className="card-header">
-        <h5 className="mb-0">Search Flights via Duffel API <span className="badge bg-secondary fs-11 align-middle ms-2">POC</span></h5>
-      </div>
-      <div className="card-body">
-        <div className="row g-3 align-items-end">
-          <div className="col-md-2">
-            <label className="form-label fs-14">Origin</label>
-            <input className="form-control" value={duffelOrigin} onChange={e => setDuffelOrigin(e.target.value.toUpperCase())} placeholder="e.g. TUN" maxLength={3} />
-          </div>
-          <div className="col-md-2">
-            <label className="form-label fs-14">Destination</label>
-            <input className="form-control" value={duffelDest} onChange={e => setDuffelDest(e.target.value.toUpperCase())} placeholder="e.g. IST" maxLength={3} />
-          </div>
-          <div className="col-md-2">
-            <label className="form-label fs-14">Departure</label>
-            <input type="date" className="form-control" value={duffelDate} onChange={e => setDuffelDate(e.target.value)} />
-          </div>
-          <div className="col-md-2">
-            <label className="form-label fs-14">Return (optional)</label>
-            <input type="date" className="form-control" value={duffelReturn} onChange={e => setDuffelReturn(e.target.value)} />
-          </div>
-          <div className="col-md-1">
-            <label className="form-label fs-14">Adults</label>
-            <input type="number" min={1} className="form-control" value={duffelAdults} onChange={e => setDuffelAdults(Math.max(1, Number(e.target.value)))} />
-          </div>
-          <div className="col-md-1">
-            <label className="form-label fs-14">Class</label>
-            <select className="form-select" value={duffelClass} onChange={e => setDuffelClass(e.target.value)}>
-              <option value="economy">Economy</option>
-              <option value="business">Business</option>
-              <option value="first">First</option>
-            </select>
-          </div>
-          <div className="col-md-2">
-            <button className="btn btn-primary w-100" onClick={handleDuffelSearch} disabled={duffelLoading}>
-              {duffelLoading ? <><span className="spinner-border spinner-border-sm me-2" />Searching...</> : 'Search'}
-            </button>
-          </div>
-        </div>
-
-        {duffelError && <div className="alert alert-danger mt-3 py-2 fs-14 mb-0">{duffelError}</div>}
-
-        {duffelResults.length > 0 && (
-          <div className="mt-4">
-            <h6 className="mb-3">{duffelResults.length} offer{duffelResults.length > 1 ? 's' : ''} found</h6>
-            <div className="row g-3">
-              {duffelResults.map((offer) => (
-                <div key={offer.offerId} className="col-md-6">
-                  <div className="card border h-100">
-                    <div className="card-body">
-                      <div className="d-flex justify-content-between align-items-start mb-2">
-                        <div>
-                          <h6 className="mb-1">{offer.airline} ({offer.airlineIata})</h6>
-                          <span className="badge bg-light text-dark fs-11">{offer.cabinClass || 'economy'}</span>
-                        </div>
-                        <h5 className="text-primary mb-0">{formatPrice(offer.totalAmount, offer.totalCurrency)}</h5>
+                    <h5 className="text-primary mb-0">{formatPrice(offer.totalAmount, offer.totalCurrency)}</h5>
+                  </div>
+                  {offer.slices.map((slice, i) => (
+                    <div key={i} className="mb-2 pb-2 border-bottom">
+                      <div className="d-flex justify-content-between mb-1">
+                        <span className="fw-medium fs-14">{slice.origin}</span>
+                        <span className="text-muted fs-14">{formatTime(slice.departureTime)}</span>
                       </div>
-                      {offer.slices.map((slice, i) => (
-                        <div key={i} className="mb-2 pb-2 border-bottom">
-                          <div className="d-flex justify-content-between">
-                            <span className="fw-medium">{slice.origin}</span>
-                            <span className="text-muted">{formatTime(slice.departureTime)}</span>
-                          </div>
-                          <div className="d-flex justify-content-between">
-                            <span className="fw-medium">{slice.destination}</span>
-                            <span className="text-muted">{formatTime(slice.arrivalTime)}</span>
-                          </div>
-                          <div className="fs-12 text-muted">
-                            {slice.duration} &middot; {slice.stops === 0 ? 'Direct' : `${slice.stops} stop${slice.stops > 1 ? 's' : ''}`}
-                          </div>
-                        </div>
-                      ))}
-                      <div className="d-flex justify-content-between align-items-center mt-2">
-                        <span className="fs-12 text-muted">Expires: {formatTime(offer.expiresAt)}</span>
-                        <button className="btn btn-sm btn-primary" onClick={() => handleRequestFlight(offer)}>
-                          Request this flight
-                        </button>
+                      <div className="d-flex justify-content-between">
+                        <span className="fw-medium fs-14">{slice.destination}</span>
+                        <span className="text-muted fs-14">{formatTime(slice.arrivalTime)}</span>
+                      </div>
+                      <div className="fs-12 text-muted mt-1">
+                        {slice.duration.replace('PT', '').replace('H', 'h ').replace('M', 'm')}
+                        <span className="mx-1">&middot;</span>
+                        {slice.stops === 0 ? 'Direct' : `${slice.stops} stop${slice.stops > 1 ? 's' : ''}`}
                       </div>
                     </div>
+                  ))}
+                  <div className="d-flex justify-content-between align-items-center mt-3">
+                    <span className="fs-12 text-muted">Expires: {formatTime(offer.expiresAt)}</span>
+                    <button className="btn btn-primary btn-sm" onClick={() => handleRequestFlight(offer)}>
+                      Request this flight
+                    </button>
                   </div>
                 </div>
-              ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {!duffelLoading && !hasSearched && !duffelError && (
+        <>
+          <div className="mb-3">
+            <h5 className="mb-2">Popular airlines</h5>
+          </div>
+          <div className="row">
+            <div className="col-xxl-2 col-lg-3 col-md-4 col-sm-6">
+              <div className="d-flex align-items-center hotel-type-item mb-3">
+                <Link to="#" className="avatar avatar-lg">
+                  <ImageWithBasePath src="assets/img/flight/flight-company-01.svg" className="rounded-circle" alt="American Airlines" />
+                </Link>
+                <div className="ms-2">
+                  <h6 className="fs-16 fw-medium"><Link to="#">American Airlines</Link></h6>
+                  <p className="fs-14">Global carrier</p>
+                </div>
+              </div>
+            </div>
+            <div className="col-xxl-2 col-lg-3 col-md-4 col-sm-6">
+              <div className="d-flex align-items-center hotel-type-item mb-3">
+                <Link to="#" className="avatar avatar-lg">
+                  <ImageWithBasePath src="assets/img/flight/flight-company-02.svg" className="rounded-circle" alt="Delta Airlines" />
+                </Link>
+                <div className="ms-2">
+                  <h6 className="fs-16 fw-medium"><Link to="#">Delta Airlines</Link></h6>
+                  <p className="fs-14">Global carrier</p>
+                </div>
+              </div>
+            </div>
+            <div className="col-xxl-2 col-lg-3 col-md-4 col-sm-6">
+              <div className="d-flex align-items-center hotel-type-item mb-3">
+                <Link to="#" className="avatar avatar-lg">
+                  <ImageWithBasePath src="assets/img/flight/flight-company-03.svg" className="rounded-circle" alt="Emirates" />
+                </Link>
+                <div className="ms-2">
+                  <h6 className="fs-16 fw-medium"><Link to="#">Emirates</Link></h6>
+                  <p className="fs-14">Global carrier</p>
+                </div>
+              </div>
+            </div>
+            <div className="col-xxl-2 col-lg-3 col-md-4 col-sm-6">
+              <div className="d-flex align-items-center hotel-type-item mb-3">
+                <Link to="#" className="avatar avatar-lg">
+                  <ImageWithBasePath src="assets/img/flight/flight-company-04.svg" className="rounded-circle" alt="Air France" />
+                </Link>
+                <div className="ms-2">
+                  <h6 className="fs-16 fw-medium"><Link to="#">Air France</Link></h6>
+                  <p className="fs-14">Global carrier</p>
+                </div>
+              </div>
+            </div>
+            <div className="col-xxl-2 col-lg-3 col-md-4 col-sm-6">
+              <div className="d-flex align-items-center hotel-type-item mb-3">
+                <Link to="#" className="avatar avatar-lg">
+                  <ImageWithBasePath src="assets/img/flight/flight-company-05.svg" className="rounded-circle" alt="Qatar Airways" />
+                </Link>
+                <div className="ms-2">
+                  <h6 className="fs-16 fw-medium"><Link to="#">Qatar Airways</Link></h6>
+                  <p className="fs-14">Global carrier</p>
+                </div>
+              </div>
+            </div>
+            <div className="col-xxl-2 col-lg-3 col-md-4 col-sm-6">
+              <div className="d-flex align-items-center hotel-type-item mb-3">
+                <Link to="#" className="avatar avatar-lg">
+                  <ImageWithBasePath src="assets/img/flight/flight-company-06.svg" className="rounded-circle" alt="Air India" />
+                </Link>
+                <div className="ms-2">
+                  <h6 className="fs-16 fw-medium"><Link to="#">Air India</Link></h6>
+                  <p className="fs-14">Global carrier</p>
+                </div>
+              </div>
             </div>
           </div>
-        )}
-
-        {!duffelLoading && duffelResults.length === 0 && !duffelError && (
-          <p className="text-muted fs-14 mt-3 mb-0">Enter origin/destination IATA codes and a date, then click Search. Test examples: TUN &rarr; IST, TUN &rarr; CDG.</p>
-        )}
-      </div>
+        </>
+      )}
     </div>
-    {/* /Duffel Flight Search */}
+    {/* /Flight results */}
     </>
   )
 }
