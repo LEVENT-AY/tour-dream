@@ -9,7 +9,10 @@ import {
   type ServiceRequestPriority,
   type AdminUserView,
 } from '../../../core/services/firebaseServices';
-import { auth } from '../../../firebase';
+import { auth, app } from '../../../firebase';
+import { getStorage, ref, getDownloadURL } from 'firebase/storage';
+
+const storage = getStorage(app);
 
 const STATUS_OPTIONS: ServiceRequestStatus[] = ['pending', 'contacted', 'confirmed', 'cancelled'];
 const PRIORITY_OPTIONS: ServiceRequestPriority[] = ['low', 'normal', 'high', 'urgent'];
@@ -37,6 +40,7 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 const PAYMENT_METHOD_LABELS: Record<string, string> = {
+  card: 'Card',
   wafa_cash: 'Wafa Cash',
   bank_transfer: 'Bank transfer',
   not_sure: 'Not sure yet',
@@ -44,6 +48,7 @@ const PAYMENT_METHOD_LABELS: Record<string, string> = {
 
 const PAYMENT_METHOD_FILTER_OPTIONS = [
   { value: 'all', label: 'All payment methods' },
+  { value: 'card', label: 'Card' },
   { value: 'wafa_cash', label: 'Wafa Cash' },
   { value: 'bank_transfer', label: 'Bank transfer' },
   { value: 'not_sure', label: 'Not sure yet' },
@@ -53,6 +58,8 @@ const PAYMENT_METHOD_FILTER_OPTIONS = [
 const PAYMENT_STATUS_OPTIONS = [
   { value: 'all', label: 'All statuses' },
   { value: 'not_requested', label: 'Not requested' },
+  { value: 'receipt_pending', label: 'Receipt pending' },
+  { value: 'receipt_uploaded', label: 'Receipt uploaded' },
 ];
 
 const FOLLOWUP_FILTER_OPTIONS = [
@@ -79,10 +86,43 @@ const CSV_HEADERS = [
   'createdAt','status','priority','serviceType','serviceTitle',
   'customerName','phone','email','requestedDate','guestsCount',
   'assignedTo','followUpDate','lastContactedAt','message','internalNotes',
-  'paymentFlow','paymentStatus','preferredPaymentMethod','paymentReference',
+  'paymentFlow','paymentStatus','preferredPaymentMethod','paymentReference','receiptUrl',
 ];
 
 const normalizePhone = (phone: string): string => phone.replace(/[^\d]/g, '');
+
+const resolveReceiptUrl = async (receiptPath: string): Promise<string> => {
+  try {
+    return await getDownloadURL(ref(storage, receiptPath));
+  } catch {
+    return '';
+  }
+};
+
+const ReceiptLink: React.FC<{ receiptPath: string }> = ({ receiptPath }) => {
+  const [url, setUrl] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setError(false);
+    setUrl(null);
+    resolveReceiptUrl(receiptPath).then((resolved) => {
+      if (cancelled) return;
+      if (resolved) { setUrl(resolved); } else { setError(true); }
+      setLoading(false);
+    });
+    return () => { cancelled = true; };
+  }, [receiptPath]);
+  if (loading) return <span className="fs-11 text-muted">Loading receipt...</span>;
+  if (error) return <span className="fs-11 text-danger">Receipt unavailable (admin only)</span>;
+  return (
+    <a href={url!} target="_blank" rel="noopener noreferrer" className="fs-11 text-decoration-none" title="View receipt">
+      <i className="isax isax-image me-1" />Receipt
+    </a>
+  );
+};
 
 const capitalize = (s?: string) => s ? s.charAt(0).toUpperCase() + s.slice(1) : '';
 
@@ -289,6 +329,8 @@ const AdminBookings: React.FC<AdminBookingsProps> = ({ title = 'All Bookings', d
         msg += ' We will send Wafa Cash instructions for the manual payment step.';
       } else if (r.preferredPaymentMethod === 'bank_transfer') {
         msg += ' We will share bank transfer instructions for the manual payment step.';
+      } else if (r.preferredPaymentMethod === 'card') {
+        msg += ' You selected card payment. We will contact you once card payment is available.';
       } else {
         msg += ' We will contact you with manual payment instructions.';
       }
@@ -297,6 +339,8 @@ const AdminBookings: React.FC<AdminBookingsProps> = ({ title = 'All Bookings', d
         msg += ' After confirmation, we will send Wafa Cash instructions.';
       } else if (r.preferredPaymentMethod === 'bank_transfer') {
         msg += ' After confirmation, we will send bank transfer instructions.';
+      } else if (r.preferredPaymentMethod === 'card') {
+        msg += ' You selected card payment. We will contact you once card payment is available.';
       } else {
         msg += ' Our team will confirm availability and help you choose the best manual payment method.';
       }
@@ -323,7 +367,7 @@ const AdminBookings: React.FC<AdminBookingsProps> = ({ title = 'All Bookings', d
       `Priority: ${capitalize(r.priority) || 'Normal'}`,
       `Assigned to: ${r.assignedTo || 'Unassigned'}`,
       `Follow-up: ${r.followUpDate || 'Not set'}`,
-      `Payment: ${r.paymentFlow === 'manual' ? 'Manual' : r.paymentFlow || 'N/A'}${r.preferredPaymentMethod ? ` / ${PAYMENT_METHOD_LABELS[r.preferredPaymentMethod] || r.preferredPaymentMethod.replace(/_/g, ' ')}` : ''}${r.paymentReference ? `\nPayment reference: ${r.paymentReference}` : ''}`,
+      `Payment: ${r.paymentFlow === 'manual' ? 'Manual' : r.paymentFlow || 'N/A'}${r.preferredPaymentMethod ? ` / ${PAYMENT_METHOD_LABELS[r.preferredPaymentMethod] || r.preferredPaymentMethod.replace(/_/g, ' ')}` : ''}${r.paymentReference ? `\nPayment reference: ${r.paymentReference}` : ''}${r.receiptUrl ? '\nReceipt: Uploaded' : ''}`,
       `Customer message: ${r.message || '(none)'}`,
     ];
     try {
@@ -344,7 +388,10 @@ const AdminBookings: React.FC<AdminBookingsProps> = ({ title = 'All Bookings', d
     if (field === 'paymentStatus') {
       const val = (r as any)[field];
       if (!val) return '';
-      return val === 'not_requested' ? 'Not requested' : val.replace(/_/g, ' ');
+      if (val === 'not_requested') return 'Not requested';
+      if (val === 'receipt_pending') return 'Receipt pending';
+      if (val === 'receipt_uploaded') return 'Receipt uploaded';
+      return val.replace(/_/g, ' ');
     }
     if (field === 'paymentFlow') {
       return (r as any)[field] === 'manual' ? 'Manual' : (r as any)[field] || '';
@@ -359,6 +406,9 @@ const AdminBookings: React.FC<AdminBookingsProps> = ({ title = 'All Bookings', d
       return (r as any)[field] || '';
     }
     if (field === 'paymentReference') {
+      return (r as any)[field] || '';
+    }
+    if (field === 'receiptUrl') {
       return (r as any)[field] || '';
     }
     return (r as any)[field];
@@ -686,6 +736,7 @@ const AdminBookings: React.FC<AdminBookingsProps> = ({ title = 'All Bookings', d
                               {!r.preferredPaymentMethod && (
                                 <span className="badge bg-light text-muted fs-10 fw-normal">Not selected</span>
                               )}
+                              {r.receiptPath && <ReceiptLink receiptPath={r.receiptPath} />}
                             </div>
                           )}
                           {!r.paymentFlow && (
@@ -939,6 +990,16 @@ const AdminBookings: React.FC<AdminBookingsProps> = ({ title = 'All Bookings', d
                       <div className="col-md-3">
                         <span className="fs-13 text-muted">Reference</span>
                         <p className="mb-0" style={{ wordBreak: 'break-word' }}>{selectedRequest.paymentReference || <em className="text-muted">Not provided</em>}</p>
+                      </div>
+                      <div className="col-md-3">
+                        <span className="fs-13 text-muted">Receipt</span>
+                        <p className="mb-0">
+                          {selectedRequest.receiptPath ? (
+                            <ReceiptLink receiptPath={selectedRequest.receiptPath} />
+                          ) : (
+                            <em className="text-muted">Not uploaded</em>
+                          )}
+                        </p>
                       </div>
                     </div>
                     <p className="fs-12 text-muted mt-2 mb-0">

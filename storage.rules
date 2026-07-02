@@ -16,8 +16,8 @@ service firebase.storage {
     }
 
     function isAdmin() {
-      return isSignedIn()
-        && firestore.get(/databases/(default)/documents/users/$(currentUserId())).data.role == 'admin';
+      return request.auth != null
+        && request.auth.token.role == 'admin';
     }
 
     function isAgent() {
@@ -66,6 +66,14 @@ service firebase.storage {
     match /listings/{listingId}/{fileName} {
       allow read: if true;
       allow write: if isAdmin() && isValidFile();
+    }
+
+    // Receipt uploads for payment/flight requests (public create, admin read/delete)
+    match /receipts/{allPaths=**} {
+      allow read: if isAdmin();
+      allow create: if request.resource.size < 5 * 1024 * 1024
+        && request.resource.contentType.matches('image/(jpeg|png|gif|webp)');
+      allow update, delete: if isAdmin();
     }
 
     // Agent business documents/images

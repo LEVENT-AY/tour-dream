@@ -3,9 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import { all_routes } from '../../router/all_routes';
 import Breadcrumb from '../../../core/common/Breadcrumb/breadcrumb';
 import ImageWithBasePath from '../../../core/common/imageWithBasePath';
+import { app } from '../../../firebase';
+import { getStorage, ref, uploadBytesResumable } from 'firebase/storage';
 import { createServiceRequest } from '../../../core/services/firebaseServices';
-import type { CreateServiceRequestInput } from '../../../core/services/firebaseServices';
+import type { CreateServiceRequestInput, PreferredPaymentMethod, ManualPaymentStatus } from '../../../core/services/firebaseServices';
 import type { DuffelOffer } from '../../../core/services/duffelApi';
+
+const storage = getStorage(app);
 
 const IATA_TO_LABEL: Record<string, string> = {
   TUN: 'Tunis (TUN)', SFA: 'Sfax (SFA)', MIR: 'Monastir (MIR)',
@@ -61,19 +65,78 @@ const FlightBooking = () => {
     const [passengers, setPassengers] = useState(1);
     const [preferredClass, setPreferredClass] = useState('Economy');
     const [message, setMessage] = useState('');
+    const [paymentMethod, setPaymentMethod] = useState<PreferredPaymentMethod | ''>('');
+    const [receiptFile, setReceiptFile] = useState<File | null>(null);
+    const [receiptUploading, setReceiptUploading] = useState(false);
+    const [receiptPath, setReceiptPath] = useState('');
+    const [receiptError, setReceiptError] = useState('');
     const [submitting, setSubmitting] = useState(false);
     const [submitted, setSubmitted] = useState(false);
     const [error, setError] = useState('');
 
+    const uploadReceipt = async (file: File): Promise<string> => {
+        const ext = file.name.split('.').pop() || 'jpg';
+        const path = `receipts/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+        const storageRef = ref(storage, path);
+        const uploadTask = uploadBytesResumable(storageRef, file);
+        return new Promise((resolve, reject) => {
+            uploadTask.on(
+                'state_changed',
+                () => {},
+                (err) => {
+                    console.error('Receipt upload failed', (err as any).code, (err as any).message, {
+                        storagePath: path,
+                        contentType: file.type,
+                        fileSize: file.size,
+                    });
+                    reject(err);
+                },
+                () => {
+                    resolve(uploadTask.snapshot.ref.fullPath);
+                }
+            );
+        });
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
+        setReceiptError('');
         if (!name.trim() || !email.trim()) {
             setError('Name and email are required');
             return;
         }
+        if (!paymentMethod) {
+            setError('Please select a payment method');
+            return;
+        }
+        if ((paymentMethod === 'wafa_cash' || paymentMethod === 'bank_transfer') && !receiptFile && !receiptPath) {
+            setError('Please upload your payment receipt');
+            return;
+        }
         setSubmitting(true);
+        let uploadedReceiptPath = receiptPath;
+        let uploadedReceiptFileName = '';
+        let uploadedReceiptContentType = '';
+        let paymentStatus: ManualPaymentStatus = paymentMethod === 'card' ? 'not_requested' : 'receipt_pending';
         try {
+            if (receiptFile) {
+                setReceiptUploading(true);
+                uploadedReceiptFileName = receiptFile.name;
+                uploadedReceiptContentType = receiptFile.type;
+                try {
+                    uploadedReceiptPath = await uploadReceipt(receiptFile);
+                    paymentStatus = 'receipt_uploaded';
+                    setReceiptPath(uploadedReceiptPath);
+                } catch (uploadErr) {
+                    setReceiptUploading(false);
+                    setSubmitting(false);
+                    setReceiptError('Failed to upload receipt. Please check your connection and try again.');
+                    return;
+                }
+                setReceiptUploading(false);
+            }
+
             const payload: CreateServiceRequestInput = {
                 serviceType: 'flight',
                 serviceId: 'flight-request',
@@ -84,6 +147,11 @@ const FlightBooking = () => {
                 customerEmail: email.trim(),
                 customerPhone: phone.trim() || undefined,
                 message: message.trim() || undefined,
+                preferredPaymentMethod: paymentMethod as PreferredPaymentMethod,
+                paymentStatus,
+                receiptPath: uploadedReceiptPath || undefined,
+                receiptFileName: uploadedReceiptFileName || undefined,
+                receiptContentType: uploadedReceiptContentType || undefined,
             };
 
             if (offer) {
@@ -112,6 +180,7 @@ const FlightBooking = () => {
             setError(err instanceof Error ? err.message : 'Failed to submit request');
         } finally {
             setSubmitting(false);
+            setReceiptUploading(false);
         }
     };
 
@@ -218,11 +287,83 @@ const FlightBooking = () => {
                                             <textarea className="form-control" rows={3} value={message} onChange={e => setMessage(e.target.value)} placeholder="Any special requirements or notes..." />
                                         </div>
 
+                                        <div className="checkout-title mb-3">
+                                            <h6 className="mb-2">Payment Method</h6>
+                                        </div>
+                                        <div className="mb-4">
+                                            <div className="d-flex flex-column gap-2">
+                                                <label className={`d-flex align-items-center gap-2 p-3 border rounded cursor-pointer ${paymentMethod === 'card' ? 'border-primary' : ''}`}>
+                                                    <input type="radio" name="paymentMethod" value="card" checked={paymentMethod === 'card'} onChange={e => { setPaymentMethod(e.target.value as PreferredPaymentMethod); setReceiptFile(null); setReceiptPath(''); }} />
+                                                    <div>
+                                                        <span className="fw-medium">Card</span>
+                                                        <p className="mb-0 fs-13 text-muted">Pay with credit or debit card</p>
+                                                    </div>
+                                                </label>
+                                                {paymentMethod === 'card' && (
+                                                    <div className="alert alert-info py-2 mb-0 ms-4">
+                                                        <i className="isax isax-info-circle me-1" />
+                                                        Secure card payment coming soon. Your request will be processed and we will contact you.
+                                                    </div>
+                                                )}
+                                                <label className={`d-flex align-items-center gap-2 p-3 border rounded cursor-pointer ${paymentMethod === 'wafa_cash' ? 'border-primary' : ''}`}>
+                                                    <input type="radio" name="paymentMethod" value="wafa_cash" checked={paymentMethod === 'wafa_cash'} onChange={e => { setPaymentMethod(e.target.value as PreferredPaymentMethod); setReceiptFile(null); setReceiptPath(''); }} />
+                                                    <div>
+                                                        <span className="fw-medium">Wafa Cash</span>
+                                                        <p className="mb-0 fs-13 text-muted">Pay via Wafa Cash (Tunisian mobile payment)</p>
+                                                    </div>
+                                                </label>
+                                                {paymentMethod === 'wafa_cash' && (
+                                                    <div className="ms-4 p-3 bg-light rounded">
+                                                        <p className="mb-2 fs-14 fw-medium">How to pay via Wafa Cash:</p>
+                                                        <ol className="fs-13 mb-2 ps-3">
+                                                            <li>Open your Wafa Cash mobile app</li>
+                                                            <li>Select "Pay merchant" or "Transfer"</li>
+                                                            <li>Enter our merchant code (we will provide it after confirmation)</li>
+                                                            <li>Enter the amount shown on the invoice</li>
+                                                            <li>Confirm the payment and save the receipt</li>
+                                                        </ol>
+                                                        <p className="fs-13 text-muted mb-2">Upload your payment receipt so we can confirm your transfer:</p>
+                                                        <div className="d-flex align-items-center gap-2">
+                                                            <input type="file" accept="image/*" className="form-control form-control-sm" onChange={e => { const f = e.target.files?.[0] || null; setReceiptFile(f); setReceiptError(''); }} />
+                                                            {receiptFile && <span className="badge bg-success fs-11">{receiptFile.name}</span>}
+                                                        </div>
+                                                        {receiptError && <div className="text-danger fs-12 mt-1">{receiptError}</div>}
+                                                    </div>
+                                                )}
+                                                <label className={`d-flex align-items-center gap-2 p-3 border rounded cursor-pointer ${paymentMethod === 'bank_transfer' ? 'border-primary' : ''}`}>
+                                                    <input type="radio" name="paymentMethod" value="bank_transfer" checked={paymentMethod === 'bank_transfer'} onChange={e => { setPaymentMethod(e.target.value as PreferredPaymentMethod); setReceiptFile(null); setReceiptPath(''); }} />
+                                                    <div>
+                                                        <span className="fw-medium">Bank Transfer</span>
+                                                        <p className="mb-0 fs-13 text-muted">Pay via direct bank transfer</p>
+                                                    </div>
+                                                </label>
+                                                {paymentMethod === 'bank_transfer' && (
+                                                    <div className="ms-4 p-3 bg-light rounded">
+                                                        <p className="mb-2 fs-14 fw-medium">How to pay via Bank Transfer:</p>
+                                                        <ol className="fs-13 mb-2 ps-3">
+                                                            <li>Transfer the amount to our bank account (we will provide the details after confirmation)</li>
+                                                            <li>Include your invoice number in the transfer description</li>
+                                                            <li>Keep the bank transaction receipt</li>
+                                                        </ol>
+                                                        <p className="fs-13 text-muted mb-2">Upload your payment receipt so we can confirm your transfer:</p>
+                                                        <div className="d-flex align-items-center gap-2">
+                                                            <input type="file" accept="image/*" className="form-control form-control-sm" onChange={e => { const f = e.target.files?.[0] || null; setReceiptFile(f); setReceiptError(''); }} />
+                                                            {receiptFile && <span className="badge bg-success fs-11">{receiptFile.name}</span>}
+                                                        </div>
+                                                        {receiptError && <div className="text-danger fs-12 mt-1">{receiptError}</div>}
+                                                    </div>
+                                                )}
+                                            </div>
+                                            {paymentMethod === '' && (
+                                                <p className="fs-12 text-muted mt-1 mb-0">Select a payment method. Our team will confirm availability before processing payment.</p>
+                                            )}
+                                        </div>
+
                                         {error && <div className="alert alert-danger py-2">{error}</div>}
 
                                         <div className="d-flex align-items-center justify-content-end gap-2">
-                                            <button type="submit" className="btn btn-primary" disabled={submitting}>
-                                                {submitting ? <><span className="spinner-border spinner-border-sm me-2" />Sending...</> : 'Send Request'}
+                                            <button type="submit" className="btn btn-primary" disabled={submitting || receiptUploading}>
+                                                {receiptUploading ? <><span className="spinner-border spinner-border-sm me-2" />Uploading receipt...</> : submitting ? <><span className="spinner-border spinner-border-sm me-2" />Sending...</> : 'Send Request'}
                                             </button>
                                         </div>
                                     </form>
