@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.flightOffersSearch = void 0;
 const https_1 = require("firebase-functions/v2/https");
 const params_1 = require("firebase-functions/params");
+const DUFFEL_URL = 'https://api.duffel.com/air/offer_requests?return_offers=true&supplier_timeout=30000';
 const duffelToken = (0, params_1.defineSecret)('DUFFEL_ACCESS_TOKEN');
 function normalizeOffers(raw) {
     const data = raw.data;
@@ -80,21 +81,59 @@ exports.flightOffersSearch = (0, https_1.onRequest)({
         duffelPayload.data.cabin_class = cabinClass.toLowerCase();
     }
     try {
-        const response = await fetch('https://api.duffel.com/air/offer_requests', {
+        const token = duffelToken.value();
+        console.log("DUFFEL_DEBUG_REQUEST", JSON.stringify({
+            tokenLivePrefix: token.startsWith("duffel_live_"),
+            origin,
+            destination,
+            departureDate,
+            adults,
+            cabinClass
+        }));
+        const response = await fetch(DUFFEL_URL, {
             method: 'POST',
             headers: {
-                Authorization: `Bearer ${duffelToken.value()}`,
+                Authorization: `Bearer ${token}`,
                 'Content-Type': 'application/json',
-                'Duffel-Version': 'v1',
+                'Duffel-Version': 'v2',
             },
             body: JSON.stringify(duffelPayload),
         });
         const raw = (await response.json());
-        const offers = normalizeOffers(raw);
-        res.json({ offers });
+        if (!response.ok) {
+            console.log("DUFFEL_DEBUG_RESPONSE", JSON.stringify({
+                duffelStatus: response.status,
+                errors: raw.errors || null,
+                responseTopLevelKeys: raw && typeof raw === "object" ? Object.keys(raw) : []
+            }));
+            console.log("DUFFEL_DEBUG_ERROR", JSON.stringify({
+                duffelStatus: response.status,
+                errorType: Array.isArray(raw.errors) ? raw.errors[0]?.type || null : null,
+                errorCode: Array.isArray(raw.errors) ? raw.errors[0]?.code || null : null,
+                errorTitle: Array.isArray(raw.errors) ? raw.errors[0]?.title || null : null,
+                errorMessage: Array.isArray(raw.errors) ? raw.errors[0]?.message || null : null
+            }));
+            res.status(502).json({ error: 'Duffel API request failed', details: raw.errors || [] });
+            return;
+        }
+        const normalizedOffers = normalizeOffers(raw);
+        console.log("DUFFEL_DEBUG_RESPONSE", JSON.stringify({
+            duffelStatus: response.status,
+            offerRequestId: raw.data?.id || null,
+            liveMode: raw.data?.live_mode ?? null,
+            rawOfferCount: Array.isArray(raw.data?.offers) ? (raw.data?.offers).length : null,
+            normalizedOfferCount: normalizedOffers.length
+        }));
+        res.json({ offers: normalizedOffers });
     }
     catch (err) {
-        console.error('Duffel API error:', err);
+        console.log("DUFFEL_DEBUG_ERROR", JSON.stringify({
+            duffelStatus: err instanceof Response ? err.status : null,
+            errorType: null,
+            errorCode: null,
+            errorTitle: null,
+            errorMessage: err instanceof Error ? err.message : String(err)
+        }));
         res.status(502).json({ error: 'Failed to fetch flight offers' });
     }
 });
