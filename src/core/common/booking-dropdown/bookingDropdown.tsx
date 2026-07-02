@@ -11,6 +11,8 @@ type Props = {
   defaultSubValue: string;
   locations: Location[];
   onChange?: (value: string) => void;
+  value?: string;
+  subValue?: string;
 };
 
 export default function BookingDropdown({
@@ -19,13 +21,18 @@ export default function BookingDropdown({
   defaultSubValue,
   locations,
   onChange,
+  value: controlledValue,
+  subValue: controlledSubValue,
 }: Props) {
-  const [value, setValue] = useState(defaultValue);
-  const [subValue, setSubValue] = useState(defaultSubValue);
+  const [internalValue, setInternalValue] = useState(defaultValue);
+  const [internalSubValue, setInternalSubValue] = useState(defaultSubValue);
+
+  const displayValue = controlledValue !== undefined ? controlledValue : internalValue;
+  const displaySubValue = controlledSubValue !== undefined ? controlledSubValue : internalSubValue;
 
   const handleSelect = (loc: Location) => {
-    setValue(loc.value);
-    setSubValue(loc.subValue??"");
+    setInternalValue(loc.value);
+    setInternalSubValue(loc.subValue??"");
     onChange?.(loc.value);
   };
 
@@ -37,11 +44,11 @@ export default function BookingDropdown({
       <input
         type="text"
         className="form-control value-input"
-        value={value}
+        value={displayValue}
         readOnly
       />
-    {subValue ? (
-      <p className="fs-12 mb-0">{subValue}</p>
+    {displaySubValue ? (
+      <p className="fs-12 mb-0">{displaySubValue}</p>
     ):(<p className="fs-12 mb-0">{defaultSubValue}</p>)}
 
       <div className="dropdown-menu dropdown-md p-0">

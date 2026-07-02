@@ -1,37 +1,16 @@
-import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useState, useEffect, useRef } from 'react'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import type { DuffelOffer } from '../../core/services/duffelApi'
 import { searchFlightOffers } from '../../core/services/duffelApi'
 import ImageWithBasePath from '../../core/common/imageWithBasePath'
 import { DatePicker } from 'antd'
-import type { Dayjs } from 'dayjs'
+import dayjs, { type Dayjs } from 'dayjs'
 
 import BannerCounter from '../../core/common/banner-counter/counter';
 
 import BookingDropdown from '../../core/common/booking-dropdown/bookingDropdown';
 
-const AIRPORT_IATA: Record<string, string> = {
-  "Tunis (TUN)": "TUN",
-  "Sfax (SFA)": "SFA",
-  "Monastir (MIR)": "MIR",
-  "Djerba (DJE)": "DJE",
-  "Tozeur (TOE)": "TOE",
-  "Istanbul (IST)": "IST",
-  "Paris (CDG)": "CDG",
-  "Dubai (DXB)": "DXB",
-  "London (LHR)": "LHR",
-  "Frankfurt (FRA)": "FRA",
-  "Rome (FCO)": "FCO",
-  "Madrid (MAD)": "MAD",
-  "Casablanca (CMN)": "CMN",
-  "Cairo (CAI)": "CAI",
-  "Doha (DOH)": "DOH",
-};
-
-const LOCATIONS = Object.entries(AIRPORT_IATA).map(([label, code]) => {
-  const name = label.replace(/ \(...\)$/, '');
-  return { value: label, subValue: `${code} — ${name}` };
-});
+import { AIRPORT_IATA, FLIGHT_LOCATIONS } from '../../core/common/data/flightAirports';
 
 type Mode = "flight";
 type BookingState = {
@@ -87,11 +66,88 @@ const FlightSearch = ({ onSearch }: { onSearch?: (active: boolean) => void }) =>
   const [departurePicker, setDeparturePicker] = useState<Dayjs | null>(null);
   const [returnPicker, setReturnPicker] = useState<Dayjs | null>(null);
   const [cabinClass, setCabinClass] = useState('Economy');
+  const fromSubValue = FLIGHT_LOCATIONS.find(l => l.value === fromValue)?.subValue;
+  const toSubValue = FLIGHT_LOCATIONS.find(l => l.value === toValue)?.subValue;
   const [duffelResults, setDuffelResults] = useState<DuffelOffer[]>([]);
   const [duffelLoading, setDuffelLoading] = useState(false);
   const [duffelError, setDuffelError] = useState('');
   const [hasSearched, setHasSearched] = useState(false);
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const autoSearchDone = useRef(false);
+
+  useEffect(() => {
+    if (autoSearchDone.current) return;
+    const originParam = searchParams.get('origin');
+    const destParam = searchParams.get('destination');
+    const dateParam = searchParams.get('departureDate');
+    if (!originParam || !destParam || !dateParam) return;
+    autoSearchDone.current = true;
+
+    const fromLabel = Object.entries(AIRPORT_IATA).find(([, c]) => c === originParam)?.[0];
+    const toLabel = Object.entries(AIRPORT_IATA).find(([, c]) => c === destParam)?.[0];
+    if (!fromLabel || !toLabel) {
+      setDuffelError(`Unknown airport code: ${!fromLabel ? originParam : destParam}`);
+      return;
+    }
+
+    setFromValue(fromLabel);
+    setToValue(toLabel);
+
+    const adultsParam = searchParams.get('adults');
+    const n = adultsParam ? parseInt(adultsParam, 10) : 1;
+    if (adultsParam && !isNaN(n) && n > 0) {
+      updateField('flight', 'adults', n);
+    }
+
+    const cabinParam = searchParams.get('cabinClass') || 'economy';
+    setCabinClass(cabinParam.charAt(0).toUpperCase() + cabinParam.slice(1));
+
+    const d = dayjs(dateParam);
+    if (d.isValid()) {
+      setDeparturePicker(d);
+    } else {
+      setDuffelError('Invalid departure date');
+      return;
+    }
+
+    const doSearch = async () => {
+      setHasSearched(true);
+      onSearch?.(true);
+      setDuffelLoading(true);
+      setDuffelError('');
+      setDuffelResults([]);
+      try {
+        const result = await searchFlightOffers({
+          origin: originParam,
+          destination: destParam,
+          departureDate: dateParam,
+          adults: !isNaN(n) && n > 0 ? n : 1,
+          cabinClass: cabinParam,
+        });
+        setDuffelResults(result.offers);
+      } catch (err) {
+        setDuffelError('Flight search is temporarily unavailable. Please try again.');
+      } finally {
+        setDuffelLoading(false);
+      }
+    };
+    doSearch();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const updateUrlParams = () => {
+    const origin = AIRPORT_IATA[fromValue];
+    const destination = AIRPORT_IATA[toValue];
+    if (origin && destination && departurePicker) {
+      const params = new URLSearchParams();
+      params.set('origin', origin);
+      params.set('destination', destination);
+      params.set('departureDate', departurePicker.format('YYYY-MM-DD'));
+      params.set('adults', String(totalFlightPassengers));
+      params.set('cabinClass', cabinClass.toLowerCase());
+      navigate(`/flight/flight-grid?${params.toString()}`, { replace: true });
+    }
+  };
 
   const handleSearch = async () => {
     const origin = AIRPORT_IATA[fromValue];
@@ -229,7 +285,9 @@ const FlightSearch = ({ onSearch }: { onSearch?: (active: boolean) => void }) =>
                                           label="From"
                                           defaultValue="Select"
                                           defaultSubValue="Select airport"
-                                          locations={LOCATIONS}
+                                          locations={FLIGHT_LOCATIONS}
+                                          value={fromValue}
+                                          subValue={fromSubValue}
                                           onChange={(v) => setFromValue(v)}
                                         />
                                       </div>
@@ -245,7 +303,9 @@ const FlightSearch = ({ onSearch }: { onSearch?: (active: boolean) => void }) =>
                                           label="To"
                                           defaultValue="Select"
                                           defaultSubValue="Select airport"
-                                          locations={LOCATIONS}
+                                          locations={FLIGHT_LOCATIONS}
+                                          value={toValue}
+                                          subValue={toSubValue}
                                           onChange={(v) => setToValue(v)}
                                         />
                                         <span className="way-icon badge badge-primary rounded-pill translate-middle">
@@ -453,7 +513,7 @@ const FlightSearch = ({ onSearch }: { onSearch?: (active: boolean) => void }) =>
 
                                   <button type="button"
                                     className="btn btn-primary search-btn rounded"
-                                    onClick={handleSearch}
+                                    onClick={() => { handleSearch(); updateUrlParams(); }}
                                     disabled={duffelLoading}
                                   >
                                     {duffelLoading ? <><span className="spinner-border spinner-border-sm me-2" />Searching...</> : 'Search'}
@@ -479,7 +539,9 @@ const FlightSearch = ({ onSearch }: { onSearch?: (active: boolean) => void }) =>
                                           label="From"
                                           defaultValue="Select"
                                           defaultSubValue="Select airport"
-                                          locations={LOCATIONS}
+                                          locations={FLIGHT_LOCATIONS}
+                                          value={fromValue}
+                                          subValue={fromSubValue}
                                           onChange={(v) => setFromValue(v)}
                                         />
                                       </div>
@@ -494,7 +556,9 @@ const FlightSearch = ({ onSearch }: { onSearch?: (active: boolean) => void }) =>
                                           label="To"
                                           defaultValue="Select"
                                           defaultSubValue="Select airport"
-                                          locations={LOCATIONS}
+                                          locations={FLIGHT_LOCATIONS}
+                                          value={toValue}
+                                          subValue={toSubValue}
                                           onChange={(v) => setToValue(v)}
                                         />
                                         <span className="way-icon badge badge-primary rounded-pill translate-middle">
@@ -518,7 +582,7 @@ const FlightSearch = ({ onSearch }: { onSearch?: (active: boolean) => void }) =>
                                   </div>
                                   <button type="button"
                                     className="btn btn-primary search-btn rounded"
-                                    onClick={handleSearch}
+                                    onClick={() => { handleSearch(); updateUrlParams(); }}
                                     disabled={duffelLoading}
                                   >
                                     {duffelLoading ? <><span className="spinner-border spinner-border-sm me-2" />Searching...</> : 'Search'}

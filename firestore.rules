@@ -249,7 +249,7 @@ service cloud.firestore {
 
     // ---------- Service Requests ----------
     function isValidServiceType(serviceType) {
-      return serviceType in ['cruise', 'bus', 'visa', 'guide', 'tour', 'hotel', 'activity', 'other'];
+      return serviceType in ['cruise', 'bus', 'visa', 'guide', 'tour', 'hotel', 'activity', 'flight', 'other'];
     }
 
     function hasRequiredServiceRequestFields() {

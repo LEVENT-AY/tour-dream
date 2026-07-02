@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import VideoModal from "../home-Two/videoModal";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { DatePicker, TimePicker } from "antd";
-import dayjs from "dayjs";
+import dayjs, { type Dayjs } from "dayjs";
 
 import { all_routes } from "../router/all_routes";
 import CommonDateRange from "../../core/common/dateRange/CommonDateRange";
@@ -18,6 +18,7 @@ import LatestSection from "./latestSection";
 import FooterSection from "./footerSection";
 import BookingDropdown from "../../core/common/booking-dropdown/bookingDropdown";
 import BannerCounter from "../../core/common/banner-counter/counter";
+import { AIRPORT_IATA, FLIGHT_LOCATIONS } from "../../core/common/data/flightAirports";
 type Mode = "flight" | "hotel" | "cruise" | "tour" | "bus" | "activity" | "visa" | "guide";
 
 type BookingState = {
@@ -236,6 +237,26 @@ const guidePassenger =
   const [flightRadio, setFlightRadio] = useState<string>("oneway");
   const [carRadio, setCarRadio] = useState<string>("same-drop");
   const [busRadio, setbusRadio] = useState<string>("oneway");
+
+  const navigate = useNavigate();
+  const [homeFromValue, setHomeFromValue] = useState('Select');
+  const [homeToValue, setHomeToValue] = useState('Select');
+  const [homeDepartureDate, setHomeDepartureDate] = useState<Dayjs | null>(null);
+  const [homeCabinClass, setHomeCabinClass] = useState('Economy');
+
+  const handleHomeFlightSearch = () => {
+    const origin = AIRPORT_IATA[homeFromValue];
+    const destination = AIRPORT_IATA[homeToValue];
+    if (!origin || !destination) return;
+    if (!homeDepartureDate) return;
+    const params = new URLSearchParams();
+    params.set('origin', origin);
+    params.set('destination', destination);
+    params.set('departureDate', homeDepartureDate.format('YYYY-MM-DD'));
+    params.set('adults', String(totalFlightPassengers));
+    params.set('cabinClass', homeCabinClass.toLowerCase());
+    navigate(`/flight/flight-grid?${params.toString()}`);
+  };
 
   return (
     <>
@@ -458,14 +479,9 @@ const guidePassenger =
                                       <BookingDropdown
                                         label="From"
                                         defaultValue="Select"
-                                        defaultSubValue="Carthage International Airport"
-                                        locations={[
-                                          { value: "Tunis", subValue: "Carthage International Airport" },
-                                          { value: "Sfax", subValue: "Sfax Thyna International Airport" },
-                                          { value: "Monastir", subValue: "Monastir Habib Bourguiba Airport" },
-    { value: "Djerba", subValue: "Djerba Zarzis International Airport" },
-    { value: "Tozeur", subValue: "Tozeur Nefta International Airport" }
-                                        ]}
+                                        defaultSubValue="Select airport"
+                                        locations={FLIGHT_LOCATIONS}
+                                        onChange={(v) => setHomeFromValue(v)}
                                       />
                                       </div>
                                       </div>
@@ -484,14 +500,9 @@ const guidePassenger =
                                           <BookingDropdown
                                         label="To"
                                         defaultValue="Select"
-                                        defaultSubValue="Carthage International Airport"
-                                        locations={[
-                                          { value: "Tunis", subValue: "Carthage International Airport" },
-                                          { value: "Sfax", subValue: "Sfax Thyna International Airport" },
-                                          { value: "Monastir", subValue: "Monastir Habib Bourguiba Airport" },
-    { value: "Djerba", subValue: "Djerba Zarzis International Airport" },
-    { value: "Tozeur", subValue: "Tozeur Nefta International Airport" }
-                                        ]}
+                                        defaultSubValue="Select airport"
+                                        locations={FLIGHT_LOCATIONS}
+                                        onChange={(v) => setHomeToValue(v)}
                                       />
                                           </div>
                                       </div>
@@ -504,6 +515,8 @@ const guidePassenger =
                                           placeholder="dd/mm/yyyy"
                                           disabledDate={disabledDate}
                                           format="DD-MM-YYYY"
+                                          value={homeDepartureDate}
+                                          onChange={(v) => setHomeDepartureDate(v)}
                                         />
                                         <p className="fs-12 mb-0">Monday</p>
                                       </div>
@@ -612,14 +625,15 @@ const guidePassenger =
                                                 <input
                                                   className="form-check-input"
                                                   type="radio"
-                                                  defaultValue="Economy"
+                                                  value="Economy"
                                                   name="cabin-class"
-                                                  id="economy"
-                                                  defaultChecked
+                                                  id="home-economy"
+                                                  checked={homeCabinClass === 'Economy'}
+                                                  onChange={(e) => setHomeCabinClass(e.target.value)}
                                                 />
                                                 <label
                                                   className="form-check-label"
-                                                  htmlFor="economy"
+                                                  htmlFor="home-economy"
                                                 >
                                                   Economy
                                                 </label>
@@ -628,13 +642,15 @@ const guidePassenger =
                                                 <input
                                                   className="form-check-input"
                                                   type="radio"
-                                                  defaultValue="Economy"
+                                                  value="Premium Economy"
                                                   name="cabin-class"
-                                                  id="premium-economy"
+                                                  id="home-premium-economy"
+                                                  checked={homeCabinClass === 'Premium Economy'}
+                                                  onChange={(e) => setHomeCabinClass(e.target.value)}
                                                 />
                                                 <label
                                                   className="form-check-label"
-                                                  htmlFor="premium-economy"
+                                                  htmlFor="home-premium-economy"
                                                 >
                                                   Premium Economy
                                                 </label>
@@ -643,13 +659,15 @@ const guidePassenger =
                                                 <input
                                                   className="form-check-input"
                                                   type="radio"
-                                                  defaultValue="Business"
+                                                  value="Business"
                                                   name="cabin-class"
-                                                  id="business2"
+                                                  id="home-business"
+                                                  checked={homeCabinClass === 'Business'}
+                                                  onChange={(e) => setHomeCabinClass(e.target.value)}
                                                 />
                                                 <label
                                                   className="form-check-label"
-                                                  htmlFor="business2"
+                                                  htmlFor="home-business"
                                                 >
                                                   Business
                                                 </label>
@@ -658,13 +676,15 @@ const guidePassenger =
                                                 <input
                                                   className="form-check-input"
                                                   type="radio"
-                                                  defaultValue="First Class"
+                                                  value="First Class"
                                                   name="cabin-class"
-                                                  id="first-class"
+                                                  id="home-first-class"
+                                                  checked={homeCabinClass === 'First Class'}
+                                                  onChange={(e) => setHomeCabinClass(e.target.value)}
                                                 />
                                                 <label
                                                   className="form-check-label"
-                                                  htmlFor="first-class"
+                                                  htmlFor="home-first-class"
                                                 >
                                                   First Class
                                                 </label>
@@ -689,12 +709,13 @@ const guidePassenger =
                                         </div>
                                       </div>
                                     </div>
-                                    <Link
-                                      to={all_routes.flightGrid}
+                                    <button
+                                      type="button"
                                       className="btn btn-primary search-btn rounded"
+                                      onClick={handleHomeFlightSearch}
                                     >
                                       Search
-                                    </Link>
+                                    </button>
                                   </div>
                                 </div>
                                 <div
@@ -716,14 +737,9 @@ const guidePassenger =
                                          <BookingDropdown
                                         label="From"
                                         defaultValue="Select"
-                                        defaultSubValue="Carthage International Airport"
-                                        locations={[
-                                          { value: "Tunis", subValue: "Carthage International Airport" },
-                                          { value: "Sfax", subValue: "Sfax Thyna International Airport" },
-                                          { value: "Monastir", subValue: "Monastir Habib Bourguiba Airport" },
-    { value: "Djerba", subValue: "Djerba Zarzis International Airport" },
-    { value: "Tozeur", subValue: "Tozeur Nefta International Airport" }
-                                        ]}
+                                        defaultSubValue="Select airport"
+                                        locations={FLIGHT_LOCATIONS}
+                                        onChange={(v) => setHomeFromValue(v)}
                                       />
                                       </div>
 
@@ -741,14 +757,9 @@ const guidePassenger =
                                          <BookingDropdown
                                         label="To"
                                         defaultValue="Select"
-                                        defaultSubValue="Carthage International Airport"
-                                        locations={[
-                                          { value: "Tunis", subValue: "Carthage International Airport" },
-                                          { value: "Sfax", subValue: "Sfax Thyna International Airport" },
-                                          { value: "Monastir", subValue: "Monastir Habib Bourguiba Airport" },
-    { value: "Djerba", subValue: "Djerba Zarzis International Airport" },
-    { value: "Tozeur", subValue: "Tozeur Nefta International Airport" }
-                                        ]}
+                                        defaultSubValue="Select airport"
+                                        locations={FLIGHT_LOCATIONS}
+                                        onChange={(v) => setHomeToValue(v)}
                                       />
                                           </div>
                                       </div>
@@ -761,16 +772,19 @@ const guidePassenger =
                                           placeholder="dd/mm/yyyy"
                                           disabledDate={disabledDate}
                                           format="DD-MM-YYYY"
+                                          value={homeDepartureDate}
+                                          onChange={(v) => setHomeDepartureDate(v)}
                                         />
                                         <p className="fs-12 mb-0">Monday</p>
                                       </div>
                                     </div>
-                                    <Link
-                                      to={all_routes.flightGrid}
+                                    <button
+                                      type="button"
                                       className="btn btn-primary search-btn rounded"
+                                      onClick={handleHomeFlightSearch}
                                     >
                                       Search
-                                    </Link>
+                                    </button>
                                   </div>
                                 </div>
                               </form>

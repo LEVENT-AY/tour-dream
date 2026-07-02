@@ -2,11 +2,35 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { all_routes } from '../../router/all_routes';
 import Breadcrumb from '../../../core/common/Breadcrumb/breadcrumb';
-import { Link } from 'react-router-dom';
 import ImageWithBasePath from '../../../core/common/imageWithBasePath';
 import { createServiceRequest } from '../../../core/services/firebaseServices';
 import type { CreateServiceRequestInput } from '../../../core/services/firebaseServices';
 import type { DuffelOffer } from '../../../core/services/duffelApi';
+
+const IATA_TO_LABEL: Record<string, string> = {
+  TUN: 'Tunis (TUN)', SFA: 'Sfax (SFA)', MIR: 'Monastir (MIR)',
+  DJE: 'Djerba (DJE)', TOE: 'Tozeur (TOE)', IST: 'Istanbul (IST)',
+  CDG: 'Paris (CDG)', DXB: 'Dubai (DXB)', LHR: 'London (LHR)',
+  FRA: 'Frankfurt (FRA)', FCO: 'Rome (FCO)', MAD: 'Madrid (MAD)',
+  CMN: 'Casablanca (CMN)', CAI: 'Cairo (CAI)', DOH: 'Doha (DOH)',
+  JFK: 'New York (JFK)',
+};
+
+const formatLabel = (iata: string) => IATA_TO_LABEL[iata] || iata;
+const formatDuration = (dur: string) => {
+  if (!dur) return '--';
+  return dur.replace('PT', '').replace('H', 'h ').replace('M', 'm').replace('D', 'd ');
+};
+const formatTime = (iso: string) => {
+  if (!iso) return '--';
+  try { return new Date(iso).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }); }
+  catch { return iso; }
+};
+const formatDate = (iso: string) => {
+  if (!iso) return '--';
+  try { return new Date(iso).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }); }
+  catch { return iso; }
+};
 
 const FlightBooking = () => {
     const navigate = useNavigate();
@@ -17,21 +41,25 @@ const FlightBooking = () => {
         { label: 'Flight Booking', active: true },
     ];
 
-    const storedOfferRaw = sessionStorage.getItem('duffelOffer');
-    const storedOffer: DuffelOffer | null = storedOfferRaw ? JSON.parse(storedOfferRaw) : null;
-    if (storedOfferRaw) {
-        sessionStorage.removeItem('duffelOffer');
-    }
+    const [selectedOffer] = useState<DuffelOffer | null>(() => {
+        try {
+            const raw = sessionStorage.getItem('duffelOffer');
+            return raw ? (JSON.parse(raw) as DuffelOffer) : null;
+        } catch { return null; }
+    });
+
+    const hasOffer = Boolean(selectedOffer?.offerId);
+    const offer = hasOffer ? (selectedOffer as DuffelOffer) : null;
 
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
     const [phone, setPhone] = useState('');
-    const [departureCity, setDepartureCity] = useState(storedOffer?.slices?.[0]?.origin || '');
-    const [arrivalCity, setArrivalCity] = useState(storedOffer?.slices?.[0]?.destination || '');
+    const [departureCity, setDepartureCity] = useState('');
+    const [arrivalCity, setArrivalCity] = useState('');
     const [departureDate, setDepartureDate] = useState('');
     const [returnDate, setReturnDate] = useState('');
     const [passengers, setPassengers] = useState(1);
-    const [preferredClass, setPreferredClass] = useState(storedOffer?.cabinClass ? storedOffer.cabinClass.charAt(0).toUpperCase() + storedOffer.cabinClass.slice(1) : 'Economy');
+    const [preferredClass, setPreferredClass] = useState('Economy');
     const [message, setMessage] = useState('');
     const [submitting, setSubmitting] = useState(false);
     const [submitted, setSubmitted] = useState(false);
@@ -49,23 +77,36 @@ const FlightBooking = () => {
             const payload: CreateServiceRequestInput = {
                 serviceType: 'flight',
                 serviceId: 'flight-request',
-                serviceTitle: storedOffer ? `Flight Request - ${storedOffer.airline} (${storedOffer.airlineIata})` : 'Flight Request',
+                serviceTitle: offer
+                    ? `Flight Request - ${offer.airline} (${offer.airlineIata})`
+                    : 'Flight Request',
                 customerName: name.trim(),
                 customerEmail: email.trim(),
                 customerPhone: phone.trim() || undefined,
                 message: message.trim() || undefined,
-                departureCity: departureCity.trim() || undefined,
-                arrivalCity: arrivalCity.trim() || undefined,
-                departureDate: departureDate || undefined,
-                returnDate: returnDate || undefined,
-                passengers,
-                preferredClass: preferredClass || undefined,
             };
-            if (storedOffer) {
+
+            if (offer) {
+                payload.departureCity = offer.slices[0]?.origin || '';
+                payload.arrivalCity = offer.slices[0]?.destination || '';
+                payload.departureDate = offer.slices[0]?.departureTime?.split('T')[0] || '';
+                payload.passengers = 1;
+                payload.preferredClass = offer.cabinClass
+                    ? offer.cabinClass.charAt(0).toUpperCase() + offer.cabinClass.slice(1)
+                    : 'Economy';
                 payload.provider = 'duffel';
-                payload.offerSnapshot = storedOffer as unknown as Record<string, unknown>;
+                payload.offerSnapshot = offer as unknown as Record<string, unknown>;
+            } else {
+                payload.departureCity = departureCity.trim() || undefined;
+                payload.arrivalCity = arrivalCity.trim() || undefined;
+                payload.departureDate = departureDate || undefined;
+                payload.returnDate = returnDate || undefined;
+                payload.passengers = passengers;
+                payload.preferredClass = preferredClass || undefined;
             }
+
             await createServiceRequest(payload);
+            sessionStorage.removeItem('duffelOffer');
             setSubmitted(true);
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Failed to submit request');
@@ -110,7 +151,7 @@ const FlightBooking = () => {
                         <div className="col-lg-8">
                             <div className="card checkout-card">
                                 <div className="card-header">
-                                    <h5>Send a Flight Request</h5>
+                                    <h5>{offer ? 'Request this Flight' : 'Send a Flight Request'}</h5>
                                 </div>
                                 <div className="card-body">
                                     <form onSubmit={handleSubmit}>
@@ -127,44 +168,48 @@ const FlightBooking = () => {
                                                 <input type="email" className="form-control" value={email} onChange={e => setEmail(e.target.value)} placeholder="Your email" required />
                                             </div>
                                             <div className="col-md-6">
-                                                <label className="form-label">Phone</label>
-                                                <input type="tel" className="form-control" value={phone} onChange={e => setPhone(e.target.value)} placeholder="Your phone" />
+                                                <label className="form-label">Phone / WhatsApp</label>
+                                                <input type="tel" className="form-control" value={phone} onChange={e => setPhone(e.target.value)} placeholder="Your phone number" />
                                             </div>
                                         </div>
 
-                                        <div className="checkout-title mb-3">
-                                            <h6 className="mb-2">Flight Details</h6>
-                                        </div>
-                                        <div className="row g-3 mb-4">
-                                            <div className="col-md-6">
-                                                <label className="form-label">Departure City</label>
-                                                <input className="form-control" value={departureCity} onChange={e => setDepartureCity(e.target.value)} placeholder="e.g. Tunis" />
-                                            </div>
-                                            <div className="col-md-6">
-                                                <label className="form-label">Arrival City</label>
-                                                <input className="form-control" value={arrivalCity} onChange={e => setArrivalCity(e.target.value)} placeholder="e.g. Djerba" />
-                                            </div>
-                                            <div className="col-md-6">
-                                                <label className="form-label">Departure Date</label>
-                                                <input type="date" className="form-control" value={departureDate} onChange={e => setDepartureDate(e.target.value)} />
-                                            </div>
-                                            <div className="col-md-6">
-                                                <label className="form-label">Return Date</label>
-                                                <input type="date" className="form-control" value={returnDate} onChange={e => setReturnDate(e.target.value)} />
-                                            </div>
-                                            <div className="col-md-4">
-                                                <label className="form-label">Passengers</label>
-                                                <input type="number" min="1" className="form-control" value={passengers} onChange={e => setPassengers(Number(e.target.value))} />
-                                            </div>
-                                            <div className="col-md-4">
-                                                <label className="form-label">Preferred Class</label>
-                                                <select className="form-select" value={preferredClass} onChange={e => setPreferredClass(e.target.value)}>
-                                                    <option value="Economy">Economy</option>
-                                                    <option value="Business">Business</option>
-                                                    <option value="First Class">First Class</option>
-                                                </select>
-                                            </div>
-                                        </div>
+                                        {!offer && (
+                                            <>
+                                                <div className="checkout-title mb-3">
+                                                    <h6 className="mb-2">Flight Details</h6>
+                                                </div>
+                                                <div className="row g-3 mb-4">
+                                                    <div className="col-md-6">
+                                                        <label className="form-label">From</label>
+                                                        <input className="form-control" value={departureCity} onChange={e => setDepartureCity(e.target.value)} placeholder="e.g. Tunis" />
+                                                    </div>
+                                                    <div className="col-md-6">
+                                                        <label className="form-label">To</label>
+                                                        <input className="form-control" value={arrivalCity} onChange={e => setArrivalCity(e.target.value)} placeholder="e.g. Djerba" />
+                                                    </div>
+                                                    <div className="col-md-6">
+                                                        <label className="form-label">Departure Date</label>
+                                                        <input type="date" className="form-control" value={departureDate} onChange={e => setDepartureDate(e.target.value)} />
+                                                    </div>
+                                                    <div className="col-md-6">
+                                                        <label className="form-label">Return Date</label>
+                                                        <input type="date" className="form-control" value={returnDate} onChange={e => setReturnDate(e.target.value)} />
+                                                    </div>
+                                                    <div className="col-md-4">
+                                                        <label className="form-label">Passengers</label>
+                                                        <input type="number" min="1" className="form-control" value={passengers} onChange={e => setPassengers(Number(e.target.value))} />
+                                                    </div>
+                                                    <div className="col-md-4">
+                                                        <label className="form-label">Preferred Class</label>
+                                                        <select className="form-select" value={preferredClass} onChange={e => setPreferredClass(e.target.value)}>
+                                                            <option value="Economy">Economy</option>
+                                                            <option value="Business">Business</option>
+                                                            <option value="First Class">First Class</option>
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                            </>
+                                        )}
 
                                         <div className="checkout-title mb-3">
                                             <h6 className="mb-2">Additional Info</h6>
@@ -185,89 +230,73 @@ const FlightBooking = () => {
                             </div>
                         </div>
                         <div className="col-lg-4">
-                                <div className="card order-details theiaStickySidebar">
+                            <div className="card order-details theiaStickySidebar">
                                 <div className="card-header">
                                     <div className="d-flex align-items-center justify-content-between header-content">
-                                        <h5>Review Order Details</h5>
-                                        <Link to={routes.flightDetails} className="rounded-circle p-2 btn btn-light d-flex align-items-center justify-content-center">
-                                            <span className="fs-16 d-flex align-items-center justify-content-center">
-                                                <i className="isax isax-edit-2" />
-                                            </span>
-                                        </Link>
+                                        <h5>Review Flight Request</h5>
                                     </div>
                                 </div>
                                 <div className="card-body">
-                                    <div className="pb-3 border-bottom">
-                                        {storedOffer ? (
-                                            <>
+                                    {offer ? (
+                                        <>
+                                            <div className="pb-3 border-bottom">
                                                 <div className="d-flex align-items-center justify-content-between mb-2">
                                                     <div>
-                                                        <h6 className="mb-1">{storedOffer.airline} ({storedOffer.airlineIata})</h6>
-                                                        <span className="badge bg-secondary fs-11">Duffel offer</span>
+                                                        <h6 className="mb-1">{offer.airline} ({offer.airlineIata})</h6>
+                                                        <span className="badge bg-secondary fs-11">Provider: Duffel</span>
                                                     </div>
-                                                    <h5 className="text-primary mb-0">{storedOffer.totalCurrency} {storedOffer.totalAmount}</h5>
+                                                    <h5 className="text-primary mb-0">{offer.totalCurrency} {offer.totalAmount}</h5>
                                                 </div>
-                                                {storedOffer.slices.map((slice, i) => (
-                                                    <div key={i} className="fs-14 mb-1">
-                                                        <span className="fw-medium">{slice.origin}</span> &rarr; <span className="fw-medium">{slice.destination}</span>
-                                                        <span className="text-muted ms-2">{slice.stops === 0 ? 'Direct' : `${slice.stops} stop${slice.stops > 1 ? 's' : ''}`}</span>
+                                                {offer.slices.map((s, i) => (
+                                                    <div key={i} className="mb-2 pb-2 border-bottom">
+                                                        <div className="fw-medium mb-1">{formatLabel(s.origin)} &rarr; {formatLabel(s.destination)}</div>
+                                                        <div className="fs-14 text-muted">
+                                                            <div>Depart: {formatDate(s.departureTime)} at {formatTime(s.departureTime)}</div>
+                                                            <div>Arrive: {formatTime(s.arrivalTime)}</div>
+                                                            <div>Duration: {formatDuration(s.duration)}</div>
+                                                            <div>{s.stops === 0 ? 'Direct' : `${s.stops} stop${s.stops > 1 ? 's' : ''}`}</div>
+                                                        </div>
                                                     </div>
                                                 ))}
-                                            </>
-                                        ) : (
-                                            <>
-                                                <div className="mb-3 review-img">
-                                                    <ImageWithBasePath src="assets/img/flight/flight-large-01.jpg" alt="Img" className="img-fluid" />
+                                                <div className="fs-14 mt-2">
+                                                    <span className="text-muted">Class:</span> {offer.cabinClass ? offer.cabinClass.charAt(0).toUpperCase() + offer.cabinClass.slice(1) : 'Economy'}
+                                                </div>
+                                            </div>
+                                            <div className="mt-3 pb-3 border-bottom">
+                                                <h6 className="text-primary mb-3">Pricing</h6>
+                                                <div className="d-flex align-items-center justify-content-between mb-2">
+                                                    <span className="fs-16">Total</span>
+                                                    <span className="fs-16 fw-medium">{offer.totalCurrency} {offer.totalAmount}</span>
                                                 </div>
                                                 <div className="d-flex align-items-center justify-content-between">
-                                                    <div>
-                                                        <h6 className="mb-2">Flight Request</h6>
-                                                        <p className="fs-14">
-                                                            <span className="badge badge-warning text-gray-9 fs-13 fw-medium me-2">Request</span>
-                                                            Send a request
-                                                        </p>
-                                                    </div>
-                                                    <h6 className="fs-14 fw-normal text-gray-9">Contact for pricing</h6>
+                                                    <span className="fs-14 text-muted">Manual payment only</span>
+                                                    <span className="fs-14 text-muted">No online card payment</span>
                                                 </div>
-                                            </>
-                                        )}
-                                    </div>
-                                    <div className="mt-3 pb-3 border-bottom">
-                                        <h6 className="text-primary mb-3">Your Details</h6>
-                                        <div className="d-flex align-items-center details-info">
-                                            <h6 className="fs-16">From</h6>
-                                            <p className="fs-16">{departureCity || 'To be specified'}</p>
-                                        </div>
-                                        <div className="d-flex align-items-center details-info">
-                                            <h6 className="fs-16">To</h6>
-                                            <p className="fs-16">{arrivalCity || 'To be specified'}</p>
-                                        </div>
-                                        <div className="d-flex align-items-center details-info">
-                                            <h6 className="fs-16">Passengers</h6>
-                                            <p className="fs-16">{passengers}</p>
-                                        </div>
-                                        <div className="d-flex align-items-center details-info">
-                                            <h6 className="fs-16">Class</h6>
-                                            <p className="fs-16">{preferredClass}</p>
-                                        </div>
-                                    </div>
-                                    <div className="mt-3 border-bottom">
-                                        <h6 className="text-primary mb-3">Pricing</h6>
-                                        <div className="d-flex align-items-center justify-content-between mb-3">
-                                            <h6 className="fs-16">Price</h6>
-                                            <p className="fs-16">{storedOffer ? `${storedOffer.totalCurrency} ${storedOffer.totalAmount}` : 'Contact for pricing'}</p>
-                                        </div>
-                                        <div className="d-flex align-items-center justify-content-between mb-3">
-                                            <h6 className="fs-16">Manual payment only</h6>
-                                            <p className="fs-16">No online card payment</p>
-                                        </div>
-                                    </div>
-                                    <div className="mt-3">
-                                        <div className="d-flex align-items-center justify-content-between">
-                                            <h6>Status</h6>
-                                            <h6 className="text-primary">Send a request</h6>
-                                        </div>
-                                    </div>
+                                            </div>
+                                            <div className="mt-3">
+                                                <div className="d-flex align-items-center justify-content-between">
+                                                    <h6>Status</h6>
+                                                    <h6 className="text-primary">Send a request</h6>
+                                                </div>
+                                            </div>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <div className="mb-3 review-img">
+                                                <ImageWithBasePath src="assets/img/flight/flight-large-01.jpg" alt="Img" className="img-fluid" />
+                                            </div>
+                                            <div className="d-flex align-items-center justify-content-between">
+                                                <div>
+                                                    <h6 className="mb-2">Custom Flight Quote</h6>
+                                                    <p className="fs-14">
+                                                        <span className="badge badge-warning text-gray-9 fs-13 fw-medium me-2">Request</span>
+                                                        Tell us your route
+                                                    </p>
+                                                </div>
+                                                <h6 className="fs-14 fw-normal text-gray-9">Contact for pricing</h6>
+                                            </div>
+                                        </>
+                                    )}
                                 </div>
                             </div>
                         </div>
