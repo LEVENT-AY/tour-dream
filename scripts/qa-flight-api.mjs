@@ -98,7 +98,7 @@ check('flightSearch Search button triggers handleSearch', fsSearch.includes('han
 
 const fbBooking = readFile('src/feature-module/flight/flight-booking/flightBooking.tsx');
 check('flightBooking reads duffelOffer from sessionStorage', fbBooking.includes("sessionStorage.getItem('duffelOffer')"));
-check('flightBooking passes provider: duffel_test', fbBooking.includes("payload.provider = 'duffel_test'"));
+check('flightBooking passes provider: duffel', fbBooking.includes("payload.provider = 'duffel'"));
 check('flightBooking passes offerSnapshot', fbBooking.includes('payload.offerSnapshot'));
 check('No Pay Now wording in booking', !fbBooking.includes('Pay Now'));
 

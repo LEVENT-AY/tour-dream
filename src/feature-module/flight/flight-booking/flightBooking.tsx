@@ -62,7 +62,7 @@ const FlightBooking = () => {
                 preferredClass: preferredClass || undefined,
             };
             if (storedOffer) {
-                payload.provider = 'duffel_test';
+                payload.provider = 'duffel';
                 payload.offerSnapshot = storedOffer as unknown as Record<string, unknown>;
             }
             await createServiceRequest(payload);
