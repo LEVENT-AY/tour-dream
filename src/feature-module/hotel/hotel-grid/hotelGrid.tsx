@@ -7,7 +7,7 @@ import 'slick-carousel/slick/slick-theme.css';
 import ImageWithBasePath from '../../../core/common/imageWithBasePath';
 import { getCategoryFallbackSrc } from '../../../core/services/firebaseStorage';
 import { all_routes } from '../../router/all_routes';
-import SearchOption from '../searchOption';
+import HotelSearchPanel from '../components/HotelSearchPanel';
 import HotelFilter from '../hotelFilter';
 import { fetchHotels } from '../../../core/services/firebaseServices';
 import { searchStays, type DuffelStay } from '../../../core/services/duffelStaysApi';
@@ -199,7 +199,14 @@ const HotelGrid = () => {
       <Breadcrumb title="Hotel" breadcrumbs={breadcrumbs} backgroundClass="breadcrumb-bg-01" />
       <div className="content">
         <div className="container">
-          {!manualMode && <SearchOption />}
+          <HotelSearchPanel
+            standalone
+            initialDestination={destination}
+            initialCheckInDate={checkInDate}
+            initialCheckOutDate={checkOutDate}
+            initialAdults={Number(adults) || 1}
+            initialRooms={Number(rooms) || 1}
+          />
 
           <div className="row">
             {!manualMode && (

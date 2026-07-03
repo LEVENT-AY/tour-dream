@@ -16,6 +16,7 @@ import TestimonialSection from "./testimonialSection";
 import ChooseSection from "./chooseSection";
 import LatestSection from "./latestSection";
 import FooterSection from "./footerSection";
+import HotelSearchPanel from "../hotel/components/HotelSearchPanel";
 import BookingDropdown from "../../core/common/booking-dropdown/bookingDropdown";
 import BannerCounter from "../../core/common/banner-counter/counter";
 import { AIRPORT_IATA, FLIGHT_LOCATIONS } from "../../core/common/data/flightAirports";
@@ -813,7 +814,8 @@ const guidePassenger =
                               </form>
                             </div>
                             <div className="tab-pane fade" id="Hotels">
-                              <form>
+                              <HotelSearchPanel />
+                              <form className="d-none">
                                 <div className="fw-medium fs-16 mb-2 text-center text-white">
                                   Book Hotel - Villas, Apartments &amp; more.
                                 </div>

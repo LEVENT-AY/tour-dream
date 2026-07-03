@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { DatePicker } from "antd";
 import dayjs from "dayjs";
 import { addDays, format } from "date-fns";
@@ -9,16 +9,26 @@ interface CommonDateRangeProps {
   onApply?: (start: Date, end: Date) => void;
   fromLabel?: string;
   toLabel?: string;
+  initialStartDate?: Date;
+  initialEndDate?: Date;
 }
 
-const CommonDateRange = ({ onApply, fromLabel, toLabel }: CommonDateRangeProps) => {
-  const today = new Date();
-  const tomorrow = addDays(today, 1);
+const CommonDateRange = ({ onApply, fromLabel, toLabel, initialStartDate, initialEndDate }: CommonDateRangeProps) => {
+  const today = initialStartDate ?? new Date();
+  const tomorrow = initialEndDate ?? addDays(today, 1);
 
   const [startDate, setStartDate] = useState(today);
   const [endDate, setEndDate] = useState(tomorrow);
 
   const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    if (initialStartDate) setStartDate(initialStartDate);
+  }, [initialStartDate]);
+
+  useEffect(() => {
+    if (initialEndDate) setEndDate(initialEndDate);
+  }, [initialEndDate]);
 
   const handleChange = (dates: any) => {
     if (!dates) return;
