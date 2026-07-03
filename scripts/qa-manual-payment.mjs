@@ -538,7 +538,7 @@ check(
 );
 check(
   'Admin Bookings has no "checkout" reference',
-  !/checkout/i.test(adminBookings),
+  !/checkout/i.test(adminBookings.replace(/checkOutDate/gi, '')),
   'checkout found'
 );
 check(
@@ -751,7 +751,7 @@ check(
 );
 check(
   'No checkout in Admin Bookings',
-  !/checkout/i.test(adminBookings),
+  !/checkout/i.test(adminBookings.replace(/checkOutDate/gi, '')),
   'checkout found'
 );
 
@@ -1002,7 +1002,7 @@ check(
 );
 check(
   'No checkout in Admin Bookings',
-  !/checkout/i.test(adminBookings),
+  !/checkout/i.test(adminBookings.replace(/checkOutDate/gi, '')),
   'checkout found'
 );
 check(
@@ -1545,7 +1545,7 @@ check(
 );
 check(
   'No checkout in Admin Bookings',
-  !/checkout/.test(bkContent),
+  !/checkout/.test(bkContent.replace(/checkOutDate/g, '')),
   'checkout found'
 );
 check(

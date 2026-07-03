@@ -935,6 +935,71 @@ const AdminBookings: React.FC<AdminBookingsProps> = ({ title = 'All Bookings', d
                       )}
                     </div>
                   )}
+                  {selectedRequest.serviceType === 'hotel' && selectedRequest.offerSnapshot && (() => {
+                    const os = selectedRequest.offerSnapshot as Record<string, unknown> | undefined;
+                    if (!os) return null;
+                    return (
+                      <div className="col-12">
+                        <h6 className="text-muted border-bottom pb-1">Stay Details</h6>
+                        <div className="row g-2">
+                          {!!os.accommodationName && (
+                            <div className="col-md-6">
+                              <span className="fs-13 text-muted">Hotel</span>
+                              <p className="mb-0">{os.accommodationName as string}</p>
+                            </div>
+                          )}
+                          {!!os.city && (
+                            <div className="col-md-6">
+                              <span className="fs-13 text-muted">Location</span>
+                              <p className="mb-0">{os.city as string}</p>
+                            </div>
+                          )}
+                          {!!os.checkInDate && (
+                            <div className="col-md-3">
+                              <span className="fs-13 text-muted">Check-in</span>
+                              <p className="mb-0">{os.checkInDate as string}</p>
+                            </div>
+                          )}
+                          {!!os.checkOutDate && (
+                            <div className="col-md-3">
+                              <span className="fs-13 text-muted">Check-out</span>
+                              <p className="mb-0">{os.checkOutDate as string}</p>
+                            </div>
+                          )}
+                          {!!os.nights && (
+                            <div className="col-md-3">
+                              <span className="fs-13 text-muted">Nights</span>
+                              <p className="mb-0">{String(os.nights)}</p>
+                            </div>
+                          )}
+                          {!!os.adults && (
+                            <div className="col-md-3">
+                              <span className="fs-13 text-muted">Guests</span>
+                              <p className="mb-0">{String(os.adults)} Adult(s)</p>
+                            </div>
+                          )}
+                          {!!os.rooms && (
+                            <div className="col-md-3">
+                              <span className="fs-13 text-muted">Rooms</span>
+                              <p className="mb-0">{String(os.rooms)}</p>
+                            </div>
+                          )}
+                          {!!os.totalAmount && (
+                            <div className="col-md-3">
+                              <span className="fs-13 text-muted">Price</span>
+                              <p className="mb-0">{String(os.currency || '')} {String(os.totalAmount)}</p>
+                            </div>
+                          )}
+                          {!!selectedRequest.provider && (
+                            <div className="col-md-3">
+                              <span className="fs-13 text-muted">Provider</span>
+                              <p className="mb-0"><span className="badge bg-secondary">{selectedRequest.provider}</span></p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })()}
                   <div className="col-12">
                     <h6 className="text-muted border-bottom pb-1">Operations</h6>
                     <div className="row g-2">

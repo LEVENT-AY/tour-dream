@@ -243,6 +243,8 @@ const guidePassenger =
   const [homeToValue, setHomeToValue] = useState('Select');
   const [homeDepartureDate, setHomeDepartureDate] = useState<Dayjs | null>(null);
   const [homeCabinClass, setHomeCabinClass] = useState('Economy');
+  const [hotelLocation, setHotelLocation] = useState('');
+  const [hotelDates, setHotelDates] = useState<{ start: Date | null; end: Date | null }>({ start: null, end: null });
 
   const handleHomeFlightSearch = () => {
     const origin = AIRPORT_IATA[homeFromValue];
@@ -256,6 +258,24 @@ const guidePassenger =
     params.set('adults', String(totalFlightPassengers));
     params.set('cabinClass', homeCabinClass.toLowerCase());
     navigate(`/flight/flight-grid?${params.toString()}`);
+  };
+
+  const handleHotelSearch = () => {
+    const location = hotelLocation || 'Tunisia';
+    const start = hotelDates.start || new Date(Date.now() + 86400000);
+    const end = hotelDates.end || new Date(Date.now() + 3 * 86400000);
+    const params = new URLSearchParams();
+    params.set('destination', location);
+    params.set('checkInDate', start.toISOString().slice(0, 10));
+    params.set('checkOutDate', end.toISOString().slice(0, 10));
+    params.set('adults', String(Math.max(1, appliedData.hotel.adults || 1)));
+    params.set('rooms', String(Math.max(1, appliedData.hotel.rooms || 1)));
+    navigate(`/hotel/hotel-grid?${params.toString()}`);
+  };
+
+  const handleHotelDateApply = (start: Date, end: Date) => {
+    setDates({ start, end });
+    setHotelDates({ start, end });
   };
 
   return (
@@ -803,7 +823,7 @@ const guidePassenger =
                                         aria-expanded="false"
                                         role="menu"
                                       >
-                                        <BookingDropdown
+                                      <BookingDropdown
                                         label="City, Property name or Location"
                                         defaultValue="Select"
                                         defaultSubValue=""
@@ -811,16 +831,17 @@ const guidePassenger =
                                           { value: "Tunisia", subValue: "Available Properties" },
                                           { value: "Japan", subValue: "3000 Properties" },
                                           { value: "Singapore", subValue: "Singapore" },
-    { value: "Russia", subValue: " 8000 Properties" },
-    { value: "Germany", subValue: "2000 Properties" }
+     { value: "Russia", subValue: " 8000 Properties" },
+     { value: "Germany", subValue: "2000 Properties" }
                                         ]}
+                                        onChange={(v) => setHotelLocation(v)}
                                       />
                                       </div>
-                                      
-                                    </div>
+                                       
+                                     </div>
 
                                     <CommonDateRange
-                                      onApply={handleApply}
+                                      onApply={handleHotelDateApply}
                                       fromLabel="Check In"
                                       toLabel="Check Out"
                                     />
@@ -1071,12 +1092,13 @@ const guidePassenger =
                                       </div>
                                     </div>
                                   </div>
-                                  <Link
-                                    to={all_routes.hotelGrid}
+                                  <button
+                                    type="button"
                                     className="btn btn-primary search-btn rounded"
+                                    onClick={handleHotelSearch}
                                   >
                                     Search
-                                  </Link>
+                                  </button>
                                 </div>
                               </form>
                             </div>

@@ -73,6 +73,7 @@ import MyProfile from "../userDashboard/myProfile/myProfile";
 import ProfileSettings from "../userDashboard/settings/profileSettings";
 import UserCruiseBooking from "../userDashboard/myBooking/cruise/userCruiseBooking";
 import HotelBooking from "../hotel/hotel-booking/hotelBooking";
+import HotelRequest from "../hotel/hotel-request/hotelRequest";
 import PrivacyPolicy from "../pages/privacy-policy/privacyPolicy";
 import ContactUs from "../pages/contact/contactUs";
 import AddHotel from "../hotel/add-hotel/addHotel";
@@ -514,6 +515,11 @@ export const publicRoutes = [
   {
     path: routes.hotelBooking,
     element: <HotelBooking />,
+    route: Route,
+  },
+  {
+    path: routes.hotelRequest,
+    element: <HotelRequest />,
     route: Route,
   },
   {

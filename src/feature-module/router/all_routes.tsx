@@ -38,6 +38,7 @@ export const all_routes = {
     hotelDetails: "/hotel/hotel-details",
     hotelBooking: "/hotel/hotel-booking",
     hotelBookingConfirmation: "/hotel/hotel-booking-confirmation",
+    hotelRequest: "/hotel/hotel-request",
     chaletGrid: "/chalet/chalet-grid",
     chaletDetails: "/chalet/chalet-details",
     resortGrid: "/resort/resort-grid",

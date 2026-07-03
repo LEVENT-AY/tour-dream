@@ -23,6 +23,10 @@
         "function": "flightOffersSearch"
       },
       {
+        "source": "/api/stays/search",
+        "function": "staysSearch"
+      },
+      {
         "source": "**",
         "destination": "/index.html"
       }

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useSearchParams } from 'react-router-dom';
 import Breadcrumb from '../../../core/common/Breadcrumb/breadcrumb';
 import { Link } from 'react-router-dom';
 import Slider from 'react-slick';
@@ -10,25 +11,60 @@ import { all_routes } from '../../router/all_routes';
 import SearchOption from '../searchOption';
 import HotelFilter from '../hotelFilter';
 import { fetchHotels } from '../../../core/services/firebaseServices';
+import { searchStays, type DuffelStay } from '../../../core/services/duffelStaysApi';
 
 const HotelGrid = () => {
     const routes = all_routes
+    const [searchParams] = useSearchParams();
     const [hotels, setHotels] = useState<any[]>([]);
     const [loadingHotels, setLoadingHotels] = useState(true);
+    const [stays, setStays] = useState<DuffelStay[]>([]);
+    const [loadingStays, setLoadingStays] = useState(false);
+    const [staysError, setStaysError] = useState('');
+
+    const destination = searchParams.get('destination');
+    const checkInDate = searchParams.get('checkInDate');
+    const checkOutDate = searchParams.get('checkOutDate');
+    const adults = searchParams.get('adults');
+    const rooms = searchParams.get('rooms');
 
     useEffect(() => {
-        const getHotels = async () => {
-            try {
-                const data = await fetchHotels();
-                setHotels(data.filter((h) => h.published !== false));
-            } catch (error) {
-                console.error("Error loading hotels:", error);
-            } finally {
-                setLoadingHotels(false);
-            }
-        };
-        getHotels();
-    }, []);
+        if (!destination || !checkInDate || !checkOutDate) {
+            const getHotels = async () => {
+                try {
+                    const data = await fetchHotels();
+                    setHotels(data.filter((h) => h.published !== false));
+                } catch (error) {
+                    console.error("Error loading hotels:", error);
+                } finally {
+                    setLoadingHotels(false);
+                }
+            };
+            getHotels();
+        } else {
+            setLoadingHotels(false);
+        }
+    }, [destination, checkInDate, checkOutDate]);
+
+    useEffect(() => {
+        if (!destination || !checkInDate || !checkOutDate) return;
+        setLoadingStays(true);
+        setStaysError('');
+        searchStays({
+            destination,
+            checkInDate,
+            checkOutDate,
+            adults: adults ? Number(adults) : 1,
+            rooms: rooms ? Number(rooms) : 1,
+        })
+            .then((result) => {
+                setStays(result.stays);
+            })
+            .catch((err) => {
+                setStaysError(err.message || 'Stays search unavailable');
+            })
+            .finally(() => setLoadingStays(false));
+    }, [destination, checkInDate, checkOutDate, adults, rooms]);
 
     //Breadcrumb Data
     const breadcrumbs = [
@@ -148,7 +184,62 @@ const HotelGrid = () => {
                             </div>
                             <div className="row justify-content-center">
 
-                                {loadingHotels ? (
+                                {destination && checkInDate && checkOutDate ? (
+                                    loadingStays ? (
+                                        <div className="text-center py-5 w-100">
+                                            <div className="spinner-border text-primary" role="status">
+                                                <span className="visually-hidden">Loading...</span>
+                                            </div>
+                                            <p className="mt-2 text-muted">Searching Duffel Stays...</p>
+                                        </div>
+                                    ) : staysError ? (
+                                        <div className="text-center py-5 w-100">
+                                            <p className="text-danger">Stays search unavailable. Please try again later.</p>
+                                        </div>
+                                    ) : stays.length === 0 ? (
+                                        <div className="text-center py-5 w-100">
+                                            <p className="text-muted">No stays found for "{destination}".</p>
+                                        </div>
+                                    ) : (
+                                        stays.map((stay, index) => (
+                                            <div className="col-xl-4 col-md-6 d-flex" key={stay.stayId || index}>
+                                                <div className="place-item mb-4 flex-fill">
+                                                    <div className="place-img">
+                                                        <Link to={`${routes.hotelDetails}?id=${stay.stayId}`}>
+                                                            {stay.imageUrl ? (
+                                                                <img src={stay.imageUrl} className="img-fluid" alt={stay.accommodationName || "Stay image"} />
+                                                            ) : (
+                                                                <ImageWithBasePath src="assets/img/hotels/hotel-01.jpg" className="img-fluid" alt="Stay" />
+                                                            )}
+                                                        </Link>
+                                                    </div>
+                                                    <div className="place-content">
+                                                        <div className="d-flex align-items-center mb-1">
+                                                            {stay.rating && (
+                                                                <span className="badge badge-warning badge-xs text-gray-9 fs-13 fw-medium me-2">{stay.rating}</span>
+                                                            )}
+                                                            <span className="badge bg-secondary fs-11 ms-auto">{stay.provider}</span>
+                                                        </div>
+                                                        <h5 className="mb-1 text-truncate">{stay.accommodationName}</h5>
+                                                        <p className="d-flex align-items-center mb-2"><i className="isax isax-location5 me-2"></i>{[stay.address, stay.city, stay.country].filter(Boolean).join(', ') || 'Location available'}</p>
+                                                        <div className="border-top pt-2 mb-2">
+                                                            <span className="fs-13 text-muted">{stay.checkInDate} &rarr; {stay.checkOutDate} &middot; {stay.nights} night{stay.nights !== 1 ? 's' : ''}</span>
+                                                        </div>
+                                                        <div className="d-flex align-items-center justify-content-between border-top pt-3">
+                                                            <h5 className="text-primary text-nowrap me-2">{stay.cheapestRateCurrency} {stay.cheapestRateTotalAmount || 'N/A'}<span className="fs-14 fw-normal text-default"> total</span></h5>
+                                                            <Link
+                                                                to={`/hotel/hotel-request?stayId=${stay.stayId}&name=${encodeURIComponent(stay.accommodationName)}&city=${encodeURIComponent(stay.city || '')}&checkIn=${stay.checkInDate}&checkOut=${stay.checkOutDate}&nights=${stay.nights}&amount=${stay.cheapestRateTotalAmount}&currency=${stay.cheapestRateCurrency}&adults=${adults || 1}&rooms=${rooms || 1}`}
+                                                                className="btn btn-primary btn-sm"
+                                                            >
+                                                                Request this hotel
+                                                            </Link>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))
+                                    )
+                                ) : loadingHotels ? (
                                     <div className="text-center py-5 w-100">
                                         <div className="spinner-border text-primary" role="status">
                                             <span className="visually-hidden">Loading...</span>

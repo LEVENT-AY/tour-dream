@@ -1,7 +1,8 @@
 import { onRequest } from 'firebase-functions/v2/https';
 import { defineSecret } from 'firebase-functions/params';
 
-const DUFFEL_URL = 'https://api.duffel.com/air/offer_requests?return_offers=true&supplier_timeout=30000';
+const DUFFEL_AIR_URL = 'https://api.duffel.com/air/offer_requests?return_offers=true&supplier_timeout=30000';
+const DUFFEL_STAYS_URL = 'https://api.duffel.com/stays/search';
 
 const duffelToken = defineSecret('DUFFEL_ACCESS_TOKEN');
 
@@ -125,7 +126,7 @@ export const flightOffersSearch = onRequest(
         cabinClass
       }));
 
-      const response = await fetch(DUFFEL_URL, {
+      const response = await fetch(DUFFEL_AIR_URL, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -174,6 +175,132 @@ export const flightOffersSearch = onRequest(
         errorMessage: err instanceof Error ? err.message : String(err)
       }));
       res.status(502).json({ error: 'Failed to fetch flight offers' });
+    }
+  },
+);
+
+interface NormalizedStay {
+  stayId: string;
+  accommodationName: string;
+  rating: string;
+  address: string;
+  city: string;
+  country: string;
+  imageUrl: string;
+  cheapestRateTotalAmount: string;
+  cheapestRateCurrency: string;
+  checkInDate: string;
+  checkOutDate: string;
+  nights: number;
+  roomSummary: string;
+  cancellationSummary: string;
+  provider: string;
+}
+
+function normalizeStays(raw: Record<string, unknown>): NormalizedStay[] {
+  const data = raw.data as Record<string, unknown> | undefined;
+  if (!data?.accommodations || !Array.isArray(data.accommodations)) return [];
+  const rates = (data.rates as Record<string, unknown>[]) || [];
+  return data.accommodations.map((acc: Record<string, unknown>) => {
+    const accId = acc.id as string;
+    const accRates = rates.filter((r) => (r.accommodation_id as string) === accId);
+    let cheapest: Record<string, unknown> | undefined;
+    for (const r of accRates) {
+      const total = parseFloat(r.total_amount as string);
+      if (!cheapest || total < parseFloat(cheapest.total_amount as string)) {
+        cheapest = r;
+      }
+    }
+    const location = acc.location as Record<string, unknown> | undefined;
+    return {
+      stayId: accId,
+      accommodationName: (acc.name as string) || '',
+      rating: (acc.rating as string) || '',
+      address: ((location?.address_line as string) || ''),
+      city: ((location?.city as string) || ''),
+      country: ((location?.country as string) || ''),
+      imageUrl: (Array.isArray(acc.images) ? (acc.images[0] as string) : '') || '',
+      cheapestRateTotalAmount: cheapest?.total_amount as string || '',
+      cheapestRateCurrency: cheapest?.currency as string || '',
+      checkInDate: '',
+      checkOutDate: '',
+      nights: 0,
+      roomSummary: '',
+      cancellationSummary: '',
+      provider: 'duffel',
+    };
+  });
+}
+
+export const staysSearch = onRequest(
+  {
+    secrets: [duffelToken],
+    cors: [
+      'https://tour-tunisi.web.app',
+      /^https:\/\/tour-tunisi--pr[a-z0-9-]+\.web\.app$/,
+      /^http:\/\/localhost(:\d+)?$/,
+    ],
+  },
+  async (req, res) => {
+    if (req.method !== 'POST') {
+      res.status(405).json({ error: 'Method not allowed. Use POST.' });
+      return;
+    }
+
+    const { destination, checkInDate, checkOutDate, adults, rooms } = req.body || {};
+
+    if (!destination || !checkInDate || !checkOutDate) {
+      res.status(400).json({ error: 'destination, checkInDate, and checkOutDate are required' });
+      return;
+    }
+
+    const duffelPayload: Record<string, unknown> = {
+      data: {
+        check_in_date: checkInDate,
+        check_out_date: checkOutDate,
+        rooms: rooms || 1,
+        guests: [
+          { type: 'adult', count: adults || 1 },
+        ],
+        location: { type: 'text', text: destination },
+      },
+    };
+
+    try {
+      const token = duffelToken.value();
+      const response = await fetch(DUFFEL_STAYS_URL, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Duffel-Version': 'v2',
+        },
+        body: JSON.stringify(duffelPayload),
+      });
+
+      const raw = (await response.json()) as Record<string, unknown>;
+
+      if (!response.ok) {
+        res.status(502).json({ error: 'Duffel Stays API request failed', details: raw.errors || [] });
+        return;
+      }
+
+      const normalized = normalizeStays(raw);
+      const { checkInDate: cin, checkOutDate: cout } = req.body;
+      const nights = cin && cout
+        ? Math.max(1, Math.round((new Date(cout).getTime() - new Date(cin).getTime()) / 86400000))
+        : 0;
+      const enriched = normalized.map((s) => ({
+        ...s,
+        checkInDate: cin,
+        checkOutDate: cout,
+        nights,
+      }));
+
+      res.json({ stays: enriched });
+    } catch (err) {
+      res.status(502).json({ error: 'Failed to fetch stays' });
     }
   },
 );
