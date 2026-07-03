@@ -4,11 +4,18 @@ const fields: FieldConfig[] = [
   { name: 'title', label: 'Title', type: 'text', required: true },
   { name: 'type', label: 'Room Type', type: 'text' },
   { name: 'location', label: 'Location', type: 'text' },
+  { name: 'city', label: 'City', type: 'text' },
+  { name: 'country', label: 'Country', type: 'text' },
+  { name: 'address', label: 'Address', type: 'text' },
   { name: 'price', label: 'Price per Night (USD)', type: 'number' },
+  { name: 'priceNote', label: 'Price Note', type: 'text' },
   { name: 'rating', label: 'Rating', type: 'number' },
   { name: 'reviewsCount', label: 'Reviews Count', type: 'number' },
   { name: 'badge', label: 'Badge', type: 'text' },
   { name: 'description', label: 'Description', type: 'textarea' },
+  { name: 'amenities', label: 'Amenities', type: 'tags' },
+  { name: 'phone', label: 'Phone', type: 'text' },
+  { name: 'whatsapp', label: 'WhatsApp', type: 'text' },
   { name: 'image', label: 'Main Image', type: 'image' },
   { name: 'gallery', label: 'Gallery Images', type: 'gallery' },
   { name: 'trending', label: 'Trending', type: 'checkbox' },
@@ -20,11 +27,18 @@ const defaultItem = {
   title: '',
   type: '',
   location: '',
+  city: '',
+  country: 'Tunisia',
+  address: '',
   price: 0,
+  priceNote: '',
   rating: 0,
   reviewsCount: 0,
   badge: 'Trending',
   description: '',
+  amenities: [],
+  phone: '',
+  whatsapp: '',
   image: '',
   gallery: [],
   trending: false,
@@ -33,7 +47,21 @@ const defaultItem = {
 };
 
 const AdminHotels = () => (
-  <AdminCatalogManager title="Hotels Management" collectionName="hotels" fields={fields} defaultItem={defaultItem} />
+  <AdminCatalogManager
+    title="Hotels Management"
+    collectionName="hotels"
+    fields={fields}
+    defaultItem={defaultItem}
+    normalizeItem={(item) => ({
+      ...item,
+      country: item.country || 'Tunisia',
+      amenities: Array.isArray(item.amenities)
+        ? item.amenities.filter(Boolean)
+        : typeof item.amenities === 'string' && item.amenities.trim()
+          ? item.amenities.split(',').map((value: string) => value.trim()).filter(Boolean)
+          : [],
+    })}
+  />
 );
 
 export default AdminHotels;

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import Breadcrumb from '../../../core/common/Breadcrumb/breadcrumb';
 import { createServiceRequest } from '../../../core/services/firebaseServices';
@@ -12,6 +12,32 @@ const PAYMENT_METHODS: { value: PreferredPaymentMethod; label: string }[] = [
   { value: 'wafa_cash', label: 'Wafa Cash' },
   { value: 'bank_transfer', label: 'Bank Transfer' },
 ];
+
+type ManualHotelSelection = {
+  id?: string;
+  title?: string;
+  city?: string;
+  location?: string;
+  country?: string;
+  address?: string;
+  price?: number;
+  priceNote?: string;
+  rating?: number;
+  image?: string;
+  amenities?: string[];
+};
+
+const MANUAL_SELECTION_KEY = 'manualHotelSelection';
+
+const readManualSelection = (): ManualHotelSelection | null => {
+  try {
+    const raw = sessionStorage.getItem(MANUAL_SELECTION_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw) as ManualHotelSelection;
+  } catch {
+    return null;
+  }
+};
 
 const uploadReceipt = async (file: File): Promise<string> => {
   const ext = file.name.split('.').pop() || 'jpg';
@@ -30,6 +56,7 @@ const uploadReceipt = async (file: File): Promise<string> => {
 
 const HotelRequest = () => {
   const [searchParams] = useSearchParams();
+  const provider = searchParams.get('provider') || '';
   const stayId = searchParams.get('stayId') || '';
   const name = searchParams.get('name') || '';
   const city = searchParams.get('city') || '';
@@ -40,6 +67,24 @@ const HotelRequest = () => {
   const currency = searchParams.get('currency') || '';
   const adults = searchParams.get('adults') || '1';
   const rooms = searchParams.get('rooms') || '1';
+  const destination = searchParams.get('destination') || city || name || 'Tunisia';
+  const checkInDate = searchParams.get('checkInDate') || checkIn;
+  const checkOutDate = searchParams.get('checkOutDate') || checkOut;
+  const manualHotelSelection = useMemo(() => (provider === 'manual' ? readManualSelection() : null), [provider]);
+  const isManualMode = provider === 'manual';
+  const isDuffelMode = !isManualMode && !!(stayId || name);
+
+  const manualTitle = manualHotelSelection?.title || destination;
+  const manualCity = manualHotelSelection?.city || destination;
+  const manualLocation = manualHotelSelection?.location || manualCity;
+  const manualPriceLabel = (() => {
+    if (typeof manualHotelSelection?.price === 'number' && manualHotelSelection.price > 0) {
+      return `$${manualHotelSelection.price}`;
+    }
+    if (manualHotelSelection?.priceNote) return manualHotelSelection.priceNote;
+    if (amount) return `${currency ? `${currency} ` : ''}${amount}`.trim();
+    return 'Contact for pricing';
+  })();
 
   const [customerName, setCustomerName] = useState('');
   const [customerEmail, setCustomerEmail] = useState('');
@@ -56,6 +101,7 @@ const HotelRequest = () => {
     e.preventDefault();
     setError('');
     setReceiptError('');
+
     if (!customerName.trim() || !customerEmail.trim()) {
       setError('Name and email are required');
       return;
@@ -68,6 +114,7 @@ const HotelRequest = () => {
       setError('Please upload your payment receipt');
       return;
     }
+
     setSubmitting(true);
     let uploadedReceiptPath = '';
     let uploadedReceiptFileName = '';
@@ -82,10 +129,46 @@ const HotelRequest = () => {
         paymentStatus = 'receipt_uploaded';
       }
 
+      const offerSnapshot = isManualMode
+        ? {
+            type: manualHotelSelection ? 'manual_hotel' : 'manual_request',
+            provider: 'manual',
+            hotelId: manualHotelSelection?.id || stayId || '',
+            accommodationName: manualTitle,
+            city: manualCity,
+            location: manualLocation,
+            country: manualHotelSelection?.country || 'Tunisia',
+            address: manualHotelSelection?.address || '',
+            price: manualHotelSelection?.price ?? amount ?? '',
+            priceNote: manualHotelSelection?.priceNote || '',
+            rating: manualHotelSelection?.rating ?? 0,
+            image: manualHotelSelection?.image || '',
+            amenities: Array.isArray(manualHotelSelection?.amenities) ? manualHotelSelection?.amenities : [],
+            destination,
+            checkInDate: checkInDate || '',
+            checkOutDate: checkOutDate || '',
+            adults: Number(adults),
+            rooms: Number(rooms),
+          } as Record<string, unknown>
+        : {
+            type: 'stay',
+            stayId,
+            accommodationName: name,
+            city,
+            checkInDate: checkIn,
+            checkOutDate: checkOut,
+            nights: Number(nights),
+            totalAmount: amount,
+            currency,
+            adults: Number(adults),
+            rooms: Number(rooms),
+            provider: 'duffel',
+          } as Record<string, unknown>;
+
       await createServiceRequest({
         serviceType: 'hotel',
-        serviceId: stayId || 'hotel-request',
-        serviceTitle: name || 'Hotel Request',
+        serviceId: isManualMode ? (manualHotelSelection?.id || stayId || `manual-hotel-request-${destination}`) : (stayId || 'hotel-request'),
+        serviceTitle: isManualMode ? `Hotel Request - ${destination}` : (name || 'Hotel Request'),
         customerName: customerName.trim(),
         customerEmail: customerEmail.trim(),
         customerPhone: customerPhone.trim() || undefined,
@@ -95,22 +178,9 @@ const HotelRequest = () => {
         receiptPath: uploadedReceiptPath || undefined,
         receiptFileName: uploadedReceiptFileName || undefined,
         receiptContentType: uploadedReceiptContentType || undefined,
-        provider: 'duffel',
+        provider: isManualMode ? 'manual' : 'duffel',
         guestsCount: Number(adults) || 1,
-        offerSnapshot: {
-          type: 'stay',
-          stayId,
-          accommodationName: name,
-          city,
-          checkInDate: checkIn,
-          checkOutDate: checkOut,
-          nights: Number(nights),
-          totalAmount: amount,
-          currency,
-          adults: Number(adults),
-          rooms: Number(rooms),
-          provider: 'duffel',
-        } as Record<string, unknown>,
+        offerSnapshot,
       });
 
       setSubmitted(true);
@@ -139,7 +209,9 @@ const HotelRequest = () => {
                   <div className="card-body text-center py-5">
                     <div className="mb-3"><i className="isax isax-tick-circle text-success" style={{ fontSize: '4rem' }}></i></div>
                     <h4 className="mb-2">Hotel Request Sent</h4>
-                    <p className="text-muted mb-0">Your request for <strong>{name}</strong> has been submitted. Our team will review it and contact you shortly.</p>
+                    <p className="text-muted mb-0">
+                      Your request for <strong>{isManualMode ? manualTitle : (name || destination)}</strong> has been submitted. Our team will review it and contact you shortly.
+                    </p>
                     <div className="bg-light rounded p-3 mt-3 text-start">
                       <h6 className="fs-14 mb-2">What happens next?</h6>
                       <ul className="fs-13 mb-0 ps-3">
@@ -170,7 +242,24 @@ const HotelRequest = () => {
                 <div className="card-body">
                   <h5 className="mb-3">Review Hotel Request</h5>
 
-                  {name && (
+                  {isManualMode && (
+                    <div className="bg-light rounded p-3 mb-3">
+                      <h6 className="fs-14 fw-semibold mb-2">Request Details</h6>
+                      <div className="row g-2 fs-14">
+                        <div className="col-md-6"><span className="text-muted">Hotel:</span> {manualTitle}</div>
+                        <div className="col-md-6"><span className="text-muted">Location:</span> {manualCity}</div>
+                        {!!manualHotelSelection?.address && <div className="col-md-12"><span className="text-muted">Address:</span> {manualHotelSelection.address}</div>}
+                        <div className="col-md-6"><span className="text-muted">Check-in:</span> {checkInDate || 'Not provided'}</div>
+                        <div className="col-md-6"><span className="text-muted">Check-out:</span> {checkOutDate || 'Not provided'}</div>
+                        <div className="col-md-6"><span className="text-muted">Guests:</span> {adults} Adult(s)</div>
+                        <div className="col-md-6"><span className="text-muted">Rooms:</span> {rooms}</div>
+                        <div className="col-md-6"><span className="text-muted">Price:</span> <strong>{manualPriceLabel}</strong></div>
+                        <div className="col-md-6"><span className="text-muted">Provider:</span> <span className="badge bg-secondary">manual</span></div>
+                      </div>
+                    </div>
+                  )}
+
+                  {!isManualMode && isDuffelMode && (
                     <div className="bg-light rounded p-3 mb-3">
                       <h6 className="fs-14 fw-semibold mb-2">Stay Details</h6>
                       <div className="row g-2 fs-14">
@@ -183,6 +272,20 @@ const HotelRequest = () => {
                         <div className="col-md-6"><span className="text-muted">Rooms:</span> {rooms}</div>
                         {amount && <div className="col-md-6"><span className="text-muted">Price:</span> <strong>{currency} {amount}</strong></div>}
                         <div className="col-md-6"><span className="text-muted">Provider:</span> <span className="badge bg-secondary">duffel</span></div>
+                      </div>
+                    </div>
+                  )}
+
+                  {!isManualMode && !isDuffelMode && (
+                    <div className="bg-light rounded p-3 mb-3">
+                      <h6 className="fs-14 fw-semibold mb-2">Hotel Request</h6>
+                      <div className="row g-2 fs-14">
+                        <div className="col-md-6"><span className="text-muted">Destination:</span> {destination}</div>
+                        <div className="col-md-6"><span className="text-muted">Check-in:</span> {checkInDate || 'Not provided'}</div>
+                        <div className="col-md-6"><span className="text-muted">Check-out:</span> {checkOutDate || 'Not provided'}</div>
+                        <div className="col-md-6"><span className="text-muted">Guests:</span> {adults} Adult(s)</div>
+                        <div className="col-md-6"><span className="text-muted">Rooms:</span> {rooms}</div>
+                        <div className="col-md-6"><span className="text-muted">Provider:</span> <span className="badge bg-secondary">manual</span></div>
                       </div>
                     </div>
                   )}

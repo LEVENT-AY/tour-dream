@@ -175,16 +175,29 @@ export const fetchHotels = async (): Promise<DocumentData[]> => {
     .map((hotel) => {
       const data = hotel as DocumentData;
       return {
-      ...hotel,
-      title: data.title || data.name || '',
-      name: data.name || data.title || '',
-      listingCategory: data.listingCategory || 'lodging',
-      propertyType: data.propertyType || 'hotel',
-      image: data.image || (Array.isArray(data.gallery) ? data.gallery[0] : ''),
-      price: data.price ?? data.pricePerNight ?? 0,
-      rating: data.rating ?? data.starRating ?? 0,
-      location: data.location || data.city || data.country || '',
-    };
+        ...hotel,
+        title: data.title || data.name || '',
+        name: data.name || data.title || '',
+        listingCategory: data.listingCategory || 'lodging',
+        propertyType: data.propertyType || 'hotel',
+        image: data.image || data.mainImage || (Array.isArray(data.gallery) ? data.gallery[0] : ''),
+        gallery: Array.isArray(data.gallery) ? data.gallery : [],
+        price: data.price ?? data.pricePerNight ?? 0,
+        priceNote: data.priceNote || data.priceLabel || '',
+        rating: data.rating ?? data.starRating ?? 0,
+        reviewsCount: data.reviewsCount ?? 0,
+        city: data.city || '',
+        country: data.country || 'Tunisia',
+        address: data.address || '',
+        location: data.location || data.city || data.address || data.country || '',
+        amenities: Array.isArray(data.amenities)
+          ? data.amenities.filter(Boolean)
+          : typeof data.amenities === 'string' && data.amenities.trim()
+            ? data.amenities.split(',').map((value: string) => value.trim()).filter(Boolean)
+            : [],
+        phone: data.phone || '',
+        whatsapp: data.whatsapp || '',
+      };
     });
 };
 export const fetchCars = async (): Promise<DocumentData[]> => {

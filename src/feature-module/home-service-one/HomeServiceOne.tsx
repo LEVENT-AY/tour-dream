@@ -19,6 +19,7 @@ import FooterSection from "./footerSection";
 import BookingDropdown from "../../core/common/booking-dropdown/bookingDropdown";
 import BannerCounter from "../../core/common/banner-counter/counter";
 import { AIRPORT_IATA, FLIGHT_LOCATIONS } from "../../core/common/data/flightAirports";
+import { TUNISIA_HOTEL_LOCATIONS, findTunisiaHotelLocation } from "../../core/common/data/tunisiaHotelLocations";
 type Mode = "flight" | "hotel" | "cruise" | "tour" | "bus" | "activity" | "visa" | "guide";
 
 type BookingState = {
@@ -261,10 +262,12 @@ const guidePassenger =
   };
 
   const handleHotelSearch = () => {
-    const location = hotelLocation || 'Tunisia';
+    const selectedLocation = findTunisiaHotelLocation(hotelLocation);
+    const location = selectedLocation?.city || hotelLocation || 'Tunisia';
     const start = hotelDates.start || new Date(Date.now() + 86400000);
     const end = hotelDates.end || new Date(Date.now() + 3 * 86400000);
     const params = new URLSearchParams();
+    params.set('source', 'manual');
     params.set('destination', location);
     params.set('checkInDate', start.toISOString().slice(0, 10));
     params.set('checkOutDate', end.toISOString().slice(0, 10));
@@ -824,16 +827,15 @@ const guidePassenger =
                                         role="menu"
                                       >
                                       <BookingDropdown
-                                        label="City, Property name or Location"
+                                        label="Destination"
                                         defaultValue="Select"
-                                        defaultSubValue=""
-                                        locations={[
-                                          { value: "Tunisia", subValue: "Available Properties" },
-                                          { value: "Japan", subValue: "3000 Properties" },
-                                          { value: "Singapore", subValue: "Singapore" },
-     { value: "Russia", subValue: " 8000 Properties" },
-     { value: "Germany", subValue: "2000 Properties" }
-                                        ]}
+                                        defaultSubValue="Choose a Tunisian city"
+                                        locations={TUNISIA_HOTEL_LOCATIONS.map((location) => ({
+                                          value: location.label,
+                                          subValue: location.governorate,
+                                        }))}
+                                        value={hotelLocation || 'Select'}
+                                        subValue={findTunisiaHotelLocation(hotelLocation)?.governorate || 'Choose a Tunisian city'}
                                         onChange={(v) => setHotelLocation(v)}
                                       />
                                       </div>
