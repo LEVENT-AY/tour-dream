@@ -215,9 +215,9 @@ check(
 );
 const storageStr = readFile('storage.rules');
 check(
-  'Storage rules unchanged (no receipt/upload references)',
-  !/receipt/i.test(storageStr) && !/payment/i.test(storageStr),
-  'storage rules appear to reference payment/receipt'
+  'Storage rules have approved receipts path',
+  /receipts/.test(storageStr) && /isAdmin/.test(storageStr),
+  'approved receipts path not found in storage rules'
 );
 
 // 13. Payment/checkout gateway files were not added
@@ -501,16 +501,21 @@ check(
   'payment info appears editable in modal'
 );
 
-// 28. No receipt upload input was added
+// 28. Receipt display in Admin Bookings (no upload input, just link)
 check(
   'Admin Bookings has no receipt upload input',
   !/type="file"/.test(adminBookings),
   'file upload input found in Admin Bookings'
 );
 check(
-  'Admin Bookings has no "receipt" text in payment context',
-  !/receipt/i.test(adminBookings),
-  'receipt reference found'
+  'Admin Bookings shows receipt link in payment column',
+  /View receipt/.test(adminBookings) || /Receipt/.test(adminBookings.split('Payment column')[0] || ''),
+  'receipt link not found in admin bookings'
+);
+check(
+  'Admin Bookings shows receipt preview in modal',
+  /receiptPath/.test(adminBookings) || /View receipt/.test(adminBookings),
+  'receiptPath/View receipt not referenced in admin modal'
 );
 
 // 29. No card fields were added
@@ -757,16 +762,16 @@ check(
   'new admin payment route found'
 );
 
-// 48. Firestore and Storage rules not modified
+// 48. Firestore and Storage rules (approved changes only)
 check(
   'Firestore rules not modified (no preferredPaymentMethod in rules)',
   !/preferredPaymentMethod/.test(rulesContent),
   'rules modified'
 );
 check(
-  'Storage rules not modified',
-  !/receipt/i.test(storageStr) && !/payment/i.test(storageStr),
-  'storage rules modified'
+  'Storage rules receipts path matches approved minimal rule',
+  /receipts/.test(storageStr) && /isAdmin/.test(storageStr) && !/public read/.test(storageStr),
+  'storage rules do not match approved receipts path'
 );
 
 // 49. Public ServiceRequestForm remains intact
@@ -981,9 +986,9 @@ check(
   'file upload found'
 );
 check(
-  'No receipt upload in Admin Bookings',
-  !/receipt/i.test(adminBookings),
-  'receipt reference found'
+  'Admin Bookings receipt link exists (no upload input)',
+  !/type="file"/.test(adminBookings) && (/receiptPath/.test(adminBookings) || /View receipt/.test(adminBookings)),
+  'receipt validation failed'
 );
 check(
   'No card fields in Admin Bookings',
@@ -1016,9 +1021,9 @@ check(
   'rules modified'
 );
 check(
-  'Storage rules not modified',
-  !/receipt/i.test(storageStr) && !/payment/i.test(storageStr),
-  'storage rules modified'
+  'Storage rules receipts path (approved)',
+  /receipts/.test(storageStr) && /isAdmin/.test(storageStr),
+  'approved receipts path not found in storage rules'
 );
 
 // 61. Existing features remain
@@ -1319,9 +1324,9 @@ check(
   'rules modified'
 );
 check(
-  'Storage rules not modified',
-  !/receipt/i.test(storageStr) && !/payment/i.test(storageStr),
-  'storage rules modified'
+  'Storage rules receipts path (approved)',
+  /receipts/.test(storageStr) && /isAdmin/.test(storageStr),
+  'approved receipts path not found in storage rules'
 );
 
 // 75. Existing features remain
@@ -1554,9 +1559,9 @@ check(
   'rules modified'
 );
 check(
-  'Storage rules not modified',
-  !/receipt/i.test(storageStr) && !/payment/i.test(storageStr),
-  'storage rules modified'
+  'Storage rules receipts path (approved)',
+  /receipts/.test(storageStr) && /isAdmin/.test(storageStr),
+  'approved receipts path not found in storage rules'
 );
 check(
   'Agent Dashboard routes remain intact',
@@ -1607,6 +1612,49 @@ check(
   'Payment method dropdown still renders bank_transfer',
   /value: 'bank_transfer'/.test(srForm),
   'bank_transfer option missing'
+);
+
+// Sprint 32d: Receipt path flow (no public getDownloadURL)
+const flightBooking = readFile('src/feature-module/flight/flight-booking/flightBooking.tsx');
+check(
+  'Public flight booking does not call getDownloadURL after upload',
+  !/getDownloadURL/.test(flightBooking),
+  'getDownloadURL should not be called from public flight booking code'
+);
+check(
+  'Public flight booking saves receiptPath from upload result',
+  /receiptPath.*ref\.fullPath/.test(flightBooking) || /uploadTask\.snapshot\.ref\.fullPath/.test(flightBooking) || /receiptPath:.*fullPath/.test(flightBooking),
+  'receiptPath not saved from upload result in flight booking'
+);
+check(
+  'Public flight booking saves receiptFileName',
+  /receiptFileName/.test(flightBooking),
+  'receiptFileName not saved in flight booking'
+);
+check(
+  'Public flight booking saves receiptContentType',
+  /receiptContentType/.test(flightBooking),
+  'receiptContentType not saved in flight booking'
+);
+check(
+  'Admin bookings resolves receiptPath via getDownloadURL',
+  /getDownloadURL\(ref\(storage/.test(adminBookings),
+  'admin bookings should resolve receiptPath to download URL'
+);
+check(
+  'Admin bookings renders ReceiptLink component for receiptPath',
+  /ReceiptLink/.test(adminBookings),
+  'ReceiptLink component not found in admin bookings'
+);
+check(
+  'Storage rules receipts path has no public read',
+  /read.*isAdmin/.test(storageStr.match(/receipts[\s\S]*?\n\s*\}/)?.[0] || ''),
+  'receipts storage path should only allow admin read'
+);
+check(
+  'Storage rules receipts path allows public create with validation',
+  /create.*request\.resource\.size/.test(storageStr.match(/receipts[\s\S]*?\n\s*\}/)?.[0] || ''),
+  'receipts storage path should have size validation on create'
 );
 
 // Summary
