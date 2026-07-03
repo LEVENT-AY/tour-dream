@@ -586,8 +586,8 @@ export const deleteCatalogItem = async (collectionName: string, itemId: string):
 export type ServiceRequestStatus = "pending" | "contacted" | "confirmed" | "cancelled";
 export type ServiceType = "cruise" | "bus" | "visa" | "guide" | "tour" | "hotel" | "activity" | "flight" | "other";
 export type ServiceRequestPriority = "low" | "normal" | "high" | "urgent";
-export type PreferredPaymentMethod = "not_sure" | "wafa_cash" | "bank_transfer";
-export type ManualPaymentStatus = "not_requested" | "pending_confirmation";
+export type PreferredPaymentMethod = "not_sure" | "wafa_cash" | "bank_transfer" | "card";
+export type ManualPaymentStatus = "not_requested" | "pending_confirmation" | "receipt_pending" | "receipt_uploaded";
 
 export interface ServiceRequest {
   id?: string;
@@ -613,6 +613,10 @@ export interface ServiceRequest {
   paymentStatus?: ManualPaymentStatus;
   preferredPaymentMethod?: PreferredPaymentMethod;
   paymentReference?: string;
+  receiptUrl?: string;
+  receiptPath?: string;
+  receiptFileName?: string;
+  receiptContentType?: string;
   /** Flight-specific fields */
   departureCity?: string;
   arrivalCity?: string;
@@ -697,7 +701,12 @@ export interface CreateServiceRequestInput {
   guestsCount?: number;
   message?: string;
   preferredPaymentMethod?: PreferredPaymentMethod;
+  paymentStatus?: ManualPaymentStatus;
   paymentReference?: string;
+  receiptUrl?: string;
+  receiptPath?: string;
+  receiptFileName?: string;
+  receiptContentType?: string;
   /** Flight-specific fields */
   departureCity?: string;
   arrivalCity?: string;
@@ -733,7 +742,12 @@ export const createServiceRequest = async (
   if (typeof input.guestsCount === 'number') payload.guestsCount = input.guestsCount;
   if (input.message) payload.message = input.message;
   if (input.preferredPaymentMethod) payload.preferredPaymentMethod = input.preferredPaymentMethod;
+  if (input.paymentStatus) payload.paymentStatus = input.paymentStatus;
   if (input.paymentReference?.trim()) payload.paymentReference = input.paymentReference.trim();
+  if (input.receiptUrl) payload.receiptUrl = input.receiptUrl;
+  if (input.receiptPath) payload.receiptPath = input.receiptPath;
+  if (input.receiptFileName) payload.receiptFileName = input.receiptFileName;
+  if (input.receiptContentType) payload.receiptContentType = input.receiptContentType;
   if (input.departureCity) payload.departureCity = input.departureCity;
   if (input.arrivalCity) payload.arrivalCity = input.arrivalCity;
   if (input.departureDate) payload.departureDate = input.departureDate;
