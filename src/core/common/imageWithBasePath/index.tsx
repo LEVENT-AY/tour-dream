@@ -14,9 +14,27 @@ interface ImageProps {
 const TRANSPARENT_PIXEL =
   "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
 
+const normalizeLoopbackAssetUrl = (src: string): string => {
+  try {
+    const parsed = new URL(src);
+    const isLoopbackHost =
+      parsed.hostname === "localhost" ||
+      parsed.hostname === "127.0.0.1" ||
+      parsed.hostname === "::1";
+
+    if (isLoopbackHost && parsed.pathname.startsWith("/assets/")) {
+      return parsed.pathname.slice(1);
+    }
+  } catch {
+    return src;
+  }
+
+  return src;
+};
+
 const resolveSrc = (src: string | undefined): string => {
   if (!src) return TRANSPARENT_PIXEL;
-  if (/^https?:\/\//i.test(src)) return src;
+  if (/^https?:\/\//i.test(src)) return normalizeLoopbackAssetUrl(src);
   return `${img_path}${src}`;
 };
 

@@ -52,7 +52,15 @@ const HotelSearchPanel = ({
     parseDateValue(initialCheckOutDate) ?? new Date(Date.now() + 3 * 86400000),
   );
   const [priceValue, setPriceValue] = useState('$1000 - $15000');
-  const [priceSubValue, setPriceSubValue] = useState('20 Offers Available');
+  const [priceSubValue, setPriceSubValue] = useState('Search available hotels');
+
+  const priceOptions = [
+    { value: '$500 - $2000', subValue: 'Search available hotels' },
+    { value: '$2000 - $5000', subValue: 'Search available hotels' },
+    { value: '$5000 - $8000', subValue: 'Search available hotels' },
+    { value: '$9000 - $11000', subValue: 'Search available hotels' },
+    { value: '$11000 - $15000', subValue: 'Search available hotels' },
+  ];
 
   useEffect(() => {
     setDestination(initialDestination);
@@ -322,25 +330,13 @@ const HotelSearchPanel = ({
                 label="Price per Night"
                 defaultValue={priceValue}
                 defaultSubValue={priceSubValue}
-                locations={[
-                  { value: '$500 - $2000', subValue: 'Upto 65% offers' },
-                  { value: '$2000 - $5000', subValue: 'Upto 40% offers' },
-                  { value: '$5000 - $8000', subValue: 'Upto 35% offers' },
-                  { value: '$9000 - $11000', subValue: 'Upto 20% offers' },
-                  { value: '$11000 - $15000', subValue: 'Upto 10% offers' },
-                ]}
+                locations={priceOptions}
                 value={priceValue}
                 subValue={priceSubValue}
                 onChange={(v) => {
-                  const selected = [
-                    { value: '$500 - $2000', subValue: 'Upto 65% offers' },
-                    { value: '$2000 - $5000', subValue: 'Upto 40% offers' },
-                    { value: '$5000 - $8000', subValue: 'Upto 35% offers' },
-                    { value: '$9000 - $11000', subValue: 'Upto 20% offers' },
-                    { value: '$11000 - $15000', subValue: 'Upto 10% offers' },
-                  ].find((option) => option.value === v);
+                  const selected = priceOptions.find((option) => option.value === v);
                   setPriceValue(v);
-                  setPriceSubValue(selected?.subValue || '20 Offers Available');
+                  setPriceSubValue(selected?.subValue || 'Search available hotels');
                 }}
               />
             </div>

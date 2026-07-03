@@ -35,6 +35,8 @@ assert(/params\.set\('source', 'manual'\)/.test(hotelSearchPanel), 'Hotel search
 assert(/initialStartDate/.test(dateRange), 'CommonDateRange supports initialStartDate');
 assert(/initialEndDate/.test(dateRange), 'CommonDateRange supports initialEndDate');
 assert(/TUNISIA_HOTEL_LOCATIONS/.test(hotelSearchPanel), 'Hotel search panel uses Tunisia hotel locations');
+assert(!/20 Offers Available|Available offers/i.test(hotelSearchPanel), 'Hotel search panel avoids fake offer count copy');
+assert(!/Upto \\d+% offers/i.test(hotelSearchPanel), 'Hotel search panel avoids fake promotional offer copy');
 assert(/manualMode/.test(grid), 'Manual hotel grid mode exists');
 assert(/fetchHotels\(\)/.test(grid), 'Hotel grid uses fetchHotels');
 assert(/Request this hotel/.test(grid), 'Hotel cards have request button');
@@ -49,5 +51,6 @@ assert(!/functions\/src\/index\.ts/.test(status), 'functions/src/index.ts unchan
 assert(!/firestore\.rules|storage\.rules/.test(status), 'Firestore and Storage rules unchanged in git status');
 assert(!/functions\/src\/index\.ts/.test(diffNames), 'functions/src/index.ts not in diff');
 assert(!/firestore\.rules|storage\.rules/.test(diffNames), 'Firestore and Storage rules not in diff');
+assert(/normalizeLoopbackAssetUrl/.test(read('src/core/common/imageWithBasePath/index.tsx')), 'Image resolver normalizes loopback asset URLs');
 
 console.log('qa:hotel-directory passed');
