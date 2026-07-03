@@ -199,29 +199,22 @@ interface NormalizedStay {
 
 function normalizeStays(raw: Record<string, unknown>): NormalizedStay[] {
   const data = raw.data as Record<string, unknown> | undefined;
-  if (!data?.accommodations || !Array.isArray(data.accommodations)) return [];
-  const rates = (data.rates as Record<string, unknown>[]) || [];
-  return data.accommodations.map((acc: Record<string, unknown>) => {
-    const accId = acc.id as string;
-    const accRates = rates.filter((r) => (r.accommodation_id as string) === accId);
-    let cheapest: Record<string, unknown> | undefined;
-    for (const r of accRates) {
-      const total = parseFloat(r.total_amount as string);
-      if (!cheapest || total < parseFloat(cheapest.total_amount as string)) {
-        cheapest = r;
-      }
-    }
-    const location = acc.location as Record<string, unknown> | undefined;
+  if (!data?.results || !Array.isArray(data.results)) return [];
+  return data.results.map((result: Record<string, unknown>) => {
+    const acc = result.accommodation as Record<string, unknown> | undefined;
+    const loc = acc?.location as Record<string, unknown> | undefined;
+    const addr = loc?.address as Record<string, unknown> | undefined;
+    const photos = acc?.photos as { url: string }[] | undefined;
     return {
-      stayId: accId,
-      accommodationName: (acc.name as string) || '',
-      rating: (acc.rating as string) || '',
-      address: ((location?.address_line as string) || ''),
-      city: ((location?.city as string) || ''),
-      country: ((location?.country as string) || ''),
-      imageUrl: (Array.isArray(acc.images) ? (acc.images[0] as string) : '') || '',
-      cheapestRateTotalAmount: cheapest?.total_amount as string || '',
-      cheapestRateCurrency: cheapest?.currency as string || '',
+      stayId: (result.id as string) || '',
+      accommodationName: (acc?.name as string) || '',
+      rating: (acc?.rating as string) || (acc?.review_score as string) || '',
+      address: '',
+      city: (addr?.city_name as string) || '',
+      country: (addr?.country_code as string) || '',
+      imageUrl: (photos?.[0]?.url as string) || '',
+      cheapestRateTotalAmount: (result.cheapest_rate_total_amount as string) || '',
+      cheapestRateCurrency: (result.cheapest_rate_currency as string) || '',
       checkInDate: '',
       checkOutDate: '',
       nights: 0,
@@ -234,35 +227,43 @@ function normalizeStays(raw: Record<string, unknown>): NormalizedStay[] {
 
 export const staysSearch = onRequest(
   {
-    secrets: [duffelToken],
-    cors: [
-      'https://tour-tunisi.web.app',
-      /^https:\/\/tour-tunisi--pr[a-z0-9-]+\.web\.app$/,
-      /^http:\/\/localhost(:\d+)?$/,
-    ],
+    region: "us-central1",
+    cors: true,
+    secrets: [duffelToken]
   },
   async (req, res) => {
-    if (req.method !== 'POST') {
-      res.status(405).json({ error: 'Method not allowed. Use POST.' });
-      return;
-    }
+    console.log("STAYS_HANDLER_ENTERED", { method: req.method });
 
-    const { destination, checkInDate, checkOutDate, adults, rooms } = req.body || {};
+    const { destination, checkInDate, checkOutDate, adults, rooms, lat, lng, radius } = req.body || {};
 
     if (!destination || !checkInDate || !checkOutDate) {
       res.status(400).json({ error: 'destination, checkInDate, and checkOutDate are required' });
       return;
     }
 
+    if (lat == null || lng == null) {
+      res.status(400).json({ error: 'Please select a valid destination.' });
+      return;
+    }
+
+    const guestCount = Math.max(1, adults || 1);
+    const guests = Array.from({ length: guestCount }, () => ({ type: 'adult' }));
+
     const duffelPayload: Record<string, unknown> = {
       data: {
         check_in_date: checkInDate,
         check_out_date: checkOutDate,
         rooms: rooms || 1,
-        guests: [
-          { type: 'adult', count: adults || 1 },
-        ],
-        location: { type: 'text', text: destination },
+        guests,
+        location: {
+          radius: `${radius || 10}km`,
+          geographic_coordinates: {
+            longitude: Number(lng),
+            latitude: Number(lat),
+          },
+        },
+        free_cancellation_only: false,
+        mobile: false,
       },
     };
 
@@ -279,14 +280,59 @@ export const staysSearch = onRequest(
         body: JSON.stringify(duffelPayload),
       });
 
-      const raw = (await response.json()) as Record<string, unknown>;
+      console.log("DUFFEL_STAYS_DEBUG_REQUEST", JSON.stringify({
+        duffelStatus: response.status,
+        contentType: response.headers.get("content-type"),
+        destination,
+        lat,
+        lng,
+        radius,
+        checkInDate,
+        checkOutDate,
+        adults,
+        rooms,
+        tokenLivePrefix: token.startsWith("duffel_live_")
+      }));
+
+      const bodyText = await response.text();
 
       if (!response.ok) {
-        res.status(502).json({ error: 'Duffel Stays API request failed', details: raw.errors || [] });
+        let bodyPreview = bodyText.substring(0, 500);
+        let parsed: Record<string, unknown> | undefined;
+        try { parsed = JSON.parse(bodyText); } catch { /* not JSON */ }
+        const err = parsed?.errors as Record<string, unknown>[] | undefined;
+        console.log("DUFFEL_STAYS_DEBUG_RESPONSE", JSON.stringify({
+          duffelStatus: response.status,
+          errorCode: err?.[0]?.code || null,
+          errorTitle: err?.[0]?.title || null,
+          errorMessage: err?.[0]?.message || null,
+          bodyPreview,
+        }));
+        res.status(502).json({ error: 'Stays search unavailable. Please try again later.' });
         return;
       }
 
+      let raw: Record<string, unknown>;
+      try {
+        raw = JSON.parse(bodyText) as Record<string, unknown>;
+      } catch {
+        console.log("DUFFEL_STAYS_DEBUG_RESPONSE_NON_JSON", JSON.stringify({
+          duffelStatus: response.status,
+          bodyPreview: bodyText.substring(0, 500)
+        }));
+        res.status(502).json({ error: 'Stays search unavailable. Please try again later.' });
+        return;
+      }
+
+      const data = raw.data as Record<string, unknown> | undefined;
+      const rawResultsCount = Array.isArray(data?.results) ? data.results.length : 0;
+      console.log("DUFFEL_STAYS_DEBUG_RESPONSE", JSON.stringify({
+        duffelStatus: response.status,
+        rawResultsCount
+      }));
+
       const normalized = normalizeStays(raw);
+
       const { checkInDate: cin, checkOutDate: cout } = req.body;
       const nights = cin && cout
         ? Math.max(1, Math.round((new Date(cout).getTime() - new Date(cin).getTime()) / 86400000))
@@ -300,7 +346,12 @@ export const staysSearch = onRequest(
 
       res.json({ stays: enriched });
     } catch (err) {
-      res.status(502).json({ error: 'Failed to fetch stays' });
+      console.log("DUFFEL_STAYS_DEBUG_ERROR", JSON.stringify({
+        errorMessage: (err as Error).message,
+        errorName: (err as Error).name,
+        errorStack: (err as Error).stack?.split('\n').slice(0, 3).join(' | ')
+      }));
+      res.status(502).json({ error: 'Stays search unavailable. Please try again later.' });
     }
-  },
+  }
 );

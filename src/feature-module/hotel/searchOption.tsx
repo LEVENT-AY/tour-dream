@@ -53,7 +53,7 @@ const SearchOption = () => {
         appliedData.hotel.adults +
         appliedData.hotel.children +
         appliedData.hotel.infants;
-        const totalHotelGuest = hotelGuests === 0 ? 4 : hotelGuests;
+        const totalHotelGuest = hotelGuests;
           const [_dates, setDates] = useState<{
           start: Date | null;
           end: Date | null;
@@ -86,11 +86,11 @@ const SearchOption = () => {
                                         defaultValue="Newyork"
                                         defaultSubValue="USA"
                                         locations={[
-                                          { value: "USA", subValue: "2000 Properties" },
-                                          { value: "Japan", subValue: "3000 Properties" },
-                                          { value: "Singapore", subValue: "Singapore" },
-    { value: "Russia", subValue: " 8000 Properties" },
-    { value: "Germany", subValue: "2000 Properties" }
+                                          { value: "USA", subValue: "" },
+                                          { value: "Japan", subValue: "" },
+                                          { value: "Singapore", subValue: "" },
+     { value: "Russia", subValue: "" },
+     { value: "Germany", subValue: "" }
                                         ]}
                                       />
                                       </div>
@@ -120,8 +120,8 @@ const SearchOption = () => {
                                           </span>
                                         </div>
                                         <p className="fs-12 mb-0">
-                                          <span className="adult">4</span> Adult,{" "}
-                                          <span className="room">2</span> Rooms
+                                          <span className="adult">{appliedData.hotel.adults}</span> Adult,{" "}
+                                          <span className="room">{appliedData.hotel.rooms}</span> Rooms
                                         </p>
                                       </div>
                                       <div className="dropdown-menu dropdown-menu-end dropdown-xl">
@@ -335,17 +335,17 @@ const SearchOption = () => {
                                         role="menu"
                                       >
                                        <BookingDropdown
-                                                                               label="Price per Night"
-                                                                               defaultValue="$1000 - $15000"
-                                                                               defaultSubValue="20 Offers Available"
-                                                                               locations={[
-                                                                                 { value: "$500 - $2000", subValue: "Upto 65% offers" },
-                                                                                 { value: "$2000 - $5000", subValue: "Upto 40% offers" },
-                                                                                 { value: "$5000 - $8000", subValue: "Upto 35% offers" },
-                                           { value: "$9000 - $11000", subValue: "Upto 20% offers" },
-                                           { value: "$11000 - $15000", subValue: "Upto 10% offers" }
-                                                                               ]}
-                                                                             />
+                                                                                label="Price per Night"
+                                                                                defaultValue="$1000 - $15000"
+                                                                                defaultSubValue=""
+                                                                                locations={[
+                                                                                  { value: "$500 - $2000", subValue: "" },
+                                                                                  { value: "$2000 - $5000", subValue: "" },
+                                                                                  { value: "$5000 - $8000", subValue: "" },
+                                            { value: "$9000 - $11000", subValue: "" },
+                                            { value: "$11000 - $15000", subValue: "" }
+                                                                                ]}
+                                                                              />
                                       </div>
                                     </div>
                                   </div>

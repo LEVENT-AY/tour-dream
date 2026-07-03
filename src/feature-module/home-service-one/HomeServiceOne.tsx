@@ -19,6 +19,7 @@ import FooterSection from "./footerSection";
 import BookingDropdown from "../../core/common/booking-dropdown/bookingDropdown";
 import BannerCounter from "../../core/common/banner-counter/counter";
 import { AIRPORT_IATA, FLIGHT_LOCATIONS } from "../../core/common/data/flightAirports";
+import { HOTEL_LOCATIONS, findLocation } from "../../core/common/data/hotelLocations";
 type Mode = "flight" | "hotel" | "cruise" | "tour" | "bus" | "activity" | "visa" | "guide";
 
 type BookingState = {
@@ -158,7 +159,7 @@ const hotelGuests =
   appliedData.hotel.adults +
   appliedData.hotel.children +
   appliedData.hotel.infants;
-  const totalHotelGuest = hotelGuests === 0 ? 1 : hotelGuests;
+  const totalHotelGuest = hotelGuests;
 
 const cruisePassenger =
   appliedData.cruise.adults +
@@ -261,11 +262,17 @@ const guidePassenger =
   };
 
   const handleHotelSearch = () => {
-    const location = hotelLocation || 'Tunisia';
+    const label = hotelLocation || 'Tunis';
+    const loc = findLocation(label);
     const start = hotelDates.start || new Date(Date.now() + 86400000);
     const end = hotelDates.end || new Date(Date.now() + 3 * 86400000);
     const params = new URLSearchParams();
-    params.set('destination', location);
+    params.set('destination', loc ? loc.label : label);
+    if (loc) {
+      params.set('lat', String(loc.latitude));
+      params.set('lng', String(loc.longitude));
+      params.set('radius', String(loc.radiusKm));
+    }
     params.set('checkInDate', start.toISOString().slice(0, 10));
     params.set('checkOutDate', end.toISOString().slice(0, 10));
     params.set('adults', String(Math.max(1, appliedData.hotel.adults || 1)));
@@ -823,17 +830,14 @@ const guidePassenger =
                                         aria-expanded="false"
                                         role="menu"
                                       >
-                                      <BookingDropdown
+                                       <BookingDropdown
                                         label="City, Property name or Location"
                                         defaultValue="Select"
                                         defaultSubValue=""
-                                        locations={[
-                                          { value: "Tunisia", subValue: "Available Properties" },
-                                          { value: "Japan", subValue: "3000 Properties" },
-                                          { value: "Singapore", subValue: "Singapore" },
-     { value: "Russia", subValue: " 8000 Properties" },
-     { value: "Germany", subValue: "2000 Properties" }
-                                        ]}
+                                        locations={HOTEL_LOCATIONS.map((loc) => ({
+                                          value: loc.label,
+                                          subValue: `${loc.city}, ${loc.country}`,
+                                        }))}
                                         onChange={(v) => setHotelLocation(v)}
                                       />
                                       </div>
@@ -863,8 +867,8 @@ const guidePassenger =
                                           </span>
                                         </div>
                                         <p className="fs-12 mb-0">
-                                          <span className="adult">4</span> Adult,{" "}
-                                          <span className="room">2</span> Rooms
+                                          <span className="adult">{appliedData.hotel.adults}</span> Adult,{" "}
+                                          <span className="room">{appliedData.hotel.rooms}</span> Rooms
                                         </p>
                                       </div>
                                       <div className="dropdown-menu dropdown-menu-end dropdown-xl">

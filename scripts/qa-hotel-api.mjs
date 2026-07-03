@@ -23,6 +23,8 @@ const allRoutes = readFile('src/feature-module/router/all_routes.tsx');
 const routerLink = readFile('src/feature-module/router/router.link.tsx');
 const storageRules = readFile('storage.rules');
 const firestoreRules = readFile('firestore.rules');
+const hotelLocationsContent = readFile('src/core/common/data/hotelLocations.ts');
+const homeServiceOneContent = readFile('src/feature-module/home-service-one/HomeServiceOne.tsx');
 
 // 1. Backend
 check(
@@ -235,7 +237,84 @@ check(
   'public read found in storage rules'
 );
 
-// 9. No fake hotel cards after search
+// 9. Location-based Duffel Stays search
+check(
+  'hotelLocations.ts has 8 entries with lat/lng/radius',
+  /latitude/.test(hotelLocationsContent) && /longitude/.test(hotelLocationsContent) && /radiusKm/.test(hotelLocationsContent),
+  'hotelLocations.ts missing lat/lng/radius fields'
+);
+check(
+  'staysSearch uses geographic_coordinates format',
+  /geographic_coordinates/.test(indexSource),
+  'staysSearch does not use geographic_coordinates'
+);
+check(
+  'staysSearch validates lat/lng are present',
+  /lat\s*==\s*null\s*\|\|\s*lng\s*==\s*null/.test(indexSource),
+  'staysSearch missing lat/lng validation'
+);
+check(
+  'staysSearch builds guests array per adult count',
+  /Array\.from.*\{.*type.*adult/.test(indexSource),
+  'staysSearch does not build per-adult guests array'
+);
+check(
+  'staysSearch logs duffelStatus safely',
+  /console\.log\('\[staysSearch\] duffelStatus/.test(indexSource),
+  'staysSearch missing duffelStatus log'
+);
+check(
+  'staysSearch does not log token',
+  !/console\.log.*token/.test(indexSource),
+  'staysSearch logs token'
+);
+check(
+  'staysSearch normalizes from data.results',
+  /data\.results/.test(indexSource),
+  'staysSearch does not read from data.results'
+);
+check(
+  'duffelStaysApi.ts exports lat/lng/radius in StaysSearchParams',
+  /lat\??:\s*number/.test(duffelStaysApiContent),
+  'StaysSearchParams missing lat field'
+);
+check(
+  'hotelGrid.tsx reads lat/lng from query params',
+  /searchParams\.get\('lat'\)/.test(hotelGridContent),
+  'hotelGrid.tsx does not read lat query param'
+);
+check(
+  'hotelGrid.tsx has hasCoords check',
+  /hasCoords/.test(hotelGridContent),
+  'hotelGrid.tsx missing hasCoords check'
+);
+check(
+  'hotelGrid.tsx shows validation message when coords missing',
+  /Please select a valid destination/.test(hotelGridContent),
+  'hotelGrid.tsx missing coordinates validation message'
+);
+check(
+  'hotelGrid.tsx imports hotelLocations',
+  /hotelLocations/.test(hotelGridContent),
+  'hotelGrid.tsx does not import hotelLocations'
+);
+check(
+  'HomeServiceOne imports hotelLocations',
+  /hotelLocations/.test(homeServiceOneContent),
+  'HomeServiceOne does not import hotelLocations'
+);
+check(
+  'HomeServiceOne passes lat/lng/radius in hotel search URL',
+  /params\.set\('lat'/.test(homeServiceOneContent),
+  'HomeServiceOne does not set lat param'
+);
+check(
+  'findLocation looks up label in hotelLocations',
+  /findLocation/.test(indexSource) || /findLocation/.test(hotelGridContent) || /findLocation/.test(homeServiceOneContent),
+  'findLocation not used anywhere'
+);
+
+// 10. No fake hotel cards after search
 check(
   'hotelGrid.tsx shows Duffel stays when params present (not fake cards)',
   /stays\.map/.test(hotelGridContent) && /staysError/.test(hotelGridContent),

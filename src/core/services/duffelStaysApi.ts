@@ -22,6 +22,9 @@ export interface StaysSearchParams {
   checkOutDate: string;
   adults?: number;
   rooms?: number;
+  lat?: number;
+  lng?: number;
+  radius?: number;
 }
 
 export interface StaysSearchResult {

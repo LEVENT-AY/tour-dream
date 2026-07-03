@@ -12,10 +12,11 @@ import SearchOption from '../searchOption';
 import HotelFilter from '../hotelFilter';
 import { fetchHotels } from '../../../core/services/firebaseServices';
 import { searchStays, type DuffelStay } from '../../../core/services/duffelStaysApi';
+import { HOTEL_LOCATIONS, findLocation } from '../../../core/common/data/hotelLocations';
 
 const HotelGrid = () => {
     const routes = all_routes
-    const [searchParams] = useSearchParams();
+    const [searchParams, setSearchParams] = useSearchParams();
     const [hotels, setHotels] = useState<any[]>([]);
     const [loadingHotels, setLoadingHotels] = useState(true);
     const [stays, setStays] = useState<DuffelStay[]>([]);
@@ -27,6 +28,18 @@ const HotelGrid = () => {
     const checkOutDate = searchParams.get('checkOutDate');
     const adults = searchParams.get('adults');
     const rooms = searchParams.get('rooms');
+    const lat = searchParams.get('lat');
+    const lng = searchParams.get('lng');
+    const radius = searchParams.get('radius');
+    const hasCoords = !!(lat && lng);
+    const hasParams = !!(destination && checkInDate && checkOutDate);
+    const missingCoords = hasParams && !hasCoords;
+    const isDuffelSearch = hasParams && hasCoords;
+    const [editDestination, setEditDestination] = useState(destination || '');
+    const [editCheckIn, setEditCheckIn] = useState(checkInDate || '');
+    const [editCheckOut, setEditCheckOut] = useState(checkOutDate || '');
+    const [editAdults, setEditAdults] = useState(Number(adults) || 1);
+    const [editRooms, setEditRooms] = useState(Number(rooms) || 1);
 
     useEffect(() => {
         if (!destination || !checkInDate || !checkOutDate) {
@@ -44,18 +57,26 @@ const HotelGrid = () => {
         } else {
             setLoadingHotels(false);
         }
-    }, [destination, checkInDate, checkOutDate]);
+    }, [destination, checkInDate, checkOutDate, missingCoords]);
 
     useEffect(() => {
-        if (!destination || !checkInDate || !checkOutDate) return;
+        if (!destination || !checkInDate || !checkOutDate || !hasCoords) return;
         setLoadingStays(true);
         setStaysError('');
+        setEditDestination(destination);
+        setEditCheckIn(checkInDate);
+        setEditCheckOut(checkOutDate);
+        setEditAdults(Number(adults) || 1);
+        setEditRooms(Number(rooms) || 1);
         searchStays({
             destination,
             checkInDate,
             checkOutDate,
             adults: adults ? Number(adults) : 1,
             rooms: rooms ? Number(rooms) : 1,
+            lat: Number(lat),
+            lng: Number(lng),
+            radius: radius ? Number(radius) : 10,
         })
             .then((result) => {
                 setStays(result.stays);
@@ -64,7 +85,7 @@ const HotelGrid = () => {
                 setStaysError(err.message || 'Stays search unavailable');
             })
             .finally(() => setLoadingStays(false));
-    }, [destination, checkInDate, checkOutDate, adults, rooms]);
+    }, [destination, checkInDate, checkOutDate, adults, rooms, lat, lng, radius]);
 
     //Breadcrumb Data
     const breadcrumbs = [
@@ -111,25 +132,94 @@ const HotelGrid = () => {
         });
     };
 
+    const handleSearchClick = () => {
+        const loc = findLocation(editDestination);
+        const params = new URLSearchParams();
+        params.set('destination', editDestination);
+        params.set('checkInDate', editCheckIn);
+        params.set('checkOutDate', editCheckOut);
+        params.set('adults', String(editAdults));
+        params.set('rooms', String(editRooms));
+        if (loc) {
+            params.set('lat', String(loc.latitude));
+            params.set('lng', String(loc.longitude));
+            params.set('radius', String(loc.radiusKm));
+        } else if (lat && lng) {
+            params.set('lat', lat);
+            params.set('lng', lng);
+            params.set('radius', radius || '10');
+        }
+        setSearchParams(params);
+    };
+
     return (
         <>
             <Breadcrumb title="Hotel" breadcrumbs={breadcrumbs} backgroundClass="breadcrumb-bg-01" />
             <div className="content">
                 <div className="container">
 
-                    <SearchOption />
+                    {isDuffelSearch || hasParams ? (
+                        <div className="card">
+                            <div className="card-body">
+                                <div className="row align-items-end g-3">
+                                    <div className="col-xl-3 col-md-6">
+                                        <span className="text-muted fs-13 mb-1 d-block">Destination</span>
+                                        <select className="form-select" value={editDestination} onChange={(e) => setEditDestination(e.target.value)}>
+                                            {HOTEL_LOCATIONS.map((loc) => (
+                                                <option key={loc.label} value={loc.label}>{loc.label}, {loc.country}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div className="col-xl-2 col-md-6">
+                                        <span className="text-muted fs-13 mb-1 d-block">Check In</span>
+                                        <input type="date" className="form-control" value={editCheckIn} onChange={(e) => setEditCheckIn(e.target.value)} />
+                                    </div>
+                                    <div className="col-xl-2 col-md-6">
+                                        <span className="text-muted fs-13 mb-1 d-block">Check Out</span>
+                                        <input type="date" className="form-control" value={editCheckOut} onChange={(e) => setEditCheckOut(e.target.value)} />
+                                    </div>
+                                    <div className="col-xl-2 col-md-6">
+                                        <span className="text-muted fs-13 mb-1 d-block">Guests</span>
+                                        <div className="dropdown">
+                                            <div className="d-flex align-items-center border rounded px-2 py-1" style={{cursor:'pointer'}} data-bs-toggle="dropdown" role="button">
+                                                <span className="fs-14">{editAdults} Adult{editAdults !== 1 ? 's' : ''}, {editRooms} Room{editRooms !== 1 ? 's' : ''}</span>
+                                            </div>
+                                            <div className="dropdown-menu dropdown-menu-end p-3" style={{minWidth: '200px'}}>
+                                                <div className="mb-2 d-flex align-items-center justify-content-between">
+                                                    <span className="me-3">Adults</span>
+                                                    <input type="number" className="form-control" min="1" style={{width: '80px'}} value={editAdults} onChange={(e) => setEditAdults(Math.max(1, Number(e.target.value)))} />
+                                                </div>
+                                                <div className="d-flex align-items-center justify-content-between">
+                                                    <span className="me-3">Rooms</span>
+                                                    <input type="number" className="form-control" min="1" style={{width: '80px'}} value={editRooms} onChange={(e) => setEditRooms(Math.max(1, Number(e.target.value)))} />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="col-xl-3 col-md-12 text-xl-end">
+                                        <button type="button" className="btn btn-primary" onClick={handleSearchClick}>Search</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    ) : (
+                        <SearchOption />
+                    )}
 
                     <div className="row">
 
                         {/* Sidebar */}
+                        {!isDuffelSearch && !missingCoords && (
                         <div className="col-xl-3 col-lg-3 ">
                             <HotelFilter />
                         </div>
+                        )}
                         {/* /Sidebar */}
 
-                        <div className="col-xl-9 col-lg-8 theiaStickySidebar">
+                        <div className={isDuffelSearch || missingCoords ? "col-xl-12" : "col-xl-9 col-lg-8 theiaStickySidebar"}>
+                            {!missingCoords && (!isDuffelSearch || stays.length > 0) && (
                             <div className="d-flex align-items-center justify-content-between flex-wrap">
-                                <h6 className="mb-3">{hotels.length} Hotels Found on Your Search</h6>
+                                <h6 className="mb-3">{isDuffelSearch ? `${stays.length} Stays Found` : `${hotels.length} Hotels Found on Your Search`}</h6>
                                 <div className="d-flex align-items-center flex-wrap">
                                     <div className="list-item d-flex align-items-center mb-3">
                                         <Link to={routes.hotelGrid} className="list-icon active me-2"><i className="isax isax-grid-1"></i></Link>
@@ -176,15 +266,22 @@ const HotelGrid = () => {
                                     </div>
                                 </div>
                             </div>
+                            )}
+                            {!isDuffelSearch && !missingCoords && (
                             <div className="bg-info br-10 p-3 pb-2 mb-4">
                                 <div className="d-flex align-items-center justify-content-between flex-wrap">
                                     <p className="fs-14 fw-medium mb-2 d-inline-flex align-items-center"><i className="isax isax-info-circle me-2"></i>Save an average of 15% on thousands of hotels when you're signed in</p>
                                     <Link to={routes.login} className="btn btn-white btn-sm mb-2">Sign In</Link>
                                 </div>
                             </div>
+                            )}
                             <div className="row justify-content-center">
 
-                                {destination && checkInDate && checkOutDate ? (
+                                {missingCoords ? (
+                                    <div className="text-center py-5 w-100">
+                                        <p className="text-muted">Please select a valid destination.</p>
+                                    </div>
+                                ) : destination && checkInDate && checkOutDate ? (
                                     loadingStays ? (
                                         <div className="text-center py-5 w-100">
                                             <div className="spinner-border text-primary" role="status">
@@ -198,7 +295,7 @@ const HotelGrid = () => {
                                         </div>
                                     ) : stays.length === 0 ? (
                                         <div className="text-center py-5 w-100">
-                                            <p className="text-muted">No stays found for "{destination}".</p>
+                                            <p className="text-muted">No hotels found for this search. Try another destination or date.</p>
                                         </div>
                                     ) : (
                                         stays.map((stay, index) => (
@@ -308,6 +405,7 @@ const HotelGrid = () => {
 
                             </div>
                             {/* Pagination */}
+                            {!isDuffelSearch && !missingCoords && (
                             <nav className="pagination-nav">
                                 <ul className="pagination justify-content-center">
                                     <li className="page-item disabled">
@@ -327,6 +425,7 @@ const HotelGrid = () => {
                                     </li>
                                 </ul>
                             </nav>
+                            )}
                             {/* /Pagination */}
 
                         </div>
