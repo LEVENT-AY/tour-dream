@@ -19,6 +19,7 @@
     "qa:manual-payment": "node scripts/qa-manual-payment.mjs",
     "qa:hotel-api": "node scripts/qa-hotel-api.mjs",
     "qa:hotel-directory": "node scripts/qa-hotel-directory.mjs",
+    "qa:hotel-importer": "node scripts/qa-hotel-importer.mjs",
     "qa:flight-api": "node scripts/qa-flight-api.mjs",
     "smoke:customer-login": "node scripts/smoke-customer-login.cjs",
     "smoke:customer-dashboard": "node scripts/smoke-customer-dashboard.cjs",
