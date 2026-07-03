@@ -5,6 +5,7 @@ import Slider from 'react-slick';
 import 'slick-carousel/slick/slick.css';
 import 'slick-carousel/slick/slick-theme.css';
 import ImageWithBasePath from '../../../core/common/imageWithBasePath';
+import { matchesTunisiaHotelDestination } from '../../../core/common/data/tunisiaHotelLocations';
 import { getCategoryFallbackSrc } from '../../../core/services/firebaseStorage';
 import { all_routes } from '../../router/all_routes';
 import HotelSearchPanel from '../components/HotelSearchPanel';
@@ -30,27 +31,6 @@ type ManualHotelCard = {
 };
 
 const MANUAL_SELECTION_KEY = 'manualHotelSelection';
-
-const normalizeText = (value: string): string => value.trim().toLowerCase();
-
-const matchesDestination = (hotel: ManualHotelCard, destination: string): boolean => {
-  const query = normalizeText(destination);
-  if (!query) return true;
-  const searchable = [
-    hotel.title,
-    hotel.name,
-    hotel.city,
-    hotel.location,
-    hotel.address,
-  ]
-    .filter(Boolean)
-    .map((value) => normalizeText(String(value)));
-  if (searchable.some((value) => value.includes(query))) return true;
-  if (query === 'tunisia') {
-    return normalizeText(String(hotel.country || '')).includes('tunisia');
-  }
-  return false;
-};
 
 const HotelGrid = () => {
   const routes = all_routes;
@@ -112,7 +92,7 @@ const HotelGrid = () => {
 
   const filteredManualHotels = useMemo(() => {
     if (!manualMode) return [];
-    return hotels.filter((hotel) => matchesDestination(hotel, destination));
+    return hotels.filter((hotel) => matchesTunisiaHotelDestination(hotel, destination));
   }, [destination, hotels, manualMode]);
 
   //Breadcrumb Data
@@ -219,7 +199,9 @@ const HotelGrid = () => {
             <div className={manualMode ? 'col-12 theiaStickySidebar' : 'col-xl-9 col-lg-8 theiaStickySidebar'}>
               <div className="d-flex align-items-center justify-content-between flex-wrap">
                 <h6 className="mb-3">
-                  {manualMode ? `${filteredManualHotels.length} Hotels Available` : `${hotels.length} Hotels Found on Your Search`}
+                  {manualMode
+                    ? `${filteredManualHotels.length} Hotels Available${destination ? ` in ${destination}` : ''}`
+                    : `${hotels.length} Hotels Found on Your Search`}
                 </h6>
                 {!manualMode && (
                   <div className="d-flex align-items-center flex-wrap">

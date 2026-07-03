@@ -5,6 +5,12 @@ export type TunisiaHotelLocation = {
   country: 'Tunisia';
 };
 
+export type ManualHotelLocationFields = {
+  city?: string;
+  location?: string;
+  address?: string;
+};
+
 export const TUNISIA_HOTEL_LOCATIONS: TunisiaHotelLocation[] = [
   { label: 'Tunis', city: 'Tunis', governorate: 'Tunis', country: 'Tunisia' },
   { label: 'Hammamet', city: 'Hammamet', governorate: 'Nabeul', country: 'Tunisia' },
@@ -24,8 +30,72 @@ export const TUNISIA_HOTEL_LOCATIONS: TunisiaHotelLocation[] = [
 
 const normalize = (value: string): string => value.trim().toLowerCase();
 
+const normalizePhrase = (value: string): string =>
+  value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
+
+const tokenize = (value: string): string[] =>
+  normalizePhrase(value)
+    .split(' ')
+    .map((part) => part.trim())
+    .filter(Boolean);
+
+const phraseContainsAlias = (value: string, alias: string): boolean => {
+  const haystack = tokenize(value);
+  const needle = tokenize(alias);
+  if (!haystack.length || !needle.length || needle.length > haystack.length) return false;
+
+  for (let start = 0; start <= haystack.length - needle.length; start += 1) {
+    const matches = needle.every((token, index) => haystack[start + index] === token);
+    if (matches) return true;
+  }
+
+  return false;
+};
+
+const DESTINATION_ALIAS_MAP: Record<string, string[]> = {
+  tunis: ['tunis', 'bardo', 'le bardo', 'la soukra', 'ariana', 'carthage', 'la marsa', 'gammarth'],
+  sousse: ['sousse'],
+  hammamet: ['hammamet'],
+  djerba: ['djerba', 'midoun', 'houmt souk'],
+};
+
 export const findTunisiaHotelLocation = (label: string): TunisiaHotelLocation | undefined => {
   const query = normalize(label);
   if (!query) return undefined;
   return TUNISIA_HOTEL_LOCATIONS.find((location) => normalize(location.label) === query);
+};
+
+export const getTunisiaHotelDestinationAliases = (destination: string): string[] => {
+  const normalizedDestination = normalizePhrase(destination);
+  if (!normalizedDestination) return [];
+
+  const explicitAliases = DESTINATION_ALIAS_MAP[normalizedDestination];
+  if (explicitAliases?.length) {
+    return explicitAliases;
+  }
+
+  return [normalizedDestination];
+};
+
+export const matchesTunisiaHotelDestination = (
+  hotel: ManualHotelLocationFields,
+  destination: string,
+): boolean => {
+  const aliases = getTunisiaHotelDestinationAliases(destination);
+  if (!aliases.length) return true;
+
+  const searchableValues = [hotel.city, hotel.location, hotel.address]
+    .filter(Boolean)
+    .map((value) => String(value));
+
+  if (!searchableValues.length) return false;
+
+  return searchableValues.some((value) =>
+    aliases.some((alias) => phraseContainsAlias(value, alias)),
+  );
 };
