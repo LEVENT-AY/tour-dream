@@ -17,14 +17,15 @@ assert(fs.existsSync(reportPath), 'Write report exists after dry-run');
 const script = fs.readFileSync(scriptPath, 'utf8');
 assert(/TARGET_COLLECTION\s*=\s*'hotels'/.test(script), 'Target collection is hotels');
 assert(/TARGET_DOC_ID\s*=\s*'imported-tunisiebooking-vincci-helios-beach-djerba'/.test(script), 'Deterministic doc ID exists');
-assert(
-  script.includes("const dryRun = !process.argv.includes('--write')") ||
-    script.includes('const dryRun = !process.argv.includes("--write")'),
-  'Dry-run is default in the script',
-);
-assert(/process\.argv\.includes\('--write'\)/.test(script), 'Write only occurs with --write');
-assert(/if \(dryRun\)/.test(script), 'Dry-run logic exists');
-assert(/docRef\.set\(doc, \{ merge: false \}\)/.test(script), 'Script writes a single hotel doc when approved');
+assert(script.includes("const dryRun = !args.includes('--write');"), 'Dry-run is default in the script');
+assert(/args\.includes\('--write'\)/.test(script), 'Write only occurs with --write');
+assert(/const updateExisting = args\.includes\('--update-existing'\);/.test(script), 'Update-existing mode exists');
+assert(/if \(updateExisting\)/.test(script), 'Update-existing branch exists');
+assert(/bookingMode: 'request_only'/.test(script), 'bookingMode stays request_only');
+assert(/bookingEnabled: false/.test(script), 'bookingEnabled stays false');
+assert(/published: false/.test(script), 'published stays false');
+assert(/status: 'draft'/.test(script), 'status stays draft');
+assert(!/hotelImportDrafts/.test(script), 'No hotelImportDrafts writes');
 assert(!/firebase deploy|deploy:hosting|deploy:rules/.test(script), 'Write script has no deploy code');
 assert(!/functions\/src\/index\.ts|firestore\.rules|storage\.rules|duffel/i.test(script), 'Write script does not touch protected files');
 
@@ -37,43 +38,50 @@ assert(draft.status === 'draft', 'status is draft');
 assert(draft.bookingEnabled === false, 'bookingEnabled is false');
 assert(draft.bookingMode === 'request_only', 'bookingMode is request_only');
 assert(draft.priceStatus === 'source_reference', 'priceStatus is source_reference');
-assert(draft.pricingDiscovery && typeof draft.pricingDiscovery === 'object', 'pricingDiscovery exists');
-assert(Array.isArray(draft.gallery), 'gallery exists');
-assert(draft.gallery.length > 0, 'gallery has images');
-assert(typeof draft.image === 'string' && draft.image.length > 0, 'image exists');
-assert(Array.isArray(draft.amenities), 'amenities exists');
-assert(Array.isArray(draft.boardOptions), 'boardOptions exists');
-assert(Array.isArray(draft.roomTypes), 'roomTypes exists');
+assert(Array.isArray(draft.gallery) && draft.gallery.length > 3, 'gallery has source-backed images');
+assert(Array.isArray(draft.faq) && draft.faq.length > 0, 'faq exists');
+assert(Array.isArray(draft.reviews) && draft.reviews.length > 0, 'reviews exist');
 
 assert(report.targetCollection === 'hotels', 'Report targetCollection is hotels');
 assert(report.targetDocId === 'imported-tunisiebooking-vincci-helios-beach-djerba', 'Report doc ID matches expected');
-assert(report.written === 0, 'Dry-run wrote zero records');
+assert(typeof report.dryRun === 'boolean', 'Report records dryRun state');
+assert(report.updateExisting === true, 'Current report is update-existing mode');
+if (report.dryRun) {
+  assert(report.written === 0, 'Dry-run wrote zero records');
+  assert(Array.isArray(report.skippedItems), 'Dry-run report has skippedItems');
+  assert(report.skippedItems.some((item) => item.reason === 'dry_run_update_existing'), 'Dry-run update-existing summary is present');
+} else {
+  assert(report.written === 1 || report.alreadyExists === 1, 'Real write report reflects one-doc update or idempotent skip');
+}
 assert(report.errors === 0, 'Dry-run had no errors');
-assert(report.alreadyExists === 0 || report.alreadyExists === 1, 'Report alreadyExists is present');
+assert(Array.isArray(report.fieldsToUpdate), 'Report lists fieldsToUpdate');
 assert(report.priceFrom === draft.priceFrom, 'Report priceFrom matches draft');
 assert(report.priceCurrency === draft.priceCurrency, 'Report currency matches draft');
 assert(report.priceUnit === draft.priceUnit, 'Report unit matches draft');
 assert(report.priceDate === draft.priceDate, 'Report priceDate matches draft');
-assert(report.imageCount >= 1, 'Report records images');
+assert(report.imageCount >= 4, 'Report records expanded image count');
 assert(report.amenitiesCount === draft.amenities.length, 'Report records amenities count');
 assert(report.boardOptionsCount === draft.boardOptions.length, 'Report records board options count');
 assert(report.roomTypesCount === draft.roomTypes.length, 'Report records room types count');
+assert(report.faqCount === draft.faq.length, 'Report records faq count');
+assert(report.reviewsCount === draft.reviews.length, 'Report records reviews count');
+assert(Array.isArray(report.skippedItems), 'Report has skippedItems');
 
 console.log(
   JSON.stringify(
     {
       targetDocId: report.targetDocId,
       dryRun: report.dryRun,
+      updateExisting: report.updateExisting,
       written: report.written,
       alreadyExists: report.alreadyExists,
       imageCount: report.imageCount,
       amenitiesCount: report.amenitiesCount,
       boardOptionsCount: report.boardOptionsCount,
       roomTypesCount: report.roomTypesCount,
-      priceFrom: report.priceFrom,
-      priceCurrency: report.priceCurrency,
-      priceUnit: report.priceUnit,
-      priceDate: report.priceDate,
+      faqCount: report.faqCount,
+      reviewsCount: report.reviewsCount,
+      fieldsToUpdate: report.fieldsToUpdate,
     },
     null,
     2,

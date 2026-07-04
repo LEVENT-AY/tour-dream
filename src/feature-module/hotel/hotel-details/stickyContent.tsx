@@ -1,5 +1,4 @@
 import { useMemo, useState } from 'react';
-import ImageWithBasePath from '../../../core/common/imageWithBasePath';
 import { Link, useNavigate } from 'react-router-dom';
 import BannerCounter from '../../../core/common/banner-counter/counter';
 import { DatePicker } from 'antd';
@@ -11,7 +10,6 @@ type StickyContentProps = {
   hotel?: {
     id?: string;
     title?: string;
-    name?: string;
     location?: string;
     image?: string;
     gallery?: string[];
@@ -25,17 +23,13 @@ type StickyContentProps = {
     sourceName?: string;
     sourceUrl?: string;
     selectedBoardType?: string;
-    ownerId?: string | null;
-    agentId?: string | null;
-    createdBy?: string | null;
-    providerName?: string;
-    providerSince?: string;
-    providerPhone?: string;
-    providerEmail?: string;
     nearbyLandmarks?: string[];
     latitude?: number | string | null;
     longitude?: number | string | null;
     viewsCount?: number | string | null;
+    providerMessage?: string;
+    providerPhone?: string;
+    providerEmail?: string;
   } | null;
   initialCheckInDate?: string;
   initialCheckOutDate?: string;
@@ -70,7 +64,7 @@ const StickyContent = ({
     (parseDateValue(initialCheckOutDate, dayjs().add(1, 'day')) || dayjs().add(1, 'day')).toDate(),
   );
   const [rooms, setRooms] = useState(Math.max(1, initialRooms || 1));
-  const [adults, setAdults] = useState(Math.max(2, initialAdults || 2));
+  const [adults, setAdults] = useState(Math.max(1, initialAdults || 1));
   const [children, setChildren] = useState(Math.max(0, initialChildren || 0));
 
   const isRequestOnly = hotel?.bookingMode === 'request_only' || hotel?.bookingEnabled === false;
@@ -82,7 +76,7 @@ const StickyContent = ({
           priceFrom: hotel?.priceFrom ?? hotel?.price,
           priceCurrency: hotel?.priceCurrency,
           priceUnit: hotel?.priceUnit,
-          priceNote: hotel?.priceNote,
+          priceNote: hotel?.priceNote || 'Final price and availability are confirmed after request',
         },
         { prefix: 'Starts From', fallbackLabel: 'Price on request' },
       ),
@@ -90,7 +84,13 @@ const StickyContent = ({
   );
 
   const hasValidCoordinates =
-    Number.isFinite(Number(hotel?.latitude)) && Number.isFinite(Number(hotel?.longitude));
+    Number.isFinite(Number(hotel?.latitude)) &&
+    Number.isFinite(Number(hotel?.longitude)) &&
+    Number(hotel?.latitude) > 30 &&
+    Number(hotel?.latitude) < 38 &&
+    Number(hotel?.longitude) > 7 &&
+    Number(hotel?.longitude) < 12.5;
+
   const mapSrc = hasValidCoordinates
     ? `https://www.google.com/maps?q=${Number(hotel?.latitude)},${Number(hotel?.longitude)}&z=14&output=embed`
     : '';
@@ -98,14 +98,14 @@ const StickyContent = ({
   const persistSelection = () => {
     const snapshot = {
       id: hotel?.id || '',
-      title: hotel?.title || hotel?.name || '',
+      title: hotel?.title || '',
       city: hotel?.location || '',
       location: hotel?.location || '',
       price: hotel?.price ?? hotel?.priceFrom ?? 0,
       priceFrom: hotel?.priceFrom ?? hotel?.price ?? 0,
       priceCurrency: hotel?.priceCurrency || '',
       priceUnit: hotel?.priceUnit || 'night',
-      priceNote: hotel?.priceNote || '',
+      priceNote: hotel?.priceNote || 'Final price and availability are confirmed after request',
       image: hotel?.image || hotel?.gallery?.[0] || '',
       amenities: [],
       bookingMode: hotel?.bookingMode || '',
@@ -122,11 +122,11 @@ const StickyContent = ({
     params.set('provider', 'manual');
     params.set('source', 'manual');
     if (hotel?.id) params.set('hotelId', hotel.id);
-    if (hotel?.title || hotel?.name) params.set('hotelName', hotel.title || hotel.name || '');
+    if (hotel?.title) params.set('hotelName', hotel.title);
     if (hotel?.location) params.set('destination', hotel.location);
-    if (initialCheckInDate) params.set('checkInDate', initialCheckInDate);
-    if (initialCheckOutDate) params.set('checkOutDate', initialCheckOutDate);
-    params.set('adults', String(Math.max(2, adults || 2)));
+    params.set('checkInDate', dayjs(checkInDate).format('YYYY-MM-DD'));
+    params.set('checkOutDate', dayjs(checkOutDate).format('YYYY-MM-DD'));
+    params.set('adults', String(Math.max(1, adults || 1)));
     params.set('rooms', String(Math.max(1, rooms || 1)));
     params.set('children', String(Math.max(0, children || 0)));
     if (initialChildAges) params.set('childAges', initialChildAges);
@@ -144,10 +144,10 @@ const StickyContent = ({
       <div className="card shadow-none">
         <div className="card-body">
           <div className="mb-3">
-            <p className="fs-13 fw-medium mb-1">
-              {priceCopy.headline}
+            <p className="fs-13 fw-medium mb-1">{priceCopy.headline}</p>
+            <p className="fs-12 text-muted mb-0">
+              {priceCopy.note || 'Final price and availability are confirmed after request'}
             </p>
-            {priceCopy.note && <p className="fs-12 text-muted mb-0">{priceCopy.note}</p>}
           </div>
           <div className="banner-form">
             <form>
@@ -199,7 +199,7 @@ const StickyContent = ({
                 className="btn btn-primary btn-lg search-btn ms-0 mb-3 w-100 fs-14 d-flex justify-content-center"
                 onClick={goToRequest}
               >
-                {isRequestOnly ? 'Request this hotel' : 'Book Now'}
+                {isRequestOnly ? 'Request this hotel' : 'Continue'}
               </button>
             </form>
           </div>
@@ -210,10 +210,10 @@ const StickyContent = ({
                 {hotel.viewsCount} Views
               </p>
             ) : (
-              <span className="fs-14 text-muted mb-0">No views yet</span>
+              <span className="fs-14 text-muted mb-0">Request-only hotel</span>
             )}
             <Link to="#availability" className="link-primary text-decoration-underline fs-14">
-              View Rooms
+              View Request Details
             </Link>
           </div>
         </div>
@@ -253,78 +253,24 @@ const StickyContent = ({
         </div>
       </div>
 
-      <div className="card shadow-none">
-        <div className="card-body">
-          <form>
-            <h5 className="mb-3 fs-18">Enquire Us</h5>
-            <div className="py-1">
-              <div className="mb-3">
-                <label className="form-label">Name</label>
-                <input type="text" className="form-control" />
-              </div>
-              <div className="mb-3">
-                <label className="form-label">Email</label>
-                <input type="email" className="form-control" />
-              </div>
-              <div className="mb-3">
-                <label className="form-label">Phone</label>
-                <input type="text" className="form-control" />
-              </div>
-              <div className="mb-3">
-                <label className="form-label">Message</label>
-                <textarea className="form-control" rows={3} />
-              </div>
-            </div>
-            <button type="button" className="btn btn-primary w-100 btn-lg d-flex align-items-center justify-content-center">
-              Submit Enquiry
-            </button>
-          </form>
-        </div>
-      </div>
-
-      <div className="card shadow-none">
-        <div className="card-body pb-0">
-          <h5 className="mb-3 fs-18">Why Book With Us</h5>
-          <div className="py-1">
-            <p className="d-flex align-items-center mb-3"><i className="isax isax-medal-star text-primary me-2" />Expertise and Experience</p>
-            <p className="d-flex align-items-center mb-3"><i className="isax isax-menu text-primary me-2" />Tailored Services</p>
-            <p className="d-flex align-items-center mb-3"><i className="isax isax-message-minus text-primary me-2" />Comprehensive Planning</p>
-            <p className="d-flex align-items-center mb-3"><i className="isax isax-user-add text-primary me-2" />Client Satisfaction</p>
-            <p className="d-flex align-items-center mb-3"><i className="isax isax-grammerly text-primary me-2" />24/7 Support</p>
-          </div>
-        </div>
-      </div>
-
       <div className="card shadow-none mb-0">
         <div className="card-body">
           <h5 className="mb-3 fs-18">Provider Details</h5>
-          <div className="py-1">
-            <div className="bg-light-500 br-10 mb-3 d-flex align-items-center p-3">
-              <Link to="#" className="avatar avatar-lg flex-shrink-0">
-                <ImageWithBasePath src="assets/img/users/user-05.jpg" alt="img" className="rounded-circle" />
-              </Link>
-              <div className="ms-2 overflow-hidden">
-                <h6 className="fw-medium text-truncate"><Link to="#">{hotel?.providerName || 'Property support team'}</Link></h6>
-                <p className="fs-14">{hotel?.providerSince || 'Member since available on request'}</p>
-              </div>
-            </div>
-            <div className="border br-10 mb-3 p-3">
-              <div className="d-flex align-items-center border-bottom pb-3 mb-3">
-                <span className="avatar avatar-sm me-2 rounded-circle flex-shrink-0 bg-primary"><i className="isax isax-call-outgoing5" /></span>
-                <p>Call Us : {hotel?.providerPhone || 'Contact support'}</p>
-              </div>
-              <div className="d-flex align-items-center">
-                <span className="avatar avatar-sm me-2 rounded-circle flex-shrink-0 bg-primary"><i className="isax isax-message-search5" /></span>
-                <p>Email : {hotel?.providerEmail || 'support@example.com'}</p>
-              </div>
-            </div>
-          </div>
+          <p className="text-muted mb-3">
+            {hotel?.providerMessage || 'DreamsTour will confirm availability and price after request.'}
+          </p>
           <div className="row g-2">
             <div className="col-sm-6">
-              <Link to="#" className="btn btn-light d-flex align-items-center justify-content-center"><i className="isax isax-messages5 me-2" />Whatsapp Us</Link>
+              <Link to="#" className="btn btn-light d-flex align-items-center justify-content-center">
+                <i className="isax isax-messages5 me-2" />
+                Whatsapp Us
+              </Link>
             </div>
             <div className="col-sm-6">
-              <Link to={routes.userChat} className="btn btn-primary d-flex align-items-center justify-content-center"><i className="isax isax-message-notif5 me-2" />Chat Now</Link>
+              <Link to={routes.userChat} className="btn btn-primary d-flex align-items-center justify-content-center">
+                <i className="isax isax-message-notif5 me-2" />
+                Chat Now
+              </Link>
             </div>
           </div>
         </div>
