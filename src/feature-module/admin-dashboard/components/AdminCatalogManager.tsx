@@ -643,19 +643,38 @@ const AdminCatalogManager: React.FC<AdminCatalogManagerProps> = ({
 
       {modalOpen && (
         <div className="modal show d-block" tabIndex={-1} style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
-          <div className="modal-dialog modal-lg modal-dialog-scrollable">
-            <div className="modal-content">
-              <form onSubmit={handleSubmit}>
-                <div className="modal-header">
+          <div
+            className="modal-dialog modal-xl"
+            style={{
+              maxWidth: 'min(1200px, 96vw)',
+              margin: '1rem auto',
+              height: 'calc(100vh - 2rem)',
+              display: 'flex',
+              alignItems: 'stretch',
+            }}
+          >
+            <div
+              className="modal-content d-flex flex-column"
+              style={{
+                height: '100%',
+                maxHeight: '100%',
+                overflow: 'hidden',
+              }}
+            >
+              <form onSubmit={handleSubmit} className="d-flex flex-column flex-grow-1" style={{ minHeight: 0, height: '100%' }}>
+                <div className="modal-header shrink-0">
                   <h5 className="modal-title">{editingId ? 'Edit' : 'Add'} {title.replace('Management', '').replace('Settings', '').trim()}</h5>
                   <button type="button" className="btn-close" onClick={closeModal} />
                 </div>
-                <div className="modal-body">
+                <div className="modal-body flex-grow-1 overflow-auto" style={{ minHeight: 0, maxHeight: '100%' }}>
                   {formError && <div className="alert alert-danger">{formError}</div>}
-                  <div className="row">
+                  <div className="row g-3">
                     {fields.map((field) => (
                       <div
-                        className={`mb-3 ${field.type === 'textarea' || field.type === 'gallery' ? 'col-12' : 'col-md-6'}`}
+                        className={`${
+                          field.type === 'textarea' || field.type === 'gallery' ? 'col-12' : 'col-12 col-lg-6'
+                        }`}
+                        style={{ minWidth: 0 }}
                         key={field.name}
                       >
                         {field.type !== 'checkbox' && <label className="form-label">{field.label}</label>}
@@ -664,7 +683,7 @@ const AdminCatalogManager: React.FC<AdminCatalogManagerProps> = ({
                     ))}
                   </div>
                 </div>
-                <div className="modal-footer">
+                <div className="modal-footer shrink-0 bg-white border-top" style={{ position: 'sticky', bottom: 0, zIndex: 1 }}>
                   <button type="button" className="btn btn-light" onClick={closeModal}>
                     Cancel
                   </button>

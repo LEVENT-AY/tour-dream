@@ -1,5 +1,18 @@
 import AdminCatalogManager, { type FieldConfig } from '../components/AdminCatalogManager';
 
+const hasMojibake = (value: string) => /[ÃÂâ�]/.test(value);
+
+const repairMojibake = (value: unknown) => {
+  const text = String(value ?? '').replace(/\s+/g, ' ').trim();
+  if (!text || !hasMojibake(text)) return text;
+  try {
+    const bytes = Uint8Array.from(text, (char) => char.charCodeAt(0) & 0xff);
+    return new TextDecoder('utf-8').decode(bytes).replace(/\u0000/g, '').trim();
+  } catch {
+    return text;
+  }
+};
+
 const fields: FieldConfig[] = [
   { name: 'title', label: 'Title', type: 'text', required: true },
   { name: 'type', label: 'Room Type', type: 'text' },
@@ -54,7 +67,14 @@ const AdminHotels = () => (
     defaultItem={defaultItem}
     normalizeItem={(item) => ({
       ...item,
-      country: item.country || 'Tunisia',
+      title: repairMojibake(item.title || item.name || ''),
+      location: repairMojibake(item.location || ''),
+      city: repairMojibake(item.city || ''),
+      address: repairMojibake(item.address || ''),
+      country: repairMojibake(item.country || 'Tunisia'),
+      badge: repairMojibake(item.badge || ''),
+      priceNote: repairMojibake(item.priceNote || ''),
+      description: repairMojibake(item.description || ''),
       amenities: Array.isArray(item.amenities)
         ? item.amenities.filter(Boolean)
         : typeof item.amenities === 'string' && item.amenities.trim()

@@ -21,10 +21,17 @@ type ManualHotelSelection = {
   country?: string;
   address?: string;
   price?: number;
+  priceFrom?: number;
+  priceCurrency?: string;
+  priceUnit?: string;
   priceNote?: string;
   rating?: number;
   image?: string;
   amenities?: string[];
+  sourceName?: string;
+  sourceUrl?: string;
+  bookingMode?: string;
+  selectedBoardType?: string;
 };
 
 const MANUAL_SELECTION_KEY = 'manualHotelSelection';
@@ -65,7 +72,17 @@ const HotelRequest = () => {
   const nights = searchParams.get('nights') || '0';
   const amount = searchParams.get('amount') || '';
   const currency = searchParams.get('currency') || '';
-  const adults = searchParams.get('adults') || '1';
+  const priceFrom = searchParams.get('priceFrom') || '';
+  const priceCurrency = searchParams.get('priceCurrency') || '';
+  const priceUnit = searchParams.get('priceUnit') || '';
+  const sourceName = searchParams.get('sourceName') || '';
+  const sourceUrl = searchParams.get('sourceUrl') || '';
+  const selectedBoardType = searchParams.get('selectedBoardType') || '';
+  const hotelId = searchParams.get('hotelId') || '';
+  const hotelName = searchParams.get('hotelName') || name || '';
+  const children = searchParams.get('children') || '0';
+  const childAges = searchParams.get('childAges') || '';
+  const adults = searchParams.get('adults') || '2';
   const rooms = searchParams.get('rooms') || '1';
   const destination = searchParams.get('destination') || city || name || 'Tunisia';
   const checkInDate = searchParams.get('checkInDate') || checkIn;
@@ -74,14 +91,16 @@ const HotelRequest = () => {
   const isManualMode = provider === 'manual';
   const isDuffelMode = !isManualMode && !!(stayId || name);
 
-  const manualTitle = manualHotelSelection?.title || destination;
+  const manualTitle = manualHotelSelection?.title || hotelName || destination;
   const manualCity = manualHotelSelection?.city || destination;
   const manualLocation = manualHotelSelection?.location || manualCity;
   const manualPriceLabel = (() => {
-    if (typeof manualHotelSelection?.price === 'number' && manualHotelSelection.price > 0) {
-      return `$${manualHotelSelection.price}`;
+    const resolvedPrice = manualHotelSelection?.priceFrom ?? manualHotelSelection?.price ?? (priceFrom ? Number(priceFrom) : null);
+    const resolvedCurrency = manualHotelSelection?.priceCurrency || priceCurrency;
+    const resolvedUnit = manualHotelSelection?.priceUnit || priceUnit;
+    if (typeof resolvedPrice === 'number' && resolvedPrice > 0) {
+      return `From ${resolvedPrice}${resolvedCurrency ? ` ${resolvedCurrency}` : ''}${resolvedUnit ? ` / ${resolvedUnit}` : ''}`;
     }
-    if (manualHotelSelection?.priceNote) return manualHotelSelection.priceNote;
     if (amount) return `${currency ? `${currency} ` : ''}${amount}`.trim();
     return 'Contact for pricing';
   })();
@@ -133,13 +152,16 @@ const HotelRequest = () => {
         ? {
             type: manualHotelSelection ? 'manual_hotel' : 'manual_request',
             provider: 'manual',
-            hotelId: manualHotelSelection?.id || stayId || '',
+            hotelId: manualHotelSelection?.id || hotelId || stayId || '',
             accommodationName: manualTitle,
             city: manualCity,
             location: manualLocation,
             country: manualHotelSelection?.country || 'Tunisia',
             address: manualHotelSelection?.address || '',
             price: manualHotelSelection?.price ?? amount ?? '',
+            priceFrom: manualHotelSelection?.priceFrom ?? priceFrom ?? '',
+            priceCurrency: manualHotelSelection?.priceCurrency || priceCurrency || '',
+            priceUnit: manualHotelSelection?.priceUnit || priceUnit || '',
             priceNote: manualHotelSelection?.priceNote || '',
             rating: manualHotelSelection?.rating ?? 0,
             image: manualHotelSelection?.image || '',
@@ -147,8 +169,14 @@ const HotelRequest = () => {
             destination,
             checkInDate: checkInDate || '',
             checkOutDate: checkOutDate || '',
-            adults: Number(adults),
-            rooms: Number(rooms),
+            adults: Number(adults) || 2,
+            rooms: Number(rooms) || 1,
+            children: Number(children) || 0,
+            childAges: childAges || '',
+            sourceName: manualHotelSelection?.sourceName || sourceName || '',
+            sourceUrl: manualHotelSelection?.sourceUrl || sourceUrl || '',
+            bookingMode: manualHotelSelection?.bookingMode || '',
+            selectedBoardType: manualHotelSelection?.selectedBoardType || selectedBoardType || '',
           } as Record<string, unknown>
         : {
             type: 'stay',
@@ -160,8 +188,8 @@ const HotelRequest = () => {
             nights: Number(nights),
             totalAmount: amount,
             currency,
-            adults: Number(adults),
-            rooms: Number(rooms),
+            adults: Number(adults) || 2,
+            rooms: Number(rooms) || 1,
             provider: 'duffel',
           } as Record<string, unknown>;
 
@@ -179,7 +207,7 @@ const HotelRequest = () => {
         receiptFileName: uploadedReceiptFileName || undefined,
         receiptContentType: uploadedReceiptContentType || undefined,
         provider: isManualMode ? 'manual' : 'duffel',
-        guestsCount: Number(adults) || 1,
+        guestsCount: Number(adults) || 2,
         offerSnapshot,
       });
 
@@ -251,10 +279,13 @@ const HotelRequest = () => {
                         {!!manualHotelSelection?.address && <div className="col-md-12"><span className="text-muted">Address:</span> {manualHotelSelection.address}</div>}
                         <div className="col-md-6"><span className="text-muted">Check-in:</span> {checkInDate || 'Not provided'}</div>
                         <div className="col-md-6"><span className="text-muted">Check-out:</span> {checkOutDate || 'Not provided'}</div>
-                        <div className="col-md-6"><span className="text-muted">Guests:</span> {adults} Adult(s)</div>
+                        <div className="col-md-6"><span className="text-muted">Guests:</span> {adults} Adult(s){Number(children) > 0 ? `, ${children} Child(ren)` : ''}</div>
                         <div className="col-md-6"><span className="text-muted">Rooms:</span> {rooms}</div>
                         <div className="col-md-6"><span className="text-muted">Price:</span> <strong>{manualPriceLabel}</strong></div>
-                        <div className="col-md-6"><span className="text-muted">Provider:</span> <span className="badge bg-secondary">manual</span></div>
+                        <div className="col-md-6"><span className="text-muted">Provider:</span> <span className="badge bg-secondary">{sourceName || 'manual'}</span></div>
+                        {hotelId && <div className="col-md-6"><span className="text-muted">Hotel ID:</span> {hotelId}</div>}
+                        {selectedBoardType && <div className="col-md-6"><span className="text-muted">Board:</span> {selectedBoardType}</div>}
+                        {sourceUrl && <div className="col-md-12"><span className="text-muted">Source:</span> {sourceUrl}</div>}
                       </div>
                     </div>
                   )}

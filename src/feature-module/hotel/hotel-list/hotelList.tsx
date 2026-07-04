@@ -10,6 +10,7 @@ import { all_routes } from '../../router/all_routes';
 import SearchOption from '../searchOption';
 import HotelFilter from '../hotelFilter';
 import { fetchHotels } from '../../../core/services/firebaseServices';
+import { formatHotelPrice } from '../../../core/common/hotelPricing';
 
 type HotelRecord = Record<string, any>;
 
@@ -193,9 +194,25 @@ const HotelList = () => {
               <i className="isax isax-wind-2 me-2 text-primary"></i>
               <Link to="#" className="fs-14 fw-normal text-default d-inline-block">+2</Link>
             </h6>
-            <h5 className="text-primary text-nowrap me-2 mb-3">
-              ${hotel.price} <span className="fs-14 fw-normal text-default">/ Night</span>
-            </h5>
+            <div className="text-end mb-3">
+              {(() => {
+                const priceInfo = formatHotelPrice(
+                  {
+                    priceFrom: hotel.priceFrom ?? hotel.price,
+                    priceCurrency: hotel.priceCurrency,
+                    priceUnit: hotel.priceUnit,
+                    priceNote: hotel.priceNote,
+                  },
+                  { prefix: 'From', fallbackLabel: 'Price on request' },
+                );
+                return (
+                  <>
+                    <h5 className="text-primary text-nowrap mb-0">{priceInfo.headline}</h5>
+                    {priceInfo.note && <div className="fs-12 text-muted">{priceInfo.note}</div>}
+                  </>
+                );
+              })()}
+            </div>
           </div>
         </div>
       </div>

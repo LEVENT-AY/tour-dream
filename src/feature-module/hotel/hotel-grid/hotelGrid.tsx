@@ -12,6 +12,7 @@ import HotelSearchPanel from '../components/HotelSearchPanel';
 import HotelFilter from '../hotelFilter';
 import { fetchHotels } from '../../../core/services/firebaseServices';
 import { searchStays, type DuffelStay } from '../../../core/services/duffelStaysApi';
+import { formatHotelPrice } from '../../../core/common/hotelPricing';
 
 type ManualHotelCard = {
   id?: string;
@@ -22,7 +23,14 @@ type ManualHotelCard = {
   country?: string;
   address?: string;
   price?: number;
+  priceFrom?: number;
+  priceCurrency?: string;
+  priceUnit?: string;
   priceNote?: string;
+  bookingMode?: string;
+  sourceName?: string;
+  sourceUrl?: string;
+  selectedBoardType?: string;
   rating?: number;
   image?: string;
   gallery?: string[];
@@ -148,11 +156,17 @@ const HotelGrid = () => {
       location: hotel.location || hotel.city || hotel.country || '',
       country: hotel.country || 'Tunisia',
       address: hotel.address || '',
-      price: hotel.price ?? 0,
+      price: hotel.price ?? hotel.priceFrom ?? 0,
+      priceFrom: hotel.priceFrom ?? hotel.price ?? 0,
+      priceCurrency: hotel.priceCurrency || '',
+      priceUnit: hotel.priceUnit || 'night',
       priceNote: hotel.priceNote || '',
       rating: hotel.rating ?? 0,
       image: hotel.image || hotel.gallery?.[0] || '',
       amenities: Array.isArray(hotel.amenities) ? hotel.amenities : [],
+      bookingMode: hotel.bookingMode || '',
+      sourceName: hotel.sourceName || '',
+      sourceUrl: hotel.sourceUrl || '',
     };
     sessionStorage.setItem(MANUAL_SELECTION_KEY, JSON.stringify(snapshot));
   };
@@ -171,6 +185,15 @@ const HotelGrid = () => {
     if (checkOutDate) params.set('checkOutDate', checkOutDate);
     params.set('adults', adults || '1');
     params.set('rooms', rooms || '1');
+    if (hotel?.id) params.set('hotelId', hotel.id);
+    if (hotel?.title || hotel?.name) params.set('hotelName', hotel.title || hotel.name || '');
+    if (hotel?.priceFrom != null) params.set('priceFrom', String(hotel.priceFrom));
+    if (hotel?.priceCurrency) params.set('priceCurrency', hotel.priceCurrency);
+    if (hotel?.priceUnit) params.set('priceUnit', hotel.priceUnit);
+    if (hotel?.bookingMode) params.set('bookingMode', hotel.bookingMode);
+    if (hotel?.sourceName) params.set('sourceName', hotel.sourceName);
+    if (hotel?.sourceUrl) params.set('sourceUrl', hotel.sourceUrl);
+    if (hotel?.selectedBoardType) params.set('selectedBoardType', hotel.selectedBoardType);
     navigate(`/hotel/hotel-request?${params.toString()}`);
   };
 
@@ -355,7 +378,14 @@ const HotelGrid = () => {
                             {hotel.rating ? <span className="badge badge-warning badge-xs text-gray-9 fs-13 fw-medium me-2">{hotel.rating}</span> : null}
                           </div>
                           <h5 className="mb-1 text-truncate">
-                            <Link to={`${routes.hotelDetails}?id=${hotel.id}`}>{hotel.title || hotel.name}</Link>
+                            <Link
+                              to={`${routes.hotelDetails}?${new URLSearchParams({
+                                ...Object.fromEntries(searchParams.entries()),
+                                id: hotel.id || '',
+                              }).toString()}`}
+                            >
+                              {hotel.title || hotel.name}
+                            </Link>
                           </h5>
                           <p className="d-flex align-items-center mb-2">
                             <i className="isax isax-location5 me-2"></i>
@@ -374,13 +404,23 @@ const HotelGrid = () => {
                           </div>
                           <div className="d-flex align-items-center justify-content-between border-top pt-3">
                             <div className="me-2">
-                              {hotel.price ? (
-                                <h5 className="text-primary text-nowrap mb-0">${hotel.price} <span className="fs-14 fw-normal text-default">/ Night</span></h5>
-                              ) : hotel.priceNote ? (
-                                <h6 className="mb-0 text-primary">{hotel.priceNote}</h6>
-                              ) : (
-                                <h6 className="mb-0 text-primary">Contact for pricing</h6>
-                              )}
+                              {(() => {
+                                const priceInfo = formatHotelPrice(
+                                  {
+                                    priceFrom: hotel.priceFrom ?? hotel.price,
+                                    priceCurrency: hotel.priceCurrency,
+                                    priceUnit: hotel.priceUnit,
+                                    priceNote: hotel.priceNote,
+                                  },
+                                  { prefix: 'From', fallbackLabel: 'Price on request' },
+                                );
+                                return (
+                                  <>
+                                    <h5 className="text-primary text-nowrap mb-0">{priceInfo.headline}</h5>
+                                    {priceInfo.note && <div className="fs-12 text-muted">{priceInfo.note}</div>}
+                                  </>
+                                );
+                              })()}
                             </div>
                             <button
                               type="button"

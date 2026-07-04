@@ -18,8 +18,8 @@ const SearchOption = () => {
     const routes = all_routes
         const [formData, setFormData] = useState<BookingState>({
         hotel: {
-          rooms: 0,
-          adults: 0,
+          rooms: 1,
+          adults: 2,
           children: 0,
           infants: 0,
         },
@@ -53,7 +53,7 @@ const SearchOption = () => {
         appliedData.hotel.adults +
         appliedData.hotel.children +
         appliedData.hotel.infants;
-        const totalHotelGuest = hotelGuests === 0 ? 4 : hotelGuests;
+        const totalHotelGuest = hotelGuests === 0 ? 3 : hotelGuests;
           const [_dates, setDates] = useState<{
           start: Date | null;
           end: Date | null;
@@ -83,14 +83,14 @@ const SearchOption = () => {
                                       >
                                         <BookingDropdown
                                         label="City, Property name or Location"
-                                        defaultValue="Newyork"
-                                        defaultSubValue="USA"
+                                        defaultValue="Select"
+                                        defaultSubValue="Choose a destination"
                                         locations={[
-                                          { value: "USA", subValue: "2000 Properties" },
-                                          { value: "Japan", subValue: "3000 Properties" },
-                                          { value: "Singapore", subValue: "Singapore" },
-    { value: "Russia", subValue: " 8000 Properties" },
-    { value: "Germany", subValue: "2000 Properties" }
+                                          { value: "Tunis", subValue: "Tunisia hotel directory" },
+                                          { value: "Sousse", subValue: "Tunisia hotel directory" },
+                                          { value: "Hammamet", subValue: "Tunisia hotel directory" },
+                                          { value: "Djerba", subValue: "Tunisia hotel directory" },
+                                          { value: "Tozeur", subValue: "Tunisia hotel directory" }
                                         ]}
                                       />
                                       </div>
@@ -120,8 +120,8 @@ const SearchOption = () => {
                                           </span>
                                         </div>
                                         <p className="fs-12 mb-0">
-                                          <span className="adult">4</span> Adult,{" "}
-                                          <span className="room">2</span> Rooms
+                                          <span className="adult">{appliedData.hotel.adults}</span> Adult{appliedData.hotel.adults === 1 ? '' : 's'},{" "}
+                                          <span className="room">{appliedData.hotel.rooms}</span> Room{appliedData.hotel.rooms === 1 ? '' : 's'}
                                         </p>
                                       </div>
                                       <div className="dropdown-menu dropdown-menu-end dropdown-xl">
@@ -335,15 +335,11 @@ const SearchOption = () => {
                                         role="menu"
                                       >
                                        <BookingDropdown
-                                                                               label="Price per Night"
-                                                                               defaultValue="$1000 - $15000"
-                                                                               defaultSubValue="20 Offers Available"
+                                                                               label="Any price"
+                                                                               defaultValue="Any price"
+                                                                               defaultSubValue="Search available hotels"
                                                                                locations={[
-                                                                                 { value: "$500 - $2000", subValue: "Upto 65% offers" },
-                                                                                 { value: "$2000 - $5000", subValue: "Upto 40% offers" },
-                                                                                 { value: "$5000 - $8000", subValue: "Upto 35% offers" },
-                                           { value: "$9000 - $11000", subValue: "Upto 20% offers" },
-                                           { value: "$11000 - $15000", subValue: "Upto 10% offers" }
+                                                                                 { value: "Any price", subValue: "Search available hotels" }
                                                                                ]}
                                                                              />
                                       </div>

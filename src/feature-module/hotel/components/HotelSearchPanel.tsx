@@ -51,15 +51,11 @@ const HotelSearchPanel = ({
   const [checkOutDate, setCheckOutDate] = useState<Date>(
     parseDateValue(initialCheckOutDate) ?? new Date(Date.now() + 3 * 86400000),
   );
-  const [priceValue, setPriceValue] = useState('$1000 - $15000');
+  const [priceValue, setPriceValue] = useState('Any price');
   const [priceSubValue, setPriceSubValue] = useState('Search available hotels');
 
   const priceOptions = [
-    { value: '$500 - $2000', subValue: 'Search available hotels' },
-    { value: '$2000 - $5000', subValue: 'Search available hotels' },
-    { value: '$5000 - $8000', subValue: 'Search available hotels' },
-    { value: '$9000 - $11000', subValue: 'Search available hotels' },
-    { value: '$11000 - $15000', subValue: 'Search available hotels' },
+    { value: 'Any price', subValue: 'Search available hotels' },
   ];
 
   useEffect(() => {
@@ -327,7 +323,7 @@ const HotelSearchPanel = ({
               role="menu"
             >
               <BookingDropdown
-                label="Price per Night"
+                label="Any price"
                 defaultValue={priceValue}
                 defaultSubValue={priceSubValue}
                 locations={priceOptions}

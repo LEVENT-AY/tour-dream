@@ -102,8 +102,8 @@ const HomeOne = () => {
       cabinClass: "Economy",
     },
     hotel: {
-      rooms: 0,
-      adults: 0,
+      rooms: 1,
+      adults: 2,
       children: 0,
       infants: 0,
     },
@@ -176,7 +176,7 @@ const HomeOne = () => {
     appliedData.hotel.adults +
     appliedData.hotel.children +
     appliedData.hotel.infants;
-  const totalHotelGuest = hotelGuests === 0 ? 4 : hotelGuests;
+  const totalHotelGuest = hotelGuests === 0 ? 3 : hotelGuests;
 
   const cruisePassenger =
     appliedData.cruise.adults +
@@ -1050,58 +1050,55 @@ const HomeOne = () => {
                                     aria-expanded="false"
                                     role="menu"
                                   >
-                                    <label className="form-label fs-14 text-default mb-1">
-                                      Price per Night
-                                    </label>
-                                    <input
-                                      type="text"
-                                      className="form-control value-input"
-                                      defaultValue="$1000 - $15000"
+                                    <BookingDropdown
+                                      label="Any price"
+                                      defaultValue="Any price"
+                                      defaultSubValue="Search available hotels"
+                                      locations={[
+                                        { value: "Any price", subValue: "Search available hotels" }
+                                      ]}
                                     />
-                                    <p className="fs-12 mb-0">
-                                      20 Offers Available
-                                    </p>
                                   </div>
                                   <div className="dropdown-menu dropdown-md p-0">
                                     <ul>
                                       <li className="border-bottom">
                                         <Link className="dropdown-item" to="#">
                                           <div className="fs-16 fw-medium text-dark dropdown-name">
-                                            $500 - $2000
+                                            Any price
                                           </div>
-                                          <p>Upto 65% offers</p>
+                                          <p>Search available hotels</p>
                                         </Link>
                                       </li>
                                       <li className="border-bottom">
                                         <Link className="dropdown-item" to="#">
                                           <div className="fs-16 fw-medium text-dark dropdown-name">
-                                            Upto 65% offers
+                                            Manual hotel directory
                                           </div>
-                                          <p>Upto 40% offers</p>
+                                          <p>Search available hotels</p>
                                         </Link>
                                       </li>
                                       <li className="border-bottom">
                                         <Link className="dropdown-item" to="#">
                                           <div className="fs-16 fw-medium text-dark dropdown-name">
-                                            $5000 - $8000
+                                            Tunisia hotel directory
                                           </div>
-                                          <p>Upto 35% offers</p>
+                                          <p>Request-only hotels</p>
                                         </Link>
                                       </li>
                                       <li className="border-bottom">
                                         <Link className="dropdown-item" to="#">
                                           <div className="fs-16 fw-medium text-dark dropdown-name">
-                                            $9000 - $11000
+                                            Contact for pricing
                                           </div>
-                                          <p>Upto 20% offers</p>
+                                          <p>Final price confirmed after request</p>
                                         </Link>
                                       </li>
                                       <li>
                                         <Link className="dropdown-item" to="#">
                                           <div className="fs-16 fw-medium text-dark dropdown-name">
-                                            $11000 - $15000
+                                            Price on request
                                           </div>
-                                          <p>Upto 10% offers</p>
+                                          <p>No fake price ranges</p>
                                         </Link>
                                       </li>
                                     </ul>
@@ -2209,10 +2206,10 @@ const HomeOne = () => {
                                     aria-expanded="false"
                                     role="menu"
                                   >
-                                    <BookingDropdown
+                                      <BookingDropdown
                                       label="Select Activity"
                                       defaultValue="Ballon Ride"
-                                      defaultSubValue="20 Offers Available"
+                                      defaultSubValue="Search available activities"
                                       locations={[
                                         { value: "ScubaDiving" },
                                         { value: "HotAir Ballon" },

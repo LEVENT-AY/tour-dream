@@ -8,6 +8,7 @@ import StickyContent from './stickyContent';
 import { DatePicker } from 'antd'
 import dayjs from "dayjs";
 import BannerCounter from "../../../core/common/banner-counter/counter";
+import { formatHotelPrice, normalizePositiveNumber } from '../../../core/common/hotelPricing';
 import Lightbox from "yet-another-react-lightbox";
 import "yet-another-react-lightbox/styles.css";
 import RoomDetailModal from "../../../core/common/modal/roomDetailModal";
@@ -23,7 +24,7 @@ type HotelDetailsView = {
     rating: string;
     reviewsCount: number;
     reviewsLabel: string;
-    price: number;
+    price: number | null;
     priceLabel: string;
     description: string;
     image: string;
@@ -96,56 +97,85 @@ const toStringList = (value: unknown): string[] =>
 const firstTextValue = (...values: unknown[]) =>
     values.find((value) => typeof value === 'string' && value.trim()) as string | undefined;
 
+const hasMojibake = (value: string) => /[ÃÂâ�]/.test(value);
+
+const repairMojibake = (value: string) => {
+    const text = String(value || '').replace(/\s+/g, ' ').trim();
+    if (!text || !hasMojibake(text)) return text;
+    try {
+        const bytes = Uint8Array.from(text, (char) => char.charCodeAt(0) & 0xff);
+        return new TextDecoder('utf-8').decode(bytes).replace(/\u0000/g, '').trim();
+    } catch {
+        return text;
+    }
+};
+
 const normalizeHotelDetails = (data?: Record<string, any> | null): HotelDetailsView => {
+    if (!data) {
+        return fallbackHotelDetails;
+    }
     const gallery = [
         ...toStringList(data?.gallery),
         ...toStringList(data?.galleryImages),
         ...toStringList(data?.images),
     ];
-    const image = firstTextValue(data?.image, data?.mainImage, data?.thumbnail) || gallery[0] || fallbackHotelDetails.image;
-    const title = firstTextValue(data?.title, data?.name, data?.hotelName, data?.propertyName) || fallbackHotelDetails.title;
-    const location = firstTextValue(data?.location, data?.city, data?.address, data?.country) || fallbackHotelDetails.location;
+    const image = firstTextValue(data?.image, data?.mainImage, data?.thumbnail) || gallery[0] || '';
+    const title = repairMojibake(firstTextValue(data?.title, data?.name, data?.hotelName, data?.propertyName) || '');
+    const location = repairMojibake(firstTextValue(data?.location, data?.city, data?.address, data?.country) || '');
     const ratingValue = typeof data?.rating === 'number' ? data.rating : Number(data?.rating);
     const reviewsCountValue = typeof data?.reviewsCount === 'number' ? data.reviewsCount : Number(data?.reviewsCount);
-    const priceValue = typeof data?.price === 'number'
-        ? data.price
-        : Number(firstTextValue(data?.price, data?.pricePerNight, data?.startingPrice) || 0);
+    const priceValue = normalizePositiveNumber(data?.priceFrom ?? data?.price ?? data?.pricePerNight ?? data?.startingPrice);
     const amenities = toStringList(data?.amenities || data?.facilities || data?.features || data?.services);
     const roomTypes = toStringList(data?.roomTypes || data?.roomType || data?.type || data?.propertyType);
     const highlights = toStringList(data?.highlights);
     const services = toStringList(data?.services || data?.amenities);
+    const badgeValue = firstTextValue(data?.badge);
+    const safeBadge =
+        data?.featured === true
+            ? badgeValue || 'Trending'
+            : badgeValue && badgeValue.trim().toLowerCase() !== 'trending'
+                ? badgeValue
+                : '';
     return {
         id: typeof data?.id === 'string' && data.id.trim() ? data.id : fallbackHotelDetails.id,
         title,
         name: title,
-        badge: firstTextValue(data?.badge) || (data?.featured === true ? 'Trending' : fallbackHotelDetails.badge),
+        badge: safeBadge,
         location,
-        rating: Number.isFinite(ratingValue) ? String(ratingValue) : fallbackHotelDetails.rating,
-        reviewsCount: Number.isFinite(reviewsCountValue) ? reviewsCountValue : fallbackHotelDetails.reviewsCount,
-        reviewsLabel: `(${Number.isFinite(reviewsCountValue) ? reviewsCountValue : fallbackHotelDetails.reviewsCount} Reviews)`,
-        price: Number.isFinite(priceValue) ? priceValue : fallbackHotelDetails.price,
-        priceLabel: `$${Number.isFinite(priceValue) ? priceValue : fallbackHotelDetails.price}`,
-        description: firstTextValue(data?.description, data?.details, data?.summary) || fallbackHotelDetails.description,
+        rating: Number.isFinite(ratingValue) && ratingValue > 0 ? String(ratingValue) : '',
+        reviewsCount: Number.isFinite(reviewsCountValue) && reviewsCountValue > 0 ? reviewsCountValue : 0,
+        reviewsLabel: Number.isFinite(reviewsCountValue) && reviewsCountValue > 0 ? `(${reviewsCountValue} Reviews)` : '',
+        price: priceValue ?? null,
+        priceLabel: priceValue != null ? `${priceValue}` : '',
+        description: repairMojibake(
+            firstTextValue(
+                data?.rawSource?.detail?.description,
+                data?.rawSource?.descriptionRaw,
+                data?.description,
+                data?.details,
+                data?.summary,
+            ) || '',
+        ),
         image,
-        gallery: gallery.length > 0 ? gallery : [image],
+        gallery: gallery.length > 0 ? gallery : (image ? [image] : []),
         roomsLabel: firstTextValue(
             typeof data?.roomsCount === 'number' ? `Total ${data.roomsCount} Rooms` : '',
             typeof data?.roomCount === 'number' ? `Total ${data.roomCount} Rooms` : '',
             typeof data?.rooms === 'number' ? `Total ${data.rooms} Rooms` : '',
             typeof data?.availableRooms === 'number' ? `Total ${data.availableRooms} Rooms` : ''
-        ) || fallbackHotelDetails.roomsLabel,
-        amenities: amenities.length > 0 ? amenities : fallbackHotelDetails.amenities,
-        roomTypes: roomTypes.length > 0 ? roomTypes : fallbackHotelDetails.roomTypes,
-        highlights: highlights.length > 0 ? highlights : amenities.slice(0, 3).concat(fallbackHotelDetails.highlights).slice(0, 3),
-        services: services.length > 0 ? services : fallbackHotelDetails.services,
+        ) || '',
+        amenities: amenities.length > 0 ? amenities : [],
+        roomTypes: roomTypes.length > 0 ? roomTypes : [],
+        highlights: highlights.length > 0 ? highlights : amenities.slice(0, 3),
+        services: services.length > 0 ? services : [],
         nearbyLandmarks: (() => {
             const landmarks = toStringList(data?.nearbyLandmarks || data?.landmarks);
-            return landmarks.length > 0 ? landmarks : fallbackHotelDetails.nearbyLandmarks;
+            return landmarks.length > 0 ? landmarks : [];
         })(),
-        providerName: firstTextValue(data?.providerName, data?.ownerName, data?.hostName, data?.managerName) || fallbackHotelDetails.providerName,
-        providerSince: firstTextValue(data?.providerSince, data?.memberSince) || fallbackHotelDetails.providerSince,
-        providerPhone: firstTextValue(data?.providerPhone, data?.phone, data?.contactPhone) || fallbackHotelDetails.providerPhone,
-        providerEmail: firstTextValue(data?.providerEmail, data?.email, data?.contactEmail) || fallbackHotelDetails.providerEmail,
+        providerName: firstTextValue(data?.providerName, data?.ownerName, data?.hostName, data?.managerName) || '',
+        providerSince: firstTextValue(data?.providerSince, data?.memberSince) || '',
+        providerPhone: firstTextValue(data?.providerPhone, data?.phone, data?.contactPhone) || '',
+        providerEmail: firstTextValue(data?.providerEmail, data?.email, data?.contactEmail) || '',
         published: data?.published !== false,
         featured: data?.featured === true,
     };
@@ -171,6 +201,12 @@ const HotelDetails = () => {
 
     const [gallery, setGallery] = React.useState(false);
     const hotelId = searchParams.get('id');
+    const initialCheckInDate = searchParams.get('checkInDate') || '';
+    const initialCheckOutDate = searchParams.get('checkOutDate') || '';
+    const initialAdults = Number(searchParams.get('adults') || 2);
+    const initialRooms = Number(searchParams.get('rooms') || 1);
+    const initialChildren = Number(searchParams.get('children') || 0);
+    const initialChildAges = searchParams.get('childAges') || '';
 
     useEffect(() => {
         let isMounted = true;
@@ -365,6 +401,30 @@ const HotelDetails = () => {
 
     const isFirestoreBackedHotel = Boolean(hotelId && hotelData && isPublicHotelRecord(hotelData));
     const displayHotel = isFirestoreBackedHotel ? normalizeHotelDetails(hotelData) : fallbackHotelDetails;
+    const stickyHotel = {
+      ...displayHotel,
+      priceFrom: (hotelData?.priceFrom ?? hotelData?.price ?? null),
+      priceCurrency: hotelData?.priceCurrency || hotelData?.currency || '',
+      priceUnit: hotelData?.priceUnit || hotelData?.pricePerNightUnit || 'night',
+      bookingMode: hotelData?.bookingMode,
+      bookingEnabled: hotelData?.bookingEnabled,
+      sourceName: hotelData?.sourceName,
+      sourceUrl: hotelData?.sourceUrl,
+      selectedBoardType: hotelData?.selectedBoardType,
+      latitude: hotelData?.latitude,
+      longitude: hotelData?.longitude,
+      viewsCount: hotelData?.viewsCount,
+    } as any;
+    const availabilityPrice = isFirestoreBackedHotel
+      ? formatHotelPrice(
+          {
+            priceFrom: hotelData?.priceFrom ?? hotelData?.price ?? hotelData?.pricePerNight,
+            priceCurrency: hotelData?.priceCurrency || hotelData?.currency,
+            priceUnit: hotelData?.priceUnit || hotelData?.pricePerNightUnit,
+          },
+          { prefix: 'Starts From', fallbackLabel: 'Price on request' },
+        )
+      : { headline: 'Price on request', note: undefined, hasPrice: false };
 
     return (
     <>
@@ -385,14 +445,25 @@ const HotelDetails = () => {
                     {/* Slider */}
                     <div className="d-flex align-items-center justify-content-between flex-wrap mb-2">
                         <div className="mb-2">
-                            <h4 className="mb-1 d-flex align-items-center flex-wrap">{displayHotel.title || displayHotel.name}<span className="badge badge-xs bg-success rounded-pill ms-2"><i className="isax isax-ticket-star me-1"></i>{displayHotel.badge || 'Verified'}</span></h4>
+                            <h4 className="mb-1 d-flex align-items-center flex-wrap">
+                              {displayHotel.title || displayHotel.name}
+                              {displayHotel.badge && (
+                                <span className="badge badge-xs bg-success rounded-pill ms-2">
+                                  <i className="isax isax-ticket-star me-1"></i>{displayHotel.badge}
+                                </span>
+                              )}
+                            </h4>
                             <div className="d-flex align-items-center flex-wrap">
                                 <p className="fs-14 mb-2 me-3 pe-3 border-end"><i className="isax isax-buildings me-2"></i>Hotel</p>
                                 <p className="fs-14 mb-2 me-3 pe-3 border-end"><i className="isax isax-location5 me-2"></i>{displayHotel.location}<Link to="#location" className="link-primary text-decoration-underline fw-medium ms-2">View Location</Link></p>
-                                <div className="d-flex align-items-center mb-2">
-                                    <span className="badge badge-warning badge-xs text-gray-9 fs-13 fw-medium me-2">{displayHotel.rating}</span>
-                                    <p className="fs-14"><Link to="#reviews">{displayHotel.reviewsLabel}</Link></p>
-                                </div>
+                                {(displayHotel.rating || displayHotel.reviewsLabel) && (
+                                  <div className="d-flex align-items-center mb-2">
+                                    {displayHotel.rating && <span className="badge badge-warning badge-xs text-gray-9 fs-13 fw-medium me-2">{displayHotel.rating}</span>}
+                                    <p className="fs-14">
+                                      {displayHotel.reviewsLabel ? <Link to="#reviews">{displayHotel.reviewsLabel}</Link> : 'No reviews yet'}
+                                    </p>
+                                  </div>
+                                )}
                             </div>
                         </div>
                         <div className="d-flex align-items-center mb-3">
@@ -429,7 +500,9 @@ const HotelDetails = () => {
                                             slides={[
                                         ...(Array.isArray(displayHotel.gallery) && displayHotel.gallery.length > 0
                                             ? displayHotel.gallery
-                                            : ["assets/img/hotels/hotel-large-01.jpg"]).map((src: string) => ({ src })),
+                                            : displayHotel.image
+                                              ? [displayHotel.image]
+                                              : ["assets/img/hotels/hotel-large-01.jpg"]).map((src: string) => ({ src })),
                                             ]}
                                         />
                                 <Link
@@ -452,7 +525,7 @@ const HotelDetails = () => {
                         </div>
                         <h5 className="mb-3 fs-18">Description</h5>
                         <div>
-                            <p>{displayHotel.description}</p>
+                            <p>{displayHotel.description || 'Description available on request.'}</p>
                         </div>
                         <div className="read-more">
                             <div className="more-text">
@@ -640,43 +713,10 @@ const HotelDetails = () => {
                                                 </div>
                                             </div>
                                             <div className="form-item dropdown">
-                                                <div data-bs-toggle="dropdown" data-bs-auto-close="outside"  role="menu">
-                                                    <label className="form-label fs-14 text-default mb-1">Price per Night</label>
-                                                    <input type="text" className="form-control" defaultValue="$1000 - $15000" />
-                                                </div>
-                                                <div className="dropdown-menu dropdown-md p-0">
-                                                    <ul>
-                                                        <li className="border-bottom">
-                                                            <Link className="dropdown-item" to="#">
-                                                                <h6 className="fs-16 fw-medium">$500 - $2000</h6>
-                                                                <p>Upto 65% offers</p>
-                                                            </Link>
-                                                        </li>
-                                                        <li className="border-bottom">
-                                                            <Link className="dropdown-item" to="#">
-                                                                <h6 className="fs-16 fw-medium">Upto 65% offers</h6>
-                                                                <p>Upto 40% offers</p>
-                                                            </Link>
-                                                        </li>
-                                                        <li className="border-bottom">
-                                                            <Link className="dropdown-item" to="#">
-                                                                <h6 className="fs-16 fw-medium">$5000 - $8000</h6>
-                                                                <p>Upto 35% offers</p>
-                                                            </Link>
-                                                        </li>
-                                                        <li className="border-bottom">
-                                                            <Link className="dropdown-item" to="#">
-                                                                <h6 className="fs-16 fw-medium">$9000 - $11000</h6>
-                                                                <p>Upto 20% offers</p>
-                                                            </Link>
-                                                        </li>
-                                                        <li>
-                                                            <Link className="dropdown-item" to="#">
-                                                                <h6 className="fs-16 fw-medium">$11000 - $15000</h6>
-                                                                <p>Upto 10% offers</p>
-                                                            </Link>
-                                                        </li>
-                                                    </ul>
+                                                <label className="form-label fs-14 text-default mb-1">Price</label>
+                                                <div className="form-control d-flex flex-column justify-content-center" style={{ minHeight: 56 }}>
+                                                    <span className="fw-medium">{availabilityPrice.headline}</span>
+                                                    {availabilityPrice.note && <small className="text-muted">{availabilityPrice.note}</small>}
                                                 </div>
                                             </div>
                                         </div>
@@ -1051,7 +1091,14 @@ const HotelDetails = () => {
                     </div>
                     {/* /Frequently Asked Questions */}
 
-                    <Reviews/>
+                    {displayHotel.reviewsCount > 0 ? (
+                      <Reviews />
+                    ) : (
+                      <div className="border-bottom pb-3 mb-4" id="reviews">
+                        <h5 className="mb-3 fs-18">Reviews</h5>
+                        <p className="text-muted mb-0">No reviews yet</p>
+                      </div>
+                    )}
                     <Lightbox
                             open={open2}
                             close={() => setOpen2(false)}
@@ -1069,8 +1116,15 @@ const HotelDetails = () => {
 
                 {/* Sidebar Details */}
                 <div className="col-xl-4 ">
-
-                    <StickyContent hotel={displayHotel} />
+                    <StickyContent
+                      hotel={stickyHotel}
+                      initialCheckInDate={initialCheckInDate}
+                      initialCheckOutDate={initialCheckOutDate}
+                      initialAdults={initialAdults}
+                      initialRooms={initialRooms}
+                      initialChildren={initialChildren}
+                      initialChildAges={initialChildAges}
+                    />
 
                 </div>
                 {/* /Sidebar Details */}
