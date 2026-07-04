@@ -28,7 +28,8 @@ assert(/const TARGET_ZONES = \[/.test(importer), 'Importer defines target zones'
 assert((importer.match(/tourismZoneLabel:/g) || []).length === 7, 'Importer defines exactly 7 target zones');
 assert(/REQUEST_DELAY_MS = 10_000/.test(importer), 'Importer has rate limit matching robots crawl delay');
 assert(/discovertunisia\.com/.test(importer), 'Importer uses Discover Tunisia source');
-assert(!/booking\.com|tripadvisor|agoda|expedia/i.test(importer), 'Importer does not use OTA domains');
+assert(!/https?:\/\/(?:www\.)?(booking|tripadvisor|agoda|expedia)\./i.test(importer), 'Importer does not fetch OTA domains');
+assert(/booking|tripadvisor|agoda|expedia/i.test(importer), 'Importer keeps an OTA denylist for review images');
 assert(!/put\(|uploadBytes|getStorage|storageBucket|firebase deploy|hotelImportDrafts/i.test(importer), 'Importer does not upload images, deploy Firebase, or write Firestore drafts in preview mode');
 assert(/published: false/.test(importer), 'Drafts default to published false');
 assert(/status: 'draft'/.test(importer), 'Drafts default to draft status');
@@ -57,6 +58,24 @@ assert(preview.metadata.testedUrls.every((url) => !/booking\.com|tripadvisor|ago
 assert(preview.drafts.every((draft) => draft.published === false), 'All preview drafts are unpublished');
 assert(preview.drafts.every((draft) => ['draft', 'duplicate_review'].includes(draft.status)), 'All preview draft statuses are allowed');
 assert(preview.drafts.every((draft) => Boolean(draft.sourceUrl)), 'All preview drafts include sourceUrl');
+assert(preview.drafts.every((draft) => !draft.image), 'Preview drafts do not promote public image fields');
+assert(preview.drafts.every((draft) => !Array.isArray(draft.gallery) || draft.gallery.length === 0), 'Preview drafts keep gallery empty');
+assert(preview.drafts.every((draft) => Array.isArray(draft.imageUrlsForReview)), 'Preview drafts expose review image arrays');
+assert(
+  preview.drafts.every((draft) => {
+    const urls = Array.isArray(draft.imageUrlsForReview) ? draft.imageUrlsForReview : [];
+    return urls.every((url) => /^https?:\/\//i.test(String(url)) && !/booking\.com|tripadvisor|agoda|expedia/i.test(String(url)));
+  }),
+  'Preview review image URLs stay on allowed absolute HTTP(S) sources',
+);
+assert(
+  preview.drafts.every(
+    (draft) =>
+      !(Array.isArray(draft.imageUrlsForReview) && draft.imageUrlsForReview.length > 0) ||
+      (draft.imageSourceName && draft.imageSourceUrl),
+  ),
+  'Preview review images include source metadata when present',
+);
 assert(
   preview.drafts.every(
     (draft) =>

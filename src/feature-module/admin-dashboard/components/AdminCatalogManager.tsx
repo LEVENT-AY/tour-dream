@@ -22,6 +22,56 @@ export interface FieldConfig {
   max?: number;
 }
 
+const AdminCatalogImageCell: React.FC<{ item: any }> = ({ item }) => {
+  const publicImage = item.mainImage || item.image || (Array.isArray(item.gallery) ? item.gallery[0] : '');
+  const reviewImage = item.isImportedDraft && Array.isArray(item.imageUrlsForReview) ? item.imageUrlsForReview[0] : '';
+  const [publicBroken, setPublicBroken] = useState(false);
+  const [reviewBroken, setReviewBroken] = useState(false);
+
+  const showPublicImage = Boolean(publicImage) && !publicBroken;
+  const showReviewImage = !showPublicImage && Boolean(reviewImage) && !reviewBroken;
+
+  if (showPublicImage || showReviewImage) {
+    return (
+      <div className="position-relative d-inline-block">
+        <img
+          src={showPublicImage ? publicImage : reviewImage}
+          alt=""
+          style={{ width: '60px', height: '45px', objectFit: 'cover' }}
+          className="rounded"
+          onError={(e) => {
+            if (showPublicImage) {
+              setPublicBroken(true);
+              return;
+            }
+            setReviewBroken(true);
+            e.currentTarget.style.display = 'none';
+          }}
+        />
+        {showReviewImage && (
+          <span
+            className="position-absolute bottom-0 start-0 badge bg-dark text-white"
+            style={{ fontSize: '10px', transform: 'translateY(100%)', marginTop: '2px' }}
+            title="Review image"
+          >
+            Review image
+          </span>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className="d-flex align-items-center justify-content-center rounded border bg-light text-muted small"
+      style={{ width: '60px', height: '45px' }}
+      title="No image"
+    >
+      No image
+    </div>
+  );
+};
+
 interface AdminCatalogManagerProps {
   title: string;
   collectionName: string;
@@ -470,18 +520,7 @@ const AdminCatalogManager: React.FC<AdminCatalogManagerProps> = ({
                     return (
                     <tr key={item.id}>
                       <td>
-                        <img
-                          src={item.mainImage || item.image || item.gallery?.[0] || 'assets/img/banner/banner-01.jpg'}
-                          alt=""
-                          style={{ width: '60px', height: '45px', objectFit: 'cover' }}
-                          className="rounded"
-                          onError={(e) => {
-                            const target = e.currentTarget;
-                            if (!target.src.includes('banner-01.jpg')) {
-                              target.src = 'assets/img/banner/banner-01.jpg';
-                            }
-                          }}
-                        />
+                        <AdminCatalogImageCell item={item} />
                       </td>
                       <td className="fw-medium">
                         <div>{item.title || item.name}</div>

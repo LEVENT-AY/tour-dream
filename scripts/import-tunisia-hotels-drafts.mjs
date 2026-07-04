@@ -6,6 +6,7 @@ const QUALITY_REPORT_PATH = path.join(process.cwd(), 'tmp', 'tunisia-hotel-impor
 const REQUEST_DELAY_MS = 10_000;
 const MAX_TOTAL_HOTELS = 35;
 const MAX_PER_ZONE = 5;
+const REVIEW_IMAGE_LIMIT = 3;
 const SOURCE_NAME = 'Discover Tunisia';
 const BASE_SOURCE_URL = 'https://www.discovertunisia.com/en/tourist_information';
 const HOTEL_CATEGORY_ID = '33';
@@ -163,6 +164,77 @@ const normalizeWebsite = (value) => {
   }
 
   return `https://${cleaned.toLowerCase()}`;
+};
+
+const isAllowedReviewImageUrl = (value) => {
+  const raw = cleanText(value);
+  if (!raw || /^(data:|javascript:)/i.test(raw)) return false;
+
+  let parsed;
+  try {
+    parsed = new URL(raw);
+  } catch {
+    return false;
+  }
+
+  const host = parsed.hostname.toLowerCase();
+  if (!host || /booking|tripadvisor|agoda|expedia/i.test(host)) {
+    return false;
+  }
+
+  return /^https?:$/i.test(parsed.protocol);
+};
+
+const toAbsoluteUrl = (value, baseUrl) => {
+  const raw = cleanText(value);
+  if (!raw) return '';
+  try {
+    const resolved = new URL(raw, baseUrl);
+    return resolved.toString();
+  } catch {
+    return '';
+  }
+};
+
+const extractReviewImageUrlsFromHtml = (html, baseUrl) => {
+  const candidates = [
+    ...html.matchAll(/<meta[^>]+(?:property|name)=["'](?:og:image(?:secure_url)?|twitter:image(?::src)?|image_src)["'][^>]+content=["']([^"']+)["']/gi),
+    ...html.matchAll(/<link[^>]+rel=["']image_src["'][^>]+href=["']([^"']+)["']/gi),
+    ...html.matchAll(/<img[^>]+(?:src|data-src|data-lazy-src)=["']([^"']+)["']/gi),
+  ]
+    .map((match) => toAbsoluteUrl(match[1], baseUrl))
+    .filter(isAllowedReviewImageUrl);
+
+  return [...new Set(candidates)].slice(0, REVIEW_IMAGE_LIMIT);
+};
+
+const collectOfficialWebsiteReviewImages = async (websiteUrl) => {
+  const targetUrl = normalizeWebsite(websiteUrl);
+  if (!targetUrl) return [];
+
+  try {
+    const response = await fetch(targetUrl, {
+      headers: {
+        'user-agent': USER_AGENT,
+        accept: 'text/html,application/xhtml+xml',
+      },
+    });
+
+    if (!response.ok) return [];
+
+    const charset = detectCharset(response.headers.get('content-type'));
+    const buffer = Buffer.from(await response.arrayBuffer());
+    let html;
+    try {
+      html = new TextDecoder(charset).decode(buffer);
+    } catch {
+      html = buffer.toString('utf8');
+    }
+
+    return extractReviewImageUrlsFromHtml(html, response.url || targetUrl);
+  } catch {
+    return [];
+  }
 };
 
 const parseContactNumber = (value, label) => {
@@ -392,12 +464,13 @@ const shouldKeepEntry = (entry) => {
   return Boolean(entry.hotelName && entry.governorate && entry.sourceUrl && hasLocation && hasContactOrAddress);
 };
 
-const parseHotelsFromHtml = (html, zone, regionId, page, importBatchId, existingHotels, auditLog) => {
+const parseHotelsFromHtml = async (html, zone, regionId, page, importBatchId, existingHotels, auditLog) => {
   const blocks = extractRowBlocks(html);
   const regionLabel = REGION_LABELS[regionId] || zone.tourismZoneLabel;
 
-  return blocks
-    .map((block) => {
+  const drafts = [];
+
+  for (const block of blocks) {
       const hotelName = extractTitle(block);
       const address = cleanAddress(extractFieldContent(block, 'views-field-field-adresse'));
       const phoneRaw = extractFieldContent(block, 'views-field-field-telephone');
@@ -414,6 +487,10 @@ const parseHotelsFromHtml = (html, zone, regionId, page, importBatchId, existing
       const phoneResult = parseContactNumber(phoneRaw, 'Phone');
       const faxResult = parseContactNumber(faxRaw, 'Fax');
       const noteParts = [`Imported from ${SOURCE_NAME} region ${regionLabel} page ${page + 1}.`];
+      const listingImageUrls = extractReviewImageUrlsFromHtml(block, sourceUrl);
+      let imageUrlsForReview = listingImageUrls;
+      let imageSourceName = listingImageUrls.length ? SOURCE_NAME : '';
+      let imageSourceUrl = listingImageUrls.length ? sourceUrl : '';
 
       if (phoneResult.warning) noteParts.push(phoneResult.warning);
       if (faxResult.warning) noteParts.push(faxResult.warning);
@@ -440,7 +517,9 @@ const parseHotelsFromHtml = (html, zone, regionId, page, importBatchId, existing
         starRating,
         category,
         descriptionShort: createDescriptionShort(categories, address),
-        imageUrlsForReview: [],
+        imageUrlsForReview,
+        imageSourceName,
+        imageSourceUrl,
         notes: noteParts.join(' '),
         matchedHotelId: null,
         rawSource: {
@@ -453,6 +532,19 @@ const parseHotelsFromHtml = (html, zone, regionId, page, importBatchId, existing
           websiteRaw,
         },
       };
+
+      if (!draft.imageUrlsForReview.length && draft.website) {
+        const websiteImages = await collectOfficialWebsiteReviewImages(draft.website);
+        if (websiteImages.length) {
+          draft.imageUrlsForReview = websiteImages;
+          draft.imageSourceName = 'Official website';
+          draft.imageSourceUrl = draft.website;
+          draft.notes += ' Review images collected from official website; approve before publishing.';
+          draft.rawSource.websiteImageUrls = websiteImages;
+        }
+      } else if (draft.imageUrlsForReview.length) {
+        draft.notes += ' Review images collected from Discover Tunisia; approve before publishing.';
+      }
 
       const existingMatch = findExistingHotelMatch(existingHotels, draft);
       if (existingMatch) {
@@ -482,10 +574,10 @@ const parseHotelsFromHtml = (html, zone, regionId, page, importBatchId, existing
         });
       }
 
-      return draft;
-    })
-    .filter(Boolean)
-    .filter(shouldKeepEntry);
+      drafts.push(draft);
+  }
+
+  return drafts.filter(Boolean).filter(shouldKeepEntry);
 };
 
 const dedupeDrafts = (drafts) => {
@@ -511,7 +603,7 @@ const importZoneDrafts = async (zone, existingHotels, importBatchId, auditLog) =
     const sourceUrl = buildSourceUrl(regionId, 0);
     testedUrls.push(sourceUrl);
     const html = await fetchHtml(sourceUrl);
-    const parsedDrafts = parseHotelsFromHtml(html, zone, regionId, 0, importBatchId, existingHotels, auditLog);
+    const parsedDrafts = await parseHotelsFromHtml(html, zone, regionId, 0, importBatchId, existingHotels, auditLog);
     const uniqueDrafts = dedupeDrafts(parsedDrafts);
 
     for (const draft of uniqueDrafts) {
@@ -542,6 +634,7 @@ const buildQualityReport = (drafts, countsByZone, auditLog) => {
   const countWithMojibake = drafts.filter((draft) =>
     [draft.hotelName, draft.title, draft.address, draft.category].some(hasMojibake),
   ).length;
+  const countWithReviewImages = drafts.filter((draft) => Array.isArray(draft.imageUrlsForReview) && draft.imageUrlsForReview.length > 0).length;
   const countWithSuspiciousPhone = drafts.filter((draft) => hasSuspiciousPhone(draft.phone) || hasSuspiciousPhone(draft.fax)).length;
   const countMissingContact = drafts.filter((draft) => !draft.phone && !draft.email && !draft.website).length;
   const countMissingWebsite = drafts.filter((draft) => !draft.website).length;
@@ -551,6 +644,7 @@ const buildQualityReport = (drafts, countsByZone, auditLog) => {
     generatedAt: new Date().toISOString(),
     totalDrafts: drafts.length,
     countWithMojibake,
+    countWithReviewImages,
     countWithSuspiciousPhone,
     countMissingContact,
     countMissingWebsite,
