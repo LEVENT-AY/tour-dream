@@ -106,6 +106,8 @@ const StickyContent = ({
   const nearbySections = hotel?.nearbySections?.length
     ? hotel.nearbySections
     : [{ title: 'Nearby', items: hotel?.nearbyLandmarks?.length ? hotel.nearbyLandmarks : ['Nearby attractions not provided'] }];
+  const hasWhatsappContact = Boolean(hotel?.providerPhone);
+  const hasChatContact = Boolean(hotel?.providerEmail || hotel?.providerPhone);
 
   const persistSelection = () => {
     const snapshot = {
@@ -286,16 +288,30 @@ const StickyContent = ({
           </p>
           <div className="row g-2">
             <div className="col-sm-6">
-              <Link to="#" className="btn btn-light d-flex align-items-center justify-content-center">
+              <button
+                type="button"
+                className="btn btn-light d-flex align-items-center justify-content-center w-100"
+                disabled={!hasWhatsappContact}
+                aria-disabled={!hasWhatsappContact}
+              >
                 <i className="isax isax-messages5 me-2" />
-                Whatsapp Us
-              </Link>
+                {hasWhatsappContact ? 'Whatsapp Us' : 'Coming soon'}
+              </button>
             </div>
             <div className="col-sm-6">
-              <Link to={routes.userChat} className="btn btn-primary d-flex align-items-center justify-content-center">
+              <button
+                type="button"
+                className="btn btn-primary d-flex align-items-center justify-content-center w-100"
+                disabled={!hasChatContact}
+                aria-disabled={!hasChatContact}
+                onClick={() => {
+                  if (!hasChatContact) return;
+                  navigate(routes.userChat);
+                }}
+              >
                 <i className="isax isax-message-notif5 me-2" />
-                Chat Now
-              </Link>
+                {hasChatContact ? 'Chat Now' : 'Coming soon'}
+              </button>
             </div>
           </div>
         </div>

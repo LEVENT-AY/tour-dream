@@ -26,16 +26,6 @@ type NearbySection = {
   items: string[];
 };
 
-type TextCandidate = {
-  field: string;
-  value: unknown;
-};
-
-type SelectedText = {
-  field: string;
-  value: string;
-};
-
 type HotelDetailsView = {
   id: string;
   title: string;
@@ -45,14 +35,15 @@ type HotelDetailsView = {
   reviewsLabel: string;
   reviewSummary: string;
   description: string;
-  descriptionSourceField: string;
   image: string;
   gallery: string[];
   amenities: string[];
   roomTypes: string[];
+  boardOptions: string[];
   highlights: string[];
   highlightChips: string[];
   services: string[];
+  unavailableServiceNotes: string[];
   nearbyLandmarks: string[];
   nearbySections: NearbySection[];
   faq: FaqItem[];
@@ -78,6 +69,31 @@ type HotelDetailsView = {
 const REPLACEMENT_CHAR_PATTERN = /\uFFFD|ï¿½/;
 const MOJIBAKE_PATTERN = /(?:Ã.|Â|â€|â€™|â€œ|â€\u009d|â€“|â€”)/;
 const TEMPLATE_IMAGE_PATTERN = /assets\/img\/hotels|hotel-large-|hotel-thumb-|logo|favicon|preloader|loader|spinner|tracking|pixel|sprite|placeholder|facebook\.com\/tr/i;
+
+const NEARBY_MARKERS = [
+  /(?:^|\n)\s*(?:nearby|nearby attractions|nearby landmarks|what'?s nearby|surroundings|nearby visits)\b[:\s-]*/i,
+  /\bnearby attractions\b/i,
+  /\bnearby landmarks\b/i,
+  /\bwhat'?s nearby\b/i,
+  /\bsurroundings\b/i,
+];
+const DIRECT_BOOKING_PATTERNS = [
+  /réservez dès maintenant/gi,
+  /book now/gi,
+  /book online/gi,
+  /reserve now/gi,
+  /make a reservation/gi,
+  /request this hotel/gi,
+  /réserver maintenant/gi,
+  /book your stay/gi,
+];
+const NEGATIVE_SERVICE_PATTERNS = [
+  /\bnon disponible\b/i,
+  /\bunavailable\b/i,
+  /\bnot available\b/i,
+  /\bnot provided\b/i,
+  /\bsans\b/i,
+];
 
 const toStringList = (value: unknown): string[] =>
   Array.isArray(value)
@@ -123,18 +139,57 @@ const normalizeUniqueStrings = (...values: unknown[]) =>
     ),
   ];
 
-const selectPreferredText = (...candidates: TextCandidate[]): SelectedText => {
-  for (const candidate of candidates) {
-    const raw = normalizeText(candidate.value);
-    if (!raw) continue;
+const trimAtNearbyMarkers = (value: string) => {
+  const text = cleanText(value);
+  if (!text) return "";
 
-    const repaired = cleanText(raw);
-    if (repaired && !hasReplacementCharacter(repaired)) {
-      return { field: candidate.field, value: repaired };
-    }
+  let cutoff = text.length;
+  for (const marker of NEARBY_MARKERS) {
+    const match = text.match(marker);
+    if (!match || match.index == null) continue;
+    cutoff = Math.min(cutoff, match.index);
   }
 
-  return { field: "", value: "" };
+  return cleanText(text.slice(0, cutoff).replace(/[\s,;:-]+$/, ""));
+};
+
+const sanitizeRequestOnlyCopy = (value: string) => {
+  let text = cleanText(value);
+  for (const pattern of DIRECT_BOOKING_PATTERNS) {
+    text = text.replace(pattern, "");
+  }
+  return text.replace(/\s{2,}/g, " ").replace(/^[,;:-]+\s*/, "").trim();
+};
+
+const isNegativeService = (value: string) => {
+  const text = cleanText(value);
+  return Boolean(text) && NEGATIVE_SERVICE_PATTERNS.some((pattern) => pattern.test(text));
+};
+
+const normalizePositiveServices = (...values: unknown[]) =>
+  normalizeUniqueStrings(...values)
+    .filter((item) => item && !isNegativeService(item))
+    .filter((item) => !/\b(non disponible|unavailable|not available)\b/i.test(item));
+
+const normalizeBoardOptions = (...values: unknown[]) => normalizeUniqueStrings(...values).slice(0, 8);
+
+const buildDescriptionText = (data: Record<string, any>, title: string) => {
+  const descriptionCandidates = [
+    data?.description,
+    data?.longDescription,
+    data?.details,
+    data?.rawSource?.detail?.descriptionExtended,
+    data?.rawSource?.detail?.description,
+  ];
+
+  for (const candidate of descriptionCandidates) {
+    const sanitized = trimAtNearbyMarkers(sanitizeRequestOnlyCopy(String(candidate || "")));
+    if (!sanitized || hasReplacementCharacter(sanitized)) continue;
+    if (title && /\bhÃ´tel\s+\d+\s+Ã©toiles/i.test(sanitized)) continue;
+    return sanitized;
+  }
+
+  return "";
 };
 
 const normalizeFaq = (...values: unknown[]): FaqItem[] => {
@@ -243,22 +298,6 @@ const formatNearbySections = (items: string[]) =>
       };
     });
 
-const buildDescriptionLead = (data: Record<string, any>, title: string) => {
-  const starRating = Number(data?.starRating);
-  const region = cleanText(data?.region || "");
-  const city = cleanText(data?.city || "");
-  const normalizedCity = city.replace(/\bDjerba\b/i, "").replace(/\s+/g, " ").trim();
-
-  if (!title || !Number.isFinite(starRating) || starRating <= 0) return "";
-  if (!region && !normalizedCity) return "";
-
-  const regionLabel = region ? `sur l'île de ${region.charAt(0).toUpperCase()}${region.slice(1)}` : "";
-  const cityLabel = normalizedCity ? `dans la région de ${normalizedCity}` : "";
-  const locationLabel = [regionLabel, cityLabel].filter(Boolean).join(", ");
-
-  return locationLabel ? `Le ${title} est un hôtel ${starRating} étoiles situé ${locationLabel}.` : "";
-};
-
 const truncateText = (value: string, maxLength = 420) => {
   if (value.length <= maxLength) return value;
   const slice = value.slice(0, maxLength);
@@ -278,29 +317,15 @@ const scrollToSection = (sectionId: string) => {
 const normalizeHotelDetails = (data?: Record<string, any> | null): HotelDetailsView | null => {
   if (!data) return null;
 
-  const descriptionSelection = selectPreferredText(
-    { field: "description", value: data?.description },
-    { field: "longDescription", value: data?.longDescription },
-    { field: "details", value: data?.details },
-    { field: "rawSource.detail.descriptionExtended", value: data?.rawSource?.detail?.descriptionExtended },
-    { field: "rawSource.detail.description", value: data?.rawSource?.detail?.description },
-  );
-
   const gallery = normalizeGallery(data);
-  const image = firstTextValue(gallery[0]) || "";
-  const title = cleanText(firstTextValue(data?.title, data?.name, data?.hotelName, data?.propertyName) || "");
-  const descriptionLead = buildDescriptionLead(data, title);
-  const description =
-    descriptionLead &&
-    descriptionSelection.value &&
-    !/hôtel\s+\d+\s+étoiles/i.test(descriptionSelection.value)
-      ? `${descriptionLead} ${descriptionSelection.value}`.trim()
-      : descriptionSelection.value;
+  const image = firstTextValue(gallery[0]) || '';
+  const title = cleanText(firstTextValue(data?.title, data?.name, data?.hotelName, data?.propertyName) || '');
+  const description = buildDescriptionText(data, title);
   const locationParts = normalizeUniqueStrings(data?.city, data?.location, data?.address);
-  const location = locationParts[0] || cleanText(firstTextValue(data?.country) || "");
-  const ratingValue = typeof data?.ratingValue === "number" ? data.ratingValue : Number(data?.ratingValue ?? data?.rating);
+  const location = locationParts[0] || cleanText(firstTextValue(data?.country) || '');
+  const ratingValue = typeof data?.ratingValue === 'number' ? data.ratingValue : Number(data?.ratingValue ?? data?.rating);
   const reviews = normalizeReviews(data?.reviews, data?.rawSource?.detail?.reviews);
-  const reviewsCountValue = typeof data?.reviewsCount === "number" ? data.reviewsCount : Number(data?.reviewsCount);
+  const reviewsCountValue = typeof data?.reviewsCount === 'number' ? data.reviewsCount : Number(data?.reviewsCount);
   const highlights = normalizeUniqueStrings(data?.highlights);
   const nearbyLandmarks = normalizeUniqueStrings(
     data?.nearbyAttractions,
@@ -308,50 +333,67 @@ const normalizeHotelDetails = (data?: Record<string, any> | null): HotelDetailsV
     data?.landmarks,
     data?.rawSource?.detail?.nearbyAttractions,
   );
-  const providerMessage = "DreamsTour will confirm availability and price after request.";
+  const amenities = normalizePositiveServices(data?.amenities, data?.rawSource?.detail?.amenities).slice(0, 9);
+  const services = normalizePositiveServices(data?.services, data?.amenities, data?.rawSource?.detail?.services);
+  const roomTypes = normalizeUniqueStrings(data?.roomTypes, data?.rawSource?.detail?.roomTypes);
+  const boardOptions = normalizeBoardOptions(
+    data?.boardOptions,
+    data?.selectedBoardType,
+    data?.rawSource?.detail?.boardOptions,
+    data?.rawSource?.detail?.boardType,
+  );
+  const unavailableServiceNotes = normalizeUniqueStrings(
+    data?.rawSource?.detail?.services,
+    data?.services,
+    data?.amenities,
+  )
+    .filter((item) => isNegativeService(item))
+    .slice(0, 6);
+  const providerMessage = 'DreamsTour will confirm availability and price after request.';
 
   return {
-    id: typeof data?.id === "string" && data.id.trim() ? data.id : "",
+    id: typeof data?.id === 'string' && data.id.trim() ? data.id : '',
     title,
     location,
-    rating: Number.isFinite(ratingValue) && ratingValue > 0 ? String(ratingValue) : "",
+    rating: Number.isFinite(ratingValue) && ratingValue > 0 ? String(ratingValue) : '',
     reviewsCount: Number.isFinite(reviewsCountValue) && reviewsCountValue > 0 ? reviewsCountValue : reviews.length,
     reviewsLabel:
       Number.isFinite(reviewsCountValue) && reviewsCountValue > 0
-        ? `${reviewsCountValue} Reviews`
+        ? String(reviewsCountValue) + ' Reviews'
         : reviews.length > 0
-          ? `${reviews.length} Reviews`
-          : "",
-    reviewSummary: cleanText(data?.reviewSummary || ""),
+          ? String(reviews.length) + ' Reviews'
+          : '',
+    reviewSummary: cleanText(data?.reviewSummary || ''),
     description,
-    descriptionSourceField: descriptionSelection.field,
     image,
     gallery,
-    amenities: normalizeUniqueStrings(data?.amenities),
-    roomTypes: normalizeUniqueStrings(data?.roomTypes, data?.rawSource?.detail?.roomTypes),
+    amenities,
+    roomTypes,
+    boardOptions,
     highlights,
     highlightChips: buildHighlightChips(highlights),
-    services: normalizeUniqueStrings(data?.services, data?.amenities, data?.rawSource?.detail?.services),
+    services,
+    unavailableServiceNotes,
     nearbyLandmarks,
     nearbySections: formatNearbySections(nearbyLandmarks),
     faq: normalizeFaq(data?.faq, data?.rawSource?.detail?.faq),
     reviews,
-    checkInTime: cleanText(data?.checkInTime || ""),
-    checkOutTime: cleanText(data?.checkOutTime || ""),
+    checkInTime: cleanText(data?.checkInTime || ''),
+    checkOutTime: cleanText(data?.checkOutTime || ''),
     providerMessage,
-    roomInventoryText: formatRoomInventoryText(cleanText(data?.roomInventoryText || ""), data?.roomCount),
-    bookingMode: cleanText(data?.bookingMode || ""),
+    roomInventoryText: formatRoomInventoryText(cleanText(data?.roomInventoryText || ''), data?.roomCount),
+    bookingMode: cleanText(data?.bookingMode || ''),
     bookingEnabled: data?.bookingEnabled === true,
     published: data?.published === true,
     latitude: Number.isFinite(Number(data?.latitude)) ? Number(data?.latitude) : null,
     longitude: Number.isFinite(Number(data?.longitude)) ? Number(data?.longitude) : null,
     priceFrom: Number.isFinite(Number(data?.priceFrom)) ? Number(data?.priceFrom) : null,
-    priceCurrency: cleanText(data?.priceCurrency || ""),
-    priceUnit: cleanText(data?.priceUnit || "night"),
-    priceNote: cleanText(data?.priceNote || ""),
-    priceStatus: cleanText(data?.priceStatus || ""),
-    sourceName: cleanText(data?.sourceName || ""),
-    sourceUrl: cleanText(data?.sourceUrl || ""),
+    priceCurrency: cleanText(data?.priceCurrency || ''),
+    priceUnit: cleanText(data?.priceUnit || 'night'),
+    priceNote: cleanText(data?.priceNote || ''),
+    priceStatus: cleanText(data?.priceStatus || ''),
+    sourceName: cleanText(data?.sourceName || ''),
+    sourceUrl: cleanText(data?.sourceUrl || ''),
   };
 };
 
@@ -371,6 +413,8 @@ const HotelDetails = () => {
   const [thumbnailStartIndex, setThumbnailStartIndex] = useState(0);
   const [thumbnailWindow, setThumbnailWindow] = useState(5);
   const [showFullDescription, setShowFullDescription] = useState(false);
+  const [showAllServices, setShowAllServices] = useState(false);
+  const [showAllReviews, setShowAllReviews] = useState(false);
   const { loading: authLoading, isAdmin } = useAuth();
 
   const hotelId = searchParams.get("id");
@@ -383,6 +427,17 @@ const HotelDetails = () => {
   const initialChildAges = searchParams.get("childAges") || "";
   const allowDirectDraftPreview = source === "manual" && Boolean(hotelId) && isAdmin;
   const isManualDraftRoute = source === "manual" && Boolean(hotelId);
+  const sectionTabs = useMemo(
+    () => [
+      { id: "overview", label: "Overview" },
+      { id: "amenities", label: "Amenities" },
+      { id: "rooms", label: "Rooms" },
+      { id: "policies", label: "Policies" },
+      { id: "faq", label: "FAQ" },
+      { id: "reviews", label: "Reviews" },
+    ],
+    [],
+  );
 
   useEffect(() => {
     const updateThumbnailWindow = () => {
@@ -475,6 +530,8 @@ const HotelDetails = () => {
     setActiveImageIndex(0);
     setThumbnailStartIndex(0);
     setShowFullDescription(false);
+    setShowAllServices(false);
+    setShowAllReviews(false);
   }, [displayHotel?.id]);
 
   useEffect(() => {
@@ -521,6 +578,20 @@ const HotelDetails = () => {
   const visibleThumbnails = displayHotel?.gallery.slice(thumbnailStartIndex, thumbnailStartIndex + thumbnailWindow) || [];
   const descriptionPreview = displayHotel ? truncateText(displayHotel.description) : "";
   const hasLongDescription = Boolean(displayHotel && descriptionPreview !== displayHotel.description);
+  const visibleAmenities = displayHotel?.amenities.slice(0, 9) || [];
+  const visibleServices = displayHotel
+    ? displayHotel.services.slice(0, showAllServices ? displayHotel.services.length : 18)
+    : [];
+  const serviceHasMore = Boolean(displayHotel && displayHotel.services.length > 18);
+  const visibleReviews = displayHotel?.reviews.slice(0, showAllReviews ? 5 : 4) || [];
+  const reviewHasMore = Boolean(displayHotel && displayHotel.reviews.length > 4);
+  const requestSummary = displayHotel
+    ? [
+        displayHotel.roomInventoryText || "Request-only availability",
+        displayHotel.reviewsLabel || "Reviews confirmed after request",
+        displayHotel.boardOptions.length > 0 ? displayHotel.boardOptions[0] : "Board options confirmed after request",
+      ]
+    : [];
 
   const updateActiveImage = (nextIndex: number) => {
     if (!displayHotel || displayHotel.gallery.length === 0) return;
@@ -696,12 +767,18 @@ const HotelDetails = () => {
                     </div>
                   </div>
 
-                  <div className="border-bottom pb-4 mb-4">
+                  <div className="hotel-section-nav" aria-label="Hotel detail sections">
+                    {sectionTabs.map((item) => (
+                      <button key={item.id} type="button" className="hotel-section-tab" onClick={() => scrollToSection(item.id)}>
+                        {item.label}
+                      </button>
+                    ))}
+                  </div>
+
+                  <div className="border-bottom pb-4 mb-4" id="overview" tabIndex={-1}>
                     <div className="d-flex align-items-center justify-content-between gap-3 flex-wrap mb-3">
-                      <h5 className="mb-0 fs-18">Description</h5>
-                      {displayHotel.descriptionSourceField ? (
-                        <span className="hotel-source-note">Source field: {displayHotel.descriptionSourceField}</span>
-                      ) : null}
+                      <h5 className="mb-0 fs-18">Overview</h5>
+                      {displayHotel.roomInventoryText ? <span className="hotel-inventory-badge">{displayHotel.roomInventoryText}</span> : null}
                     </div>
 
                     {displayHotel.description ? (
@@ -740,10 +817,10 @@ const HotelDetails = () => {
                     </div>
                   ) : null}
 
-                  <div className="border-bottom pb-2 mb-4">
+                  <div className="border-bottom pb-2 mb-4" id="amenities" tabIndex={-1}>
                     <h5 className="mb-3 fs-18">Popular Amenities</h5>
                     <div className="row">
-                      {displayHotel.amenities.slice(0, 9).map((amenity) => (
+                      {visibleAmenities.map((amenity) => (
                         <div className="col-sm-6 col-lg-4" key={amenity}>
                           <div className="d-flex align-items-center mb-3">
                             <span className="avatar avatar-md bg-primary-transparent rounded-circle me-2">
@@ -756,32 +833,56 @@ const HotelDetails = () => {
                     </div>
                   </div>
 
-                  {displayHotel.roomTypes.length > 0 ? (
-                    <div className="border-bottom pb-2 mb-4">
-                      <h5 className="mb-3 fs-18">Room Types</h5>
-                      <div className="row">
+                  <div className="border-bottom pb-2 mb-4" id="rooms" tabIndex={-1}>
+                    <h5 className="mb-3 fs-18">Rooms</h5>
+                    {displayHotel.roomTypes.length > 0 ? (
+                      <div className="hotel-chip-cloud mb-3">
                         {displayHotel.roomTypes.map((roomType) => (
-                          <div className="col-sm-6 col-lg-4" key={roomType}>
-                            <div className="d-flex align-items-center mb-3">
-                              <span className="avatar avatar-md bg-primary-transparent rounded-circle me-2">
-                                <i className="isax isax-send-sqaure-2 fs-16"></i>
-                              </span>
-                              <p>{roomType}</p>
-                            </div>
-                          </div>
+                          <span className="hotel-room-chip" key={roomType}>
+                            {roomType}
+                          </span>
                         ))}
                       </div>
-                    </div>
-                  ) : null}
+                    ) : (
+                      <p className="text-muted mb-3">Room details will be confirmed after request.</p>
+                    )}
 
-                  <div className="border-bottom pb-2 mb-4" id="availability">
+                    <div className="card shadow-none border mb-0">
+                      <div className="card-body">
+                        <h6 className="fw-medium mb-2">Board options</h6>
+                        <p className="text-muted mb-3 mb-lg-2">
+                          Request-only availability will be confirmed later.
+                        </p>
+                        {displayHotel.boardOptions.length > 0 ? (
+                          <div className="hotel-chip-cloud">
+                            {displayHotel.boardOptions.map((option) => (
+                              <span className="hotel-room-chip hotel-room-chip-soft" key={option}>
+                                {option}
+                              </span>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-muted mb-0">Board options confirmed after request.</p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="border-bottom pb-2 mb-4" id="availability" tabIndex={-1}>
                     <h5 className="mb-3 fs-18">Availability</h5>
-                    <div className="card shadow-none border">
+                    <div className="card shadow-none border hotel-availability-card">
                       <div className="card-body">
                         <p className="fs-16 fw-medium mb-1">{availabilityPrice.headline}</p>
                         <p className="text-muted mb-2">
                           {availabilityPrice.note || "Final price and availability are confirmed after request"}
                         </p>
+                        <div className="hotel-request-summary">
+                          {requestSummary.map((item) => (
+                            <span className="hotel-request-pill" key={item}>
+                              {item}
+                            </span>
+                          ))}
+                        </div>
                         <p className="mb-0 text-muted">
                           This hotel is available by request only. We confirm room options and final pricing after you send your request.
                         </p>
@@ -789,10 +890,17 @@ const HotelDetails = () => {
                     </div>
                   </div>
 
-                  <div className="border-bottom pb-2 mb-4">
-                    <h5 className="mb-3 fs-18">Services</h5>
+                  <div className="border-bottom pb-2 mb-4" id="services" tabIndex={-1}>
+                    <div className="d-flex align-items-center justify-content-between gap-3 flex-wrap mb-3">
+                      <h5 className="mb-0 fs-18">Services</h5>
+                      {serviceHasMore ? (
+                        <button type="button" className="btn btn-link hotel-toggle-btn p-0" onClick={() => setShowAllServices((current) => !current)}>
+                          {showAllServices ? "Show Less" : "Show All"}
+                        </button>
+                      ) : null}
+                    </div>
                     <div className="row">
-                      {displayHotel.services.map((service) => (
+                      {visibleServices.map((service) => (
                         <div className="col-md-6 col-lg-4" key={service}>
                           <div className="d-flex align-items-center mb-3">
                             <span className="avatar avatar-md bg-primary-transparent rounded-circle me-2">
@@ -803,36 +911,42 @@ const HotelDetails = () => {
                         </div>
                       ))}
                     </div>
+                    {displayHotel.unavailableServiceNotes.length > 0 ? (
+                      <p className="text-muted mb-0 hotel-service-notes">
+                        Unavailable services are kept out of the positive list and will be confirmed after request: {displayHotel.unavailableServiceNotes.join(", ")}.
+                      </p>
+                    ) : null}
                   </div>
 
-                  <div className="border-bottom pb-4 mb-4">
-                    <h5 className="mb-3 fs-18">Hotel Rules</h5>
+                  <div className="border-bottom pb-4 mb-4" id="policies" tabIndex={-1}>
+                    <h5 className="mb-3 fs-18">Policies</h5>
                     <div className="card shadow-none mb-3">
                       <div className="card-body p-3">
-                        <h6 className="fw-medium mb-3">Check-In / Check-Out Policy</h6>
-                        <div className="d-flex align-items-center flex-wrap">
-                          <div className="d-flex align-items-center me-4 mb-3">
-                            <i className="isax isax-clock fs-24 text-gray-9"></i>
-                            <div className="ms-2">
-                              <p className="mb-1">Check In</p>
-                              <h6>{displayHotel.checkInTime || "Confirmed after request"}</h6>
-                            </div>
+                        <div className="hotel-policy-grid">
+                          <div className="hotel-policy-item">
+                            <p className="mb-1">Check In</p>
+                            <h6>{displayHotel.checkInTime || "Confirmed after request"}</h6>
                           </div>
-                          <div className="d-flex align-items-center mb-3">
-                            <i className="isax isax-clock fs-24 text-gray-9"></i>
-                            <div className="ms-2">
-                              <p className="mb-1">Check Out</p>
-                              <h6>{displayHotel.checkOutTime || "Confirmed after request"}</h6>
-                            </div>
+                          <div className="hotel-policy-item">
+                            <p className="mb-1">Check Out</p>
+                            <h6>{displayHotel.checkOutTime || "Confirmed after request"}</h6>
+                          </div>
+                          <div className="hotel-policy-item">
+                            <p className="mb-1">Cancellation</p>
+                            <h6>Confirmed after request</h6>
+                          </div>
+                          <div className="hotel-policy-item">
+                            <p className="mb-1">Children / Pets / Smoking</p>
+                            <h6>Confirmed after request</h6>
                           </div>
                         </div>
-                        <p className="text-muted mb-0">Detailed hotel policies are confirmed after request.</p>
+                        <p className="text-muted mb-0 mt-3">Detailed hotel policies are confirmed after request.</p>
                       </div>
                     </div>
                   </div>
 
                   {displayHotel.faq.length > 0 ? (
-                    <div className="border-bottom pb-3 mb-4">
+                    <div className="border-bottom pb-3 mb-4" id="faq" tabIndex={-1}>
                       <h5 className="mb-3 fs-18">Frequently Asked Questions</h5>
                       <div className="accordion faq-accordion" id="accordionFaq">
                         {displayHotel.faq.map((item, index) => {
@@ -849,7 +963,8 @@ const HotelDetails = () => {
                                   data-bs-target={`#${collapseId}`}
                                   aria-controls={collapseId}
                                 >
-                                  {item.question}
+                                  <span className="faq-question">{item.question}</span>
+                                  <i className="isax isax-arrow-down-2 faq-toggle-icon" aria-hidden="true" />
                                 </button>
                               </h2>
                               <div
@@ -873,12 +988,17 @@ const HotelDetails = () => {
                     {displayHotel.reviews.length > 0 ? (
                       <>
                         {displayHotel.reviewSummary ? <p className="text-muted mb-3">{displayHotel.reviewSummary}</p> : null}
-                        {displayHotel.reviews.slice(0, 6).map((review, index) => (
+                        {visibleReviews.map((review, index) => (
                           <div className="border rounded p-3 mb-3" key={`${review.date || "review"}-${index}`}>
                             <p className="mb-1">{review.text}</p>
                             {review.date ? <p className="text-muted fs-14 mb-0">{review.date}</p> : null}
                           </div>
                         ))}
+                        {reviewHasMore ? (
+                          <button type="button" className="btn btn-link hotel-toggle-btn p-0" onClick={() => setShowAllReviews((current) => !current)}>
+                            {showAllReviews ? "Show Less" : "Show More"}
+                          </button>
+                        ) : null}
                       </>
                     ) : (
                       <p className="text-muted mb-0">No source-backed review details are available yet.</p>

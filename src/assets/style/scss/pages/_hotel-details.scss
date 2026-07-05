@@ -187,6 +187,58 @@
     font-weight: variables.$font-weight-semibold;
     text-decoration: underline;
 }
+.hotel-section-nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 18px;
+}
+.hotel-section-tab {
+    border: 1px solid variables.$border-color;
+    background: variables.$light;
+    color: variables.$gray-900;
+    border-radius: 999px;
+    padding: 8px 14px;
+    font-size: variables.$font-size-14;
+    font-weight: variables.$font-weight-medium;
+}
+.hotel-chip-cloud,
+.hotel-request-summary,
+.hotel-policy-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+.hotel-room-chip,
+.hotel-request-pill {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 999px;
+    padding: 10px 14px;
+    background: variables.$light;
+    border: 1px solid variables.$border-color;
+    color: variables.$gray-900;
+    font-size: variables.$font-size-14;
+}
+.hotel-room-chip-soft {
+    background: variables.$warning-100;
+}
+.hotel-policy-item {
+    flex: 1 1 220px;
+    border: 1px solid variables.$border-color;
+    border-radius: 12px;
+    padding: 14px 16px;
+    background: variables.$light;
+    h6 {
+        margin-bottom: 0;
+    }
+}
+.hotel-availability-card {
+    background: linear-gradient(180deg, rgba(18, 113, 255, 0.04), rgba(18, 113, 255, 0));
+}
+.hotel-service-notes {
+    margin-top: 8px;
+}
 .hotel-highlights-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -315,20 +367,29 @@
         .accordion-button {
             font-size: variables.$font-size-16;
             @include mixins.rounded(5px);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            &::after {
+                display: none;
+            }
             &:not(.collapsed) {
                 color: variables.$primary;
                 background-color: transparent;
                 box-shadow: none;
-                &:after {
-                    content: "\ea47";
-                    color: variables.$primary;
-                }
             }
-            &:after {
-                font-family: variables.$font-iconsax;
-                content: "\ea48";
-                @include mixins.transform(none);
-            }
+        }
+        .faq-question {
+            flex: 1;
+            text-align: left;
+        }
+        .faq-toggle-icon {
+            color: variables.$primary;
+            font-size: variables.$font-size-18;
+            transition: transform 0.2s ease;
+        }
+        .accordion-button.collapsed .faq-toggle-icon {
+            transform: rotate(-90deg);
         }
         .accordion-body {
             border-top: 1px solid variables.$border-color;
