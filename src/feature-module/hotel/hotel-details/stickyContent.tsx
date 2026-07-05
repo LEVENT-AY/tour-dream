@@ -293,10 +293,12 @@ const StickyContent = ({
                 className="btn btn-light d-flex align-items-center justify-content-center w-100"
                 disabled={!hasWhatsappContact}
                 aria-disabled={!hasWhatsappContact}
+                title={!hasWhatsappContact ? 'Coming soon' : 'WhatsApp Us'}
               >
                 <i className="isax isax-messages5 me-2" />
-                {hasWhatsappContact ? 'Whatsapp Us' : 'Coming soon'}
+                WhatsApp Us
               </button>
+              {!hasWhatsappContact ? <p className="fs-12 text-muted mt-2 mb-0">Coming soon</p> : null}
             </div>
             <div className="col-sm-6">
               <button
@@ -308,10 +310,12 @@ const StickyContent = ({
                   if (!hasChatContact) return;
                   navigate(routes.userChat);
                 }}
+                title={!hasChatContact ? 'Coming soon' : 'Chat Now'}
               >
                 <i className="isax isax-message-notif5 me-2" />
-                {hasChatContact ? 'Chat Now' : 'Coming soon'}
+                Chat Now
               </button>
+              {!hasChatContact ? <p className="fs-12 text-muted mt-2 mb-0">Coming soon</p> : null}
             </div>
           </div>
         </div>

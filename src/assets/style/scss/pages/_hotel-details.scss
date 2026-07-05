@@ -117,8 +117,11 @@
         border-radius: 18px;
     }
     .vincci-gallery-see-all {
-        bottom: 16px;
-        right: 16px;
+        bottom: 18px;
+        right: 18px;
+        padding: 10px 14px;
+        font-weight: variables.$font-weight-semibold;
+        box-shadow: variables.$box-shadow;
     }
 }
 .vincci-gallery-arrow,
@@ -192,6 +195,17 @@
     flex-wrap: wrap;
     gap: 10px;
     margin-bottom: 18px;
+    position: sticky;
+    top: 92px;
+    z-index: 5;
+    padding: 12px 0;
+    background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(255,255,255,0.92));
+    backdrop-filter: blur(12px);
+    overflow-x: auto;
+    scrollbar-width: none;
+    &::-webkit-scrollbar {
+        display: none;
+    }
 }
 .hotel-section-tab {
     border: 1px solid variables.$border-color;
@@ -201,6 +215,19 @@
     padding: 8px 14px;
     font-size: variables.$font-size-14;
     font-weight: variables.$font-weight-medium;
+    white-space: nowrap;
+    transition: all 0.2s ease;
+    &:hover {
+        border-color: rgba(18, 113, 255, 0.28);
+        color: variables.$primary;
+        background: rgba(18, 113, 255, 0.06);
+    }
+    &.is-active {
+        border-color: variables.$primary;
+        color: variables.$primary;
+        background: rgba(18, 113, 255, 0.12);
+        box-shadow: 0 0 0 3px rgba(18, 113, 255, 0.08);
+    }
 }
 .hotel-chip-cloud,
 .hotel-request-summary,
@@ -220,6 +247,21 @@
     color: variables.$gray-900;
     font-size: variables.$font-size-14;
 }
+.hotel-request-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    margin-bottom: 14px;
+}
+.hotel-request-summary-item {
+    border: 1px solid variables.$border-color;
+    background: variables.$light;
+    border-radius: 12px;
+    padding: 12px 14px;
+    font-size: variables.$font-size-14;
+    color: variables.$gray-900;
+    line-height: 1.5;
+}
 .hotel-room-chip-soft {
     background: variables.$warning-100;
 }
@@ -238,6 +280,24 @@
 }
 .hotel-service-notes {
     margin-top: 8px;
+}
+.hotel-review-card {
+    border: 1px solid variables.$border-color;
+    border-radius: 16px;
+    background: linear-gradient(180deg, rgba(18, 113, 255, 0.03), rgba(18, 113, 255, 0));
+    padding: 16px;
+    box-shadow: 0 8px 30px rgba(15, 23, 42, 0.04);
+}
+.hotel-review-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 38px;
+    background: rgba(18, 113, 255, 0.1);
+    color: variables.$primary;
 }
 .hotel-highlights-grid {
     display: grid;
@@ -438,6 +498,19 @@
 .sticky-components {
     .card {
         border-radius: 16px;
+    }
+}
+.hotel-section-anchor {
+    scroll-margin-top: 120px;
+}
+@include mixins.respond-below(md) {
+    .hotel-section-nav {
+        top: 76px;
+        padding: 10px 0;
+        flex-wrap: nowrap;
+    }
+    .hotel-request-summary-grid {
+        grid-template-columns: 1fr;
     }
 }
 .rating-selction {

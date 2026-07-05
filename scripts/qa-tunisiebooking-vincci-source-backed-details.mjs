@@ -1,5 +1,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { spawn } from 'node:child_process';
+import { tmpdir } from 'node:os';
+import { pathToFileURL } from 'node:url';
 
 const root = process.cwd();
 const detailsPath = path.join(root, 'src', 'feature-module', 'hotel', 'hotel-details', 'hotelDetails.tsx');
@@ -93,10 +96,146 @@ assert(!JSON.stringify(draft).includes('Hotel Plaza Athenee'), 'Draft data conta
 assert(!JSON.stringify(draft).includes('Barcelona'), 'Draft data contains no Barcelona fallback');
 assert(!JSON.stringify(draft).includes('$500'), 'Draft data contains no fake price');
 assert(!JSON.stringify(draft).includes('support@example.com'), 'Draft data contains no provider placeholder');
-assert(!/ï¿½|\uFFFD/.test(JSON.stringify(draft.highlights)), 'Draft highlights have no replacement characters');
-assert(!/ï¿½|\uFFFD/.test(JSON.stringify(draft.faq)), 'Draft FAQ has no replacement characters');
-assert(!/ï¿½|\uFFFD/.test(JSON.stringify(draft.nearbyAttractions)), 'Draft nearby attractions have no replacement characters');
-assert(!/ï¿½|\uFFFD/.test(String(draft.description || '')), 'Draft description has no replacement characters');
+assert(!/ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¯ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¿ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â½|\uFFFD/.test(JSON.stringify(draft.highlights)), 'Draft highlights have no replacement characters');
+assert(!/ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¯ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¿ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â½|\uFFFD/.test(JSON.stringify(draft.faq)), 'Draft FAQ has no replacement characters');
+assert(!/ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¯ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¿ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â½|\uFFFD/.test(JSON.stringify(draft.nearbyAttractions)), 'Draft nearby attractions have no replacement characters');
+assert(!/ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¯ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¿ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â½|\uFFFD/.test(String(draft.description || '')), 'Draft description has no replacement characters');
+
+const { chromium } = await import('playwright');
+const browserExecutablePath = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
+const targetUrl = 'http://localhost:5174/hotel/hotel-details?source=manual&destination=Djerba&checkInDate=2026-07-06&checkOutDate=2026-07-08&adults=1&rooms=1&id=imported-tunisiebooking-vincci-helios-beach-djerba';
+const launchOptions = fs.existsSync(browserExecutablePath) ? { headless: true, executablePath: browserExecutablePath } : { headless: true };
+
+const loginAndOpen = async (page) => {
+  await page.goto('http://localhost:5174/login', { waitUntil: 'domcontentloaded', timeout: 60000 });
+  await page.waitForSelector('input[placeholder="Enter Email"]', { timeout: 60000 });
+  await page.locator('input[placeholder="Enter Email"]').fill('manager.emtilek@gmail.com');
+  await page.locator('input[placeholder="Enter Password"]').fill('ChangeMe123!');
+  await page.locator('button[type="submit"]').click();
+  await page.waitForTimeout(5000);
+  await page.goto(targetUrl, { waitUntil: 'domcontentloaded', timeout: 60000 });
+  await page.waitForTimeout(4000);
+};
+
+const assertPubliclySafeDraftState = async (browserInstance) => {
+  const publicPage = await browserInstance.newPage({ viewport: { width: 1440, height: 1200 } });
+  try {
+    await publicPage.goto(targetUrl, { waitUntil: 'domcontentloaded', timeout: 60000 });
+    await publicPage.waitForTimeout(2500);
+    const publicBody = await publicPage.locator('body').innerText().catch(() => '');
+    const publicUrl = publicPage.url();
+
+    assert(
+      !/Vincci Helios Beach|Source field:|rawSource|request this hotel|book now|rÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©servez dÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¨s maintenant/i.test(publicBody),
+      'Public session does not expose unpublished draft content',
+    );
+    assert(
+      /not found|login|sign in|empty|request-only|admin|required|forbidden|unauthorized|draft|private/i.test(publicBody) ||
+        /login|sign in|hotel-details/i.test(publicUrl),
+      'Public session stays in a safe non-public state',
+    );
+
+    return { publicUrl, publicBody };
+  } finally {
+    await publicPage.close();
+  }
+};
+
+const browser = await chromium.launch(launchOptions);
+let renderedChecks = {};
+let publicSafetyCheck = {};
+
+try {
+  publicSafetyCheck = await assertPubliclySafeDraftState(browser);
+
+  const desktop = await browser.newPage({ viewport: { width: 1440, height: 1200 } });
+  await loginAndOpen(desktop);
+
+  const overviewText = await desktop.locator('#overview').innerText();
+  const nearbyText = await desktop.locator('#location .hotel-nearby-list').innerText();
+  const availabilityText = await desktop.locator('#availability').innerText();
+  const servicesText = await desktop.locator('#services .row').innerText();
+  const servicesNoteText = await desktop.locator('#services .hotel-service-notes').innerText().catch(() => '');
+  const faqText = await desktop.locator('#faq').innerText();
+  const bodyText = await desktop.locator('body').innerText();
+  const reviewCardsBefore = await desktop.locator('.hotel-review-card').count();
+  const seeAllVisible = await desktop.locator('.vincci-gallery-see-all').isVisible();
+  const firstThumbSrcs = await desktop.locator('.vincci-gallery-thumb img').evaluateAll((nodes) =>
+    nodes.slice(0, 5).map((node) => node.getAttribute('src') || node.currentSrc || ''),
+  );
+  const amenityCount = await desktop.locator('#amenities .row > div').count();
+  const serviceCountBefore = await desktop.locator('#services .row > div').count();
+  const boardOptionsText = await desktop.locator('#rooms').innerText();
+
+  await desktop.getByRole('button', { name: 'Amenities' }).click();
+  const activeAfterAmenities = await desktop.locator('.hotel-section-tab.is-active').innerText();
+  await desktop.getByRole('button', { name: 'Rooms' }).click();
+  const activeAfterRooms = await desktop.locator('.hotel-section-tab.is-active').innerText();
+
+  if (await desktop.getByRole('button', { name: 'Show All' }).isVisible()) {
+    await desktop.getByRole('button', { name: 'Show All' }).click();
+  }
+  const serviceCountAfter = await desktop.locator('#services .row > div').count();
+
+  await desktop.locator('#reviews').getByRole('button', { name: 'Show More', exact: true }).click();
+  const reviewCardsAfter = await desktop.locator('.hotel-review-card').count();
+
+  assert(/Vincci Helios Beach/.test(bodyText), 'Rendered admin page shows Vincci title');
+  assert(!/Source field:/i.test(bodyText), 'Rendered admin page hides source field debug text');
+  assert(!/rawSource/i.test(bodyText), 'Rendered admin page hides rawSource text');
+  assert(overviewText.length > 100, 'Overview remains a complete description');
+  assert(overviewText.length > 100, 'Overview remains a complete description');
+  assert(!/Restaurants ÃƒÆ’Ã‚Â  proximitÃƒÆ’Ã‚Â©|CafÃƒÆ’Ã‚Â©s aux alentours|HÃƒÆ’Ã‚Â´tels ÃƒÆ’Ã‚Â  proximitÃƒÆ’Ã‚Â©/i.test(overviewText), 'Overview excludes nearby markers');
+  assert(!/^votre sÃƒÆ’Ã‚Â©jour/i.test(overviewText.trim()), 'Overview does not start with a fragment');
+  assert(!/RÃƒÆ’Ã‚Â©servez dÃƒÆ’Ã‚Â¨s maintenant|Book Now|Instant booking|Confirmed booking|Pay now|Guaranteed booking/i.test(overviewText), 'Overview is request-safe');
+  assert(nearbyText.length > 50, 'Nearby groups render in the sidebar');
+  assert(/Restaurant Darkom/i.test(nearbyText) && /Diva Coffee Lounge/i.test(nearbyText) && /Sidi Mansour Resort/i.test(nearbyText), 'Nearby sections keep multiple source-backed items');
+  assert(seeAllVisible, 'See All button is visible inside the hero image');
+  assert(new Set(firstThumbSrcs).size === firstThumbSrcs.length, 'First visible thumbnails are unique');
+  assert(amenityCount >= 6 && amenityCount <= 9, 'Popular amenities are limited to 6-9 positive items');
+  assert(!/Wifi Non Disponible|Ascenseur Non Disponible/i.test((await desktop.locator('#amenities .row').innerText()) + servicesText), 'Negative services are not rendered as positive items');
+  assert(!/will be confirmed after request/i.test(servicesNoteText), 'Services note stays source-neutral');
+  assert(serviceCountBefore <= 18, 'Services are collapsed by default');
+  assert(serviceCountAfter >= serviceCountBefore, 'Show All services expands or preserves the visible set');
+  assert(boardOptionsText.length > 20, 'Board options show real meal-plan names');
+  assert(/Check-in/i.test(availabilityText) && /Check-out/i.test(availabilityText) && /Nights/i.test(availabilityText) && /Price reference/i.test(availabilityText), 'Availability renders a useful request summary');
+  assert(!/160 Rooms \\+ 32 Bungalows/i.test(availabilityText), 'Availability does not repeat the room inventory badge');
+  assert(/Request-only/i.test(availabilityText) && !/instant availability|final total/i.test(availabilityText), 'Availability remains request-only');
+  assert(/WhatsApp Us/i.test(bodyText) && /Chat Now/i.test(bodyText), 'Provider button labels remain intact');
+  assert(/Coming soon/i.test(bodyText), 'Provider helper note is visible without replacing labels');
+  assert(!/support@example\\.com/i.test(bodyText), 'Provider details do not expose placeholder email');
+  assert(!/Book Now/i.test(bodyText), 'Rendered page does not show Book Now');
+  assert(!/Restaurant Darkom|Diva Coffee Lounge|Sidi Mansour Resort/i.test(overviewText), 'Nearby content does not leak into Overview');
+  assert(faqText.length > 50 && !/Book Now|RÃ©servez dÃ¨s maintenant|instant booking/i.test(faqText), 'FAQ stays request-safe');
+  assert(reviewCardsBefore === 4, 'Reviews show only the first four by default');
+  assert(reviewCardsAfter >= 5, 'Show More reveals additional reviews');
+  assert(/Amenities/.test(activeAfterAmenities) && /Rooms/.test(activeAfterRooms), 'Section tabs update their active state');
+
+  const mobile = await browser.newPage({ viewport: { width: 390, height: 844 } });
+  await loginAndOpen(mobile);
+  const mobileOverview = await mobile.locator('#overview').innerText();
+  const mobileNavScrollable = await mobile.locator('.hotel-section-nav').evaluate((node) => node.scrollWidth > node.clientWidth);
+  const mobileThumbCount = await mobile.locator('.vincci-gallery-thumb img').count();
+  const mobileMainImageCount = await mobile.locator('.vincci-gallery-main-image').count();
+  assert(!/Restaurants Ã  proximitÃ©|CafÃ©s aux alentours|HÃ´tels Ã  proximitÃ©/i.test(mobileOverview), 'Mobile overview also excludes nearby markers');
+  assert(mobileNavScrollable, 'Mobile tab row remains horizontally scrollable');
+  assert(mobileMainImageCount >= 1, 'Mobile still renders the main gallery frame');
+
+  renderedChecks = {
+    overviewText,
+    nearbyText,
+    availabilityText,
+    reviewCardsBefore,
+    reviewCardsAfter,
+    serviceCountBefore,
+    serviceCountAfter,
+    activeAfterAmenities,
+    activeAfterRooms,
+    mobileNavScrollable,
+  };
+} finally {
+  await browser.close();
+}
 
 console.log(
   JSON.stringify(
@@ -109,6 +248,8 @@ console.log(
       roomInventoryText: draft.roomInventoryText,
       priceHeadline: `Starts From ${draft.priceFrom} ${draft.priceCurrency} / ${draft.priceUnit}`,
       mapCoordinates: [draft.latitude, draft.longitude],
+      publicSafetyCheck,
+      renderedChecks,
     },
     null,
     2,

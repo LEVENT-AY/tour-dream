@@ -6,6 +6,7 @@ import StickyContent from "./stickyContent";
 import { formatHotelPrice } from "../../../core/common/hotelPricing";
 import Lightbox from "yet-another-react-lightbox";
 import "yet-another-react-lightbox/styles.css";
+import dayjs from "dayjs";
 import { all_routes } from "../../router/all_routes";
 import { fetchHotelById, fetchHotels } from "../../../core/services/firebaseServices";
 import { auth } from "../../../firebase";
@@ -71,28 +72,65 @@ const MOJIBAKE_PATTERN = /(?:Ãƒ.|Ã‚|Ã¢â‚¬|Ã¢â‚¬â„¢|Ã¢â‚¬Å“|Ã¢â‚¬\u009d|Ã¢â‚¬â€œ|
 const TEMPLATE_IMAGE_PATTERN = /assets\/img\/hotels|hotel-large-|hotel-thumb-|logo|favicon|preloader|loader|spinner|tracking|pixel|sprite|placeholder|facebook\.com\/tr/i;
 
 const NEARBY_MARKERS = [
-  /(?:^|\n)\s*(?:nearby|nearby attractions|nearby landmarks|what'?s nearby|surroundings|nearby visits)\b[:\s-]*/i,
-  /\bnearby attractions\b/i,
-  /\bnearby landmarks\b/i,
-  /\bwhat'?s nearby\b/i,
-  /\bsurroundings\b/i,
+  /\bles\s+environs\b/i,
+  /\brestaurants?\s+à\s+proximité\b/i,
+  /\bcafés?\s+aux\s+alentours\b/i,
+  /\bhôtels?\s+à\s+proximité\b/i,
+  /\blieux\s+à\s+proximité\b/i,
+  /\bsites?\s+historiques\b/i,
+  /\battractions?\s+à\s+proximité\b/i,
+  /\brestaurants?\s+nearby\b/i,
+  /\bcafes?\s+nearby\b/i,
+  /\bhotels?\s+nearby\b/i,
 ];
+
 const DIRECT_BOOKING_PATTERNS = [
-  /rÃ©servez dÃ¨s maintenant/gi,
+  /réservez dès maintenant[^.]*\.\s*/gi,
+  /book now[^.]*\.\s*/gi,
+  /instant booking[^.]*\.\s*/gi,
+  /confirmed booking[^.]*\.\s*/gi,
+  /pay now[^.]*\.\s*/gi,
+  /guaranteed booking[^.]*\.\s*/gi,
   /book now/gi,
   /book online/gi,
   /reserve now/gi,
   /make a reservation/gi,
   /request this hotel/gi,
-  /rÃ©server maintenant/gi,
+  /réserver maintenant/gi,
   /book your stay/gi,
 ];
+
 const NEGATIVE_SERVICE_PATTERNS = [
   /\bnon disponible\b/i,
   /\bunavailable\b/i,
   /\bnot available\b/i,
   /\bnot provided\b/i,
   /\bsans\b/i,
+];
+
+const PREFERRED_AMENITY_PATTERNS: Array<{ pattern: RegExp; score: number }> = [
+  { pattern: /\b(pieds dans l eau|beachfront|bord de mer|plage)\b/i, score: 60 },
+  { pattern: /\b(piscine|pool)\b/i, score: 50 },
+  { pattern: /\b(wi-?fi|wifi)\b/i, score: 48 },
+  { pattern: /\b(climatisation|air conditioning|air conditionn?ed)\b/i, score: 46 },
+  { pattern: /\brestaurant\b/i, score: 44 },
+  { pattern: /\bbar\b/i, score: 42 },
+  { pattern: /\bparking\b/i, score: 40 },
+  { pattern: /\bspa|bien-?Ãªtre|wellness|massage\b/i, score: 38 },
+  { pattern: /\bfamily|enfants|child|kids|bassin pour enfants\b/i, score: 36 },
+  { pattern: /\banimation|sport|tennis|fitness|gym|jeux\b/i, score: 30 },
+];
+
+const SECTION_TITLE_PATTERNS: Array<{ pattern: RegExp; title: string }> = [
+  { pattern: /\brestaurants?\s+à\s+proximité\b/i, title: 'Restaurants à proximité' },
+  { pattern: /\bcafés?\s+aux\s+alentours\b/i, title: 'Cafés aux alentours' },
+  { pattern: /\bhôtels?\s+à\s+proximité\b/i, title: 'Hôtels à proximité' },
+  { pattern: /\blieux\s+à\s+proximité\b/i, title: 'Lieux à proximité' },
+  { pattern: /\bsites?\s+historiques\b/i, title: 'Sites historiques' },
+  { pattern: /\battractions?\s+à\s+proximité\b/i, title: 'Attractions à proximité' },
+  { pattern: /\brestaurants?\s+nearby\b/i, title: 'Restaurants nearby' },
+  { pattern: /\bcafes?\s+nearby\b/i, title: 'Cafes nearby' },
+  { pattern: /\bhotels?\s+nearby\b/i, title: 'Hotels nearby' },
 ];
 
 const toStringList = (value: unknown): string[] =>
@@ -153,6 +191,20 @@ const trimAtNearbyMarkers = (value: string) => {
   return cleanText(text.slice(0, cutoff).replace(/[\s,;:-]+$/, ""));
 };
 
+const buildDescriptionLead = (data: Record<string, any>, title: string) => {
+  const starRating = Number(data?.starRating || data?.ratingValue || data?.rating);
+  const region = cleanText(data?.region || "");
+  const city = cleanText(data?.city || "");
+  const normalizedCity = city.replace(/\bDjerba\b/i, "").replace(/\s+/g, " ").trim();
+  const leadTitle = title || cleanText(firstTextValue(data?.hotelName, data?.name) || "");
+
+  if (!leadTitle || !Number.isFinite(starRating) || starRating <= 0) return "";
+
+  const regionLabel = region ? `sur l'Ã®le de ${region.charAt(0).toUpperCase()}${region.slice(1)}` : "sur l'Ã®le de Djerba";
+  const cityLabel = normalizedCity ? `dans la rÃ©gion de ${normalizedCity}` : "dans la rÃ©gion de Midoun";
+  return `Le ${leadTitle} est un hÃ´tel ${Math.round(starRating)} Ã©toiles situÃ© ${regionLabel}, ${cityLabel}.`;
+};
+
 const sanitizeRequestOnlyCopy = (value: string) => {
   let text = cleanText(value);
   for (const pattern of DIRECT_BOOKING_PATTERNS) {
@@ -166,12 +218,35 @@ const isNegativeService = (value: string) => {
   return Boolean(text) && NEGATIVE_SERVICE_PATTERNS.some((pattern) => pattern.test(text));
 };
 
+const toObjectText = (value: unknown) => {
+  if (!value || typeof value !== "object") return "";
+  const record = value as Record<string, unknown>;
+  return cleanText(firstTextValue(record.label, record.name, record.title, record.text, record.code, record.value) || "");
+};
+
 const normalizePositiveServices = (...values: unknown[]) =>
   normalizeUniqueStrings(...values)
     .filter((item) => item && !isNegativeService(item))
-    .filter((item) => !/\b(non disponible|unavailable|not available)\b/i.test(item));
+    .filter((item) => !/\b(non disponible|unavailable|not available)\b/i.test(item))
+    .sort((a, b) => {
+      const score = (value: string) =>
+        PREFERRED_AMENITY_PATTERNS.reduce((total, entry) => total + (entry.pattern.test(value) ? entry.score : 0), 0);
+      return score(b) - score(a);
+    });
 
-const normalizeBoardOptions = (...values: unknown[]) => normalizeUniqueStrings(...values).slice(0, 8);
+const normalizeBoardOptions = (...values: unknown[]) =>
+  [
+    ...new Set(
+      values
+        .flatMap((value) => {
+          if (Array.isArray(value)) {
+            return value.map((item) => (typeof item === "string" ? cleanText(item) : toObjectText(item)));
+          }
+          return typeof value === "string" ? [cleanText(value)] : [toObjectText(value)];
+        })
+        .filter(Boolean),
+    ),
+  ].slice(0, 8);
 
 const buildDescriptionText = (data: Record<string, any>, title: string) => {
   const descriptionCandidates = [
@@ -183,14 +258,37 @@ const buildDescriptionText = (data: Record<string, any>, title: string) => {
   ];
 
   for (const candidate of descriptionCandidates) {
-    const sanitized = trimAtNearbyMarkers(sanitizeRequestOnlyCopy(String(candidate || "")));
+    const raw = cleanText(String(candidate || ""));
+    if (!raw) continue;
+
+    const sanitized = trimAtNearbyMarkers(
+      sanitizeRequestOnlyCopy(raw)
+        .replace(/^(rÃ©servez dÃ¨s maintenant|book now|instant booking|confirmed booking|pay now|guaranteed booking)[^.]*\.\s*/i, "")
+        .replace(/^(votre sÃ©jour\b[^.]*\.\s*)/i, "")
+        .trim(),
+    );
     if (!sanitized || hasReplacementCharacter(sanitized)) continue;
-    if (title && /\bhÃƒÂ´tel\s+\d+\s+ÃƒÂ©toiles/i.test(sanitized)) continue;
+    if (/^(votre sÃ©jour|votre sejour)/i.test(sanitized) || sanitized.length < 60) {
+      const fallback = buildDescriptionLead(data, title);
+      if (fallback) return fallback;
+    }
+    if (!/^(Le|La|Les|L['â€™]|Ce|Cette|Cet|Lâ€™|The|Hotel|HÃ´tel)\b/.test(sanitized)) {
+      const fallback = buildDescriptionLead(data, title);
+      if (fallback) return fallback;
+    }
     return sanitized;
   }
 
-  return "";
+  return buildDescriptionLead(data, title);
 };
+
+const extractNearbyGroupText = (...values: unknown[]) =>
+  values
+    .flatMap((value) => {
+      if (Array.isArray(value)) return value.map((item) => cleanText(typeof item === "string" ? item : toObjectText(item)));
+      return typeof value === "string" ? [cleanText(value)] : [toObjectText(value)];
+    })
+    .filter(Boolean);
 
 const normalizeFaq = (...values: unknown[]): FaqItem[] => {
   for (const value of values) {
@@ -243,7 +341,7 @@ const normalizeImageUrl = (value: string) => {
 const normalizeGallery = (data?: Record<string, any> | null) => {
   const seen = new Set<string>();
 
-  return [data?.image, data?.mainImage, data?.thumbnail]
+  const images = [data?.image, data?.mainImage, data?.thumbnail]
     .flatMap((value) => toStringList(value))
     .concat(toStringList(data?.gallery), toStringList(data?.galleryImages), toStringList(data?.images))
     .map((item) => item.trim())
@@ -254,6 +352,21 @@ const normalizeGallery = (data?: Record<string, any> | null) => {
       seen.add(normalized);
       return true;
     });
+
+  if (images.length <= 1) return images;
+
+  const ordered = [images[0]];
+  const remaining = images.slice(1);
+  const preferredIndexes = [0, Math.floor(remaining.length * 0.25), Math.floor(remaining.length * 0.5), Math.floor(remaining.length * 0.75), remaining.length - 1];
+  for (const index of preferredIndexes) {
+    const item = remaining[index];
+    if (item && !ordered.includes(item)) ordered.push(item);
+  }
+  for (const item of remaining) {
+    if (!ordered.includes(item)) ordered.push(item);
+  }
+
+  return ordered;
 };
 
 const buildHighlightChips = (highlights: string[]) =>
@@ -286,14 +399,17 @@ const formatNearbySections = (items: string[]) =>
     .map((item) => cleanText(item))
     .filter(Boolean)
     .map((entry) => {
-      const [rawTitle, remainder = ""] = entry.split(/:\s*/, 2);
+      const matchedTitle = SECTION_TITLE_PATTERNS.find((candidate) => candidate.pattern.test(entry));
+      const title = matchedTitle?.title || entry.split(/:\s*/, 1)[0].replace(/\.$/, "");
+      const remainder = entry.replace(new RegExp(`^${title.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*:?\\s*`, "i"), "");
       const parsedItems = remainder
         .split(/\s*(?=\d+\.)/)
-        .map((item) => item.replace(/^\d+\.\s*/, "").trim())
-        .filter(Boolean);
+        .map((item) => item.replace(/^\d+\.\s*/, "").trim().replace(/[.;,]+$/, ""))
+        .filter(Boolean)
+        .map((item) => item.replace(/\s{2,}/g, " "));
 
       return {
-        title: rawTitle.replace(/\.$/, ""),
+        title,
         items: parsedItems.length > 0 ? parsedItems : [entry],
       };
     });
@@ -328,10 +444,13 @@ const normalizeHotelDetails = (data?: Record<string, any> | null): HotelDetailsV
   const reviewsCountValue = typeof data?.reviewsCount === 'number' ? data.reviewsCount : Number(data?.reviewsCount);
   const highlights = normalizeUniqueStrings(data?.highlights);
   const nearbyLandmarks = normalizeUniqueStrings(
-    data?.nearbyAttractions,
-    data?.nearbyLandmarks,
-    data?.landmarks,
-    data?.rawSource?.detail?.nearbyAttractions,
+    ...extractNearbyGroupText(
+      data?.nearbyAttractions,
+      data?.nearbyLandmarks,
+      data?.landmarks,
+      data?.rawSource?.detail?.nearbyAttractions,
+      data?.rawSource?.detail?.nearbyLandmarks,
+    ),
   );
   const amenities = normalizePositiveServices(data?.amenities, data?.rawSource?.detail?.amenities).slice(0, 9);
   const services = normalizePositiveServices(data?.services, data?.amenities, data?.rawSource?.detail?.services);
@@ -415,6 +534,7 @@ const HotelDetails = () => {
   const [showFullDescription, setShowFullDescription] = useState(false);
   const [showAllServices, setShowAllServices] = useState(false);
   const [showAllReviews, setShowAllReviews] = useState(false);
+  const [activeSection, setActiveSection] = useState("overview");
   const { loading: authLoading, isAdmin } = useAuth();
 
   const hotelId = searchParams.get("id");
@@ -532,6 +652,7 @@ const HotelDetails = () => {
     setShowFullDescription(false);
     setShowAllServices(false);
     setShowAllReviews(false);
+    setActiveSection("overview");
   }, [displayHotel?.id]);
 
   useEffect(() => {
@@ -543,6 +664,30 @@ const HotelDetails = () => {
       return Math.min(currentStartIndex, maxStartIndex);
     });
   }, [displayHotel, thumbnailWindow]);
+
+  useEffect(() => {
+    if (!displayHotel) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visible = entries
+          .filter((entry) => entry.isIntersecting)
+          .sort((a, b) => b.intersectionRatio - a.intersectionRatio || a.boundingClientRect.top - b.boundingClientRect.top);
+
+        if (visible[0]?.target?.id) {
+          setActiveSection(visible[0].target.id);
+        }
+      },
+      { rootMargin: "-22% 0px -62% 0px", threshold: [0.1, 0.25, 0.5, 0.75] },
+    );
+
+    sectionTabs.forEach((item) => {
+      const element = document.getElementById(item.id);
+      if (element) observer.observe(element);
+    });
+
+    return () => observer.disconnect();
+  }, [displayHotel, sectionTabs]);
 
   const availabilityPrice = isRenderableHotel && displayHotel
     ? formatHotelPrice(
@@ -585,11 +730,25 @@ const HotelDetails = () => {
   const serviceHasMore = Boolean(displayHotel && displayHotel.services.length > 18);
   const visibleReviews = displayHotel?.reviews.slice(0, showAllReviews ? 5 : 4) || [];
   const reviewHasMore = Boolean(displayHotel && displayHotel.reviews.length > 4);
+  const visibleFaqItems = displayHotel
+    ? displayHotel.faq.filter((item) => !/(\bprice\b|\bprix\b|\btarif\b|\bnuitÃ©e\b|\bnight\b)/i.test(item.question))
+    : [];
+  const hiddenPriceFaqCount = displayHotel ? displayHotel.faq.length - visibleFaqItems.length : 0;
+  const nightsValue = (() => {
+    const start = dayjs(initialCheckInDate);
+    const end = dayjs(initialCheckOutDate);
+    const diff = end.diff(start, "day");
+    return Number.isFinite(diff) && diff > 0 ? diff : 1;
+  })();
   const requestSummary = displayHotel
     ? [
-        displayHotel.roomInventoryText || "Request-only availability",
-        displayHotel.reviewsLabel || "Reviews confirmed after request",
-        displayHotel.boardOptions.length > 0 ? displayHotel.boardOptions[0] : "Board options confirmed after request",
+        `Check-in: ${initialCheckInDate || "Confirmed after request"}`,
+        `Check-out: ${initialCheckOutDate || "Confirmed after request"}`,
+        `Nights: ${nightsValue}`,
+        `Rooms: ${Math.max(1, initialRooms || 1)}`,
+        `Adults: ${Math.max(1, initialAdults || 1)}`,
+        `Children: ${Math.max(0, initialChildren || 0)}`,
+        `Price reference: ${availabilityPrice.headline}${availabilityPrice.note ? ` Â· ${availabilityPrice.note}` : ""}`,
       ]
     : [];
 
@@ -769,16 +928,23 @@ const HotelDetails = () => {
 
                   <div className="hotel-section-nav" aria-label="Hotel detail sections">
                     {sectionTabs.map((item) => (
-                      <button key={item.id} type="button" className="hotel-section-tab" onClick={() => scrollToSection(item.id)}>
+                      <button
+                        key={item.id}
+                        type="button"
+                        className={`hotel-section-tab ${activeSection === item.id ? "is-active" : ""}`}
+                        onClick={() => {
+                          setActiveSection(item.id);
+                          scrollToSection(item.id);
+                        }}
+                      >
                         {item.label}
                       </button>
                     ))}
                   </div>
 
-                  <div className="border-bottom pb-4 mb-4" id="overview" tabIndex={-1}>
+                  <div className="border-bottom pb-4 mb-4 hotel-section-anchor" id="overview" tabIndex={-1}>
                     <div className="d-flex align-items-center justify-content-between gap-3 flex-wrap mb-3">
                       <h5 className="mb-0 fs-18">Overview</h5>
-                      {displayHotel.roomInventoryText ? <span className="hotel-inventory-badge">{displayHotel.roomInventoryText}</span> : null}
                     </div>
 
                     {displayHotel.description ? (
@@ -833,7 +999,7 @@ const HotelDetails = () => {
                     </div>
                   </div>
 
-                  <div className="border-bottom pb-2 mb-4" id="rooms" tabIndex={-1}>
+                  <div className="border-bottom pb-2 mb-4 hotel-section-anchor" id="rooms" tabIndex={-1}>
                     <h5 className="mb-3 fs-18">Rooms</h5>
                     {displayHotel.roomTypes.length > 0 ? (
                       <div className="hotel-chip-cloud mb-3">
@@ -850,37 +1016,42 @@ const HotelDetails = () => {
                     <div className="card shadow-none border mb-0">
                       <div className="card-body">
                         <h6 className="fw-medium mb-2">Board options</h6>
-                        <p className="text-muted mb-3 mb-lg-2">
-                          Request-only availability will be confirmed later.
-                        </p>
                         {displayHotel.boardOptions.length > 0 ? (
-                          <div className="hotel-chip-cloud">
-                            {displayHotel.boardOptions.map((option) => (
-                              <span className="hotel-room-chip hotel-room-chip-soft" key={option}>
-                                {option}
-                              </span>
-                            ))}
-                          </div>
+                          <>
+                            <p className="text-muted mb-3 mb-lg-2">Meal-plan options confirmed after request.</p>
+                            <div className="hotel-chip-cloud">
+                              {displayHotel.boardOptions.map((option) => (
+                                <span className="hotel-room-chip hotel-room-chip-soft" key={option}>
+                                  {option}
+                                </span>
+                              ))}
+                            </div>
+                          </>
                         ) : (
-                          <p className="text-muted mb-0">Board options confirmed after request.</p>
+                          <p className="text-muted mb-0">Room and meal-plan options are confirmed after request.</p>
                         )}
                       </div>
                     </div>
                   </div>
 
-                  <div className="border-bottom pb-2 mb-4" id="availability" tabIndex={-1}>
+                  <div className="border-bottom pb-2 mb-4 hotel-section-anchor" id="availability" tabIndex={-1}>
                     <h5 className="mb-3 fs-18">Availability</h5>
                     <div className="card shadow-none border hotel-availability-card">
                       <div className="card-body">
-                        <p className="fs-16 fw-medium mb-1">{availabilityPrice.headline}</p>
-                        <p className="text-muted mb-2">
-                          {availabilityPrice.note || "Final price and availability are confirmed after request"}
-                        </p>
-                        <div className="hotel-request-summary">
+                        <div className="d-flex align-items-start justify-content-between gap-3 flex-wrap mb-3">
+                          <div>
+                            <p className="fs-16 fw-medium mb-1">{availabilityPrice.headline}</p>
+                            <p className="text-muted mb-0">
+                              {availabilityPrice.note || "Final price and availability are confirmed after request"}
+                            </p>
+                          </div>
+                          <span className="hotel-request-pill">Request-only</span>
+                        </div>
+                        <div className="hotel-request-summary-grid">
                           {requestSummary.map((item) => (
-                            <span className="hotel-request-pill" key={item}>
+                            <div className="hotel-request-summary-item" key={item}>
                               {item}
-                            </span>
+                            </div>
                           ))}
                         </div>
                         <p className="mb-0 text-muted">
@@ -890,7 +1061,7 @@ const HotelDetails = () => {
                     </div>
                   </div>
 
-                  <div className="border-bottom pb-2 mb-4" id="services" tabIndex={-1}>
+                  <div className="border-bottom pb-2 mb-4 hotel-section-anchor" id="services" tabIndex={-1}>
                     <div className="d-flex align-items-center justify-content-between gap-3 flex-wrap mb-3">
                       <h5 className="mb-0 fs-18">Services</h5>
                       {serviceHasMore ? (
@@ -913,7 +1084,7 @@ const HotelDetails = () => {
                     </div>
                     {displayHotel.unavailableServiceNotes.length > 0 ? (
                       <p className="text-muted mb-0 hotel-service-notes">
-                        Unavailable services are kept out of the positive list and will be confirmed after request: {displayHotel.unavailableServiceNotes.join(", ")}.
+                        Not available according to source: {displayHotel.unavailableServiceNotes.join(", ")}.
                       </p>
                     ) : null}
                   </div>
@@ -945,11 +1116,14 @@ const HotelDetails = () => {
                     </div>
                   </div>
 
-                  {displayHotel.faq.length > 0 ? (
-                    <div className="border-bottom pb-3 mb-4" id="faq" tabIndex={-1}>
+                  {visibleFaqItems.length > 0 ? (
+                    <div className="border-bottom pb-3 mb-4 hotel-section-anchor" id="faq" tabIndex={-1}>
                       <h5 className="mb-3 fs-18">Frequently Asked Questions</h5>
+                      {hiddenPriceFaqCount > 0 ? (
+                        <p className="text-muted mb-3">Price questions are confirmed after request.</p>
+                      ) : null}
                       <div className="accordion faq-accordion" id="accordionFaq">
-                        {displayHotel.faq.map((item, index) => {
+                        {visibleFaqItems.map((item, index) => {
                           const collapseId = `faq-item-${index}`;
                           const isFirst = index === 0;
 
@@ -983,15 +1157,22 @@ const HotelDetails = () => {
                     </div>
                   ) : null}
 
-                  <div className="border-bottom pb-3 mb-4" id="reviews" tabIndex={-1}>
+                  <div className="border-bottom pb-3 mb-4 hotel-section-anchor" id="reviews" tabIndex={-1}>
                     <h5 className="mb-3 fs-18">Reviews</h5>
                     {displayHotel.reviews.length > 0 ? (
                       <>
                         {displayHotel.reviewSummary ? <p className="text-muted mb-3">{displayHotel.reviewSummary}</p> : null}
                         {visibleReviews.map((review, index) => (
-                          <div className="border rounded p-3 mb-3" key={`${review.date || "review"}-${index}`}>
-                            <p className="mb-1">{review.text}</p>
-                            {review.date ? <p className="text-muted fs-14 mb-0">{review.date}</p> : null}
+                          <div className="hotel-review-card mb-3" key={`${review.date || "review"}-${index}`}>
+                            <div className="d-flex align-items-start gap-3">
+                              <span className="hotel-review-icon">
+                                <i className="isax isax-message-text-1" />
+                              </span>
+                              <div className="flex-grow-1">
+                                <p className="mb-2">{review.text}</p>
+                                {review.date ? <p className="text-muted fs-14 mb-0">{review.date}</p> : null}
+                              </div>
+                            </div>
                           </div>
                         ))}
                         {reviewHasMore ? (
