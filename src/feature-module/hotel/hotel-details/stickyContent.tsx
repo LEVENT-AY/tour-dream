@@ -226,6 +226,44 @@ const StickyContent = ({
               View Request Details
             </Link>
           </div>
+          <div className="border-top pt-4 mt-4">
+            <h5 className="mb-3 fs-18">Provider Details</h5>
+            <p className="text-muted mb-3">
+              {hotel?.providerMessage || 'DreamsTour will confirm availability and price after request.'}
+            </p>
+            <div className="row g-2">
+              <div className="col-sm-6">
+                <button
+                  type="button"
+                  className="btn btn-light d-flex align-items-center justify-content-center w-100"
+                  disabled={!hasWhatsappContact}
+                  aria-disabled={!hasWhatsappContact}
+                  title={!hasWhatsappContact ? 'Coming soon' : 'WhatsApp Us'}
+                >
+                  <i className="isax isax-messages5 me-2" />
+                  WhatsApp Us
+                </button>
+                {!hasWhatsappContact ? <p className="fs-12 text-muted mt-2 mb-0">Coming soon</p> : null}
+              </div>
+              <div className="col-sm-6">
+                <button
+                  type="button"
+                  className="btn btn-primary d-flex align-items-center justify-content-center w-100"
+                  disabled={!hasChatContact}
+                  aria-disabled={!hasChatContact}
+                  onClick={() => {
+                    if (!hasChatContact) return;
+                    navigate(routes.userChat);
+                  }}
+                  title={!hasChatContact ? 'Coming soon' : 'Chat Now'}
+                >
+                  <i className="isax isax-message-notif5 me-2" />
+                  Chat Now
+                </button>
+                {!hasChatContact ? <p className="fs-12 text-muted mt-2 mb-0">Coming soon</p> : null}
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -280,46 +318,6 @@ const StickyContent = ({
         </div>
       </div>
 
-      <div className="card shadow-none mb-0">
-        <div className="card-body">
-          <h5 className="mb-3 fs-18">Provider Details</h5>
-          <p className="text-muted mb-3">
-            {hotel?.providerMessage || 'DreamsTour will confirm availability and price after request.'}
-          </p>
-          <div className="row g-2">
-            <div className="col-sm-6">
-              <button
-                type="button"
-                className="btn btn-light d-flex align-items-center justify-content-center w-100"
-                disabled={!hasWhatsappContact}
-                aria-disabled={!hasWhatsappContact}
-                title={!hasWhatsappContact ? 'Coming soon' : 'WhatsApp Us'}
-              >
-                <i className="isax isax-messages5 me-2" />
-                WhatsApp Us
-              </button>
-              {!hasWhatsappContact ? <p className="fs-12 text-muted mt-2 mb-0">Coming soon</p> : null}
-            </div>
-            <div className="col-sm-6">
-              <button
-                type="button"
-                className="btn btn-primary d-flex align-items-center justify-content-center w-100"
-                disabled={!hasChatContact}
-                aria-disabled={!hasChatContact}
-                onClick={() => {
-                  if (!hasChatContact) return;
-                  navigate(routes.userChat);
-                }}
-                title={!hasChatContact ? 'Coming soon' : 'Chat Now'}
-              >
-                <i className="isax isax-message-notif5 me-2" />
-                Chat Now
-              </button>
-              {!hasChatContact ? <p className="fs-12 text-muted mt-2 mb-0">Coming soon</p> : null}
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
   );
 };
