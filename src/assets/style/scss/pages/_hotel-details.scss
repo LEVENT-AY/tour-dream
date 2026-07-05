@@ -38,6 +38,160 @@
         }
     }
 }
+.hotel-details-shell {
+    .border-bottom {
+        border-color: variables.$border-color !important;
+    }
+}
+.hotel-header-card {
+    .hotel-meta-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+        color: variables.$gray-900;
+        font-size: variables.$font-size-14;
+        span {
+            display: inline-flex;
+            align-items: center;
+        }
+    }
+}
+.hotel-meta-link {
+    border: 0;
+    background: transparent;
+    color: variables.$primary;
+    padding: 0;
+    text-decoration: underline;
+    font-size: variables.$font-size-14;
+}
+.hotel-rating-pill,
+.hotel-inventory-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 16px;
+    border-radius: 999px;
+    font-size: variables.$font-size-14;
+    font-weight: variables.$font-weight-medium;
+}
+.hotel-rating-pill {
+    background: variables.$warning-100;
+    color: variables.$gray-900;
+}
+.hotel-inventory-badge {
+    background: variables.$light;
+    color: variables.$gray-900;
+}
+.hotel-highlight-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+.hotel-highlight-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    border-radius: 999px;
+    background: variables.$light;
+    padding: 10px 14px;
+    color: variables.$gray-900;
+    font-size: variables.$font-size-14;
+    i {
+        color: variables.$success;
+    }
+}
+.vincci-gallery {
+    .vincci-gallery-main {
+        position: relative;
+        overflow: hidden;
+        @include mixins.rounded(18px);
+        background: variables.$light;
+        margin-bottom: 16px;
+    }
+    .vincci-gallery-main-image {
+        width: 100%;
+        aspect-ratio: 16 / 9;
+        object-fit: cover;
+        display: block;
+        border-radius: 18px;
+    }
+    .vincci-gallery-see-all {
+        bottom: 16px;
+        right: 16px;
+    }
+}
+.vincci-gallery-arrow,
+.vincci-gallery-thumb-arrow {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    border: 0;
+    background: rgba(255, 255, 255, 0.92);
+    color: variables.$gray-900;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: variables.$box-shadow;
+}
+.vincci-gallery-arrow {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 2;
+}
+.vincci-gallery-arrow-prev {
+    left: 16px;
+}
+.vincci-gallery-arrow-next {
+    right: 16px;
+}
+.vincci-gallery-thumbnails {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+.vincci-gallery-thumb-track {
+    flex: 1;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+    gap: 12px;
+}
+.vincci-gallery-thumb {
+    border: 2px solid transparent;
+    padding: 0;
+    overflow: hidden;
+    background: transparent;
+    @include mixins.rounded(14px);
+    img {
+        width: 100%;
+        height: 94px;
+        object-fit: cover;
+        display: block;
+        border-radius: 12px;
+    }
+    &.is-active {
+        border-color: variables.$primary;
+        box-shadow: 0 0 0 4px rgba(18, 113, 255, 0.12);
+    }
+}
+.hotel-source-note {
+    font-size: variables.$font-size-13;
+    color: variables.$gray-600;
+}
+.hotel-description-copy {
+    font-size: variables.$font-size-16;
+    line-height: 1.8;
+}
+.hotel-toggle-btn {
+    font-weight: variables.$font-weight-semibold;
+    text-decoration: underline;
+}
+.hotel-highlights-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+}
 .highlight-box {
     background: variables.$warning-100;
     @include mixins.rounded(10px);
@@ -191,6 +345,40 @@
     height: 195px;
     width: 100%;
 }
+.hotel-sidebar-kicker {
+    display: inline-block;
+    margin-bottom: 6px;
+    font-size: variables.$font-size-13;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: variables.$gray-600;
+}
+.hotel-sidebar-price {
+    font-size: 28px;
+    font-weight: variables.$font-weight-bold;
+    color: variables.$gray-900;
+}
+.hotel-date-helper {
+    display: block;
+    margin-top: 8px;
+    font-size: variables.$font-size-13;
+    color: variables.$gray-600;
+}
+.hotel-nearby-list {
+    display: grid;
+    gap: 14px;
+}
+.hotel-nearby-group {
+    h6 {
+        margin-bottom: 8px;
+        font-size: variables.$font-size-14;
+    }
+}
+.sticky-components {
+    .card {
+        border-radius: 16px;
+    }
+}
 .rating-selction {
     direction: rtl !important;
     label {
@@ -214,5 +402,40 @@
                 color: variables.$primary;
             }
         }
+    }
+}
+@media (max-width: 991.98px) {
+    .hotel-highlights-grid {
+        grid-template-columns: 1fr;
+    }
+}
+@media (max-width: 767.98px) {
+    .vincci-gallery-arrow,
+    .vincci-gallery-thumb-arrow {
+        width: 36px;
+        height: 36px;
+    }
+    .vincci-gallery-thumb img {
+        height: 80px;
+    }
+}
+@media (max-width: 575.98px) {
+    .hotel-meta-row,
+    .hotel-highlight-row,
+    .vincci-gallery-thumbnails {
+        gap: 10px;
+    }
+    .vincci-gallery-main-image {
+        aspect-ratio: 4 / 3;
+    }
+    .vincci-gallery-thumb img {
+        height: 72px;
+    }
+    .hotel-inventory-badge {
+        width: 100%;
+    }
+    .hotel-header-card .hotel-meta-row span,
+    .hotel-header-card .hotel-meta-row button {
+        width: 100%;
     }
 }

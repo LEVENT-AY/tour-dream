@@ -6,6 +6,11 @@ import dayjs from 'dayjs';
 import { all_routes } from '../../router/all_routes';
 import { formatHotelPrice } from '../../../core/common/hotelPricing';
 
+type NearbySection = {
+  title: string;
+  items: string[];
+};
+
 type StickyContentProps = {
   hotel?: {
     id?: string;
@@ -24,6 +29,7 @@ type StickyContentProps = {
     sourceUrl?: string;
     selectedBoardType?: string;
     nearbyLandmarks?: string[];
+    nearbySections?: NearbySection[];
     latitude?: number | string | null;
     longitude?: number | string | null;
     viewsCount?: number | string | null;
@@ -94,6 +100,12 @@ const StickyContent = ({
   const mapSrc = hasValidCoordinates
     ? `https://www.google.com/maps?q=${Number(hotel?.latitude)},${Number(hotel?.longitude)}&z=14&output=embed`
     : '';
+  const mapLink = hasValidCoordinates
+    ? `https://www.google.com/maps?q=${Number(hotel?.latitude)},${Number(hotel?.longitude)}`
+    : '';
+  const nearbySections = hotel?.nearbySections?.length
+    ? hotel.nearbySections
+    : [{ title: 'Nearby', items: hotel?.nearbyLandmarks?.length ? hotel.nearbyLandmarks : ['Nearby attractions not provided'] }];
 
   const persistSelection = () => {
     const snapshot = {
@@ -144,7 +156,8 @@ const StickyContent = ({
       <div className="card shadow-none">
         <div className="card-body">
           <div className="mb-3">
-            <p className="fs-13 fw-medium mb-1">{priceCopy.headline}</p>
+            <span className="hotel-sidebar-kicker">Starts From</span>
+            <p className="hotel-sidebar-price mb-1">{priceCopy.headline.replace(/^Starts From\s*/i, '')}</p>
             <p className="fs-12 text-muted mb-0">
               {priceCopy.note || 'Final price and availability are confirmed after request'}
             </p>
@@ -161,6 +174,7 @@ const StickyContent = ({
                     onChange={(date) => setCheckInDate((date || dayjs()).toDate())}
                     format="DD-MM-YYYY"
                   />
+                  <span className="hotel-date-helper">{dayjs(checkInDate).format('dddd')}</span>
                 </div>
                 <div className="form-item border rounded p-3 mb-3 w-100">
                   <label className="form-label fs-14 text-default mb-0">Check Out</label>
@@ -171,6 +185,7 @@ const StickyContent = ({
                     onChange={(date) => setCheckOutDate((date || dayjs().add(1, 'day')).toDate())}
                     format="DD-MM-YYYY"
                   />
+                  <span className="hotel-date-helper">{dayjs(checkOutDate).format('dddd')}</span>
                 </div>
                 <div className="card shadow-none mb-3">
                   <div className="card-body p-3 pb-0">
@@ -204,14 +219,7 @@ const StickyContent = ({
             </form>
           </div>
           <div className="d-flex align-items-center justify-content-between mt-1">
-            {typeof hotel?.viewsCount === 'number' && hotel.viewsCount > 0 ? (
-              <p className="fs-14 text-dark d-inline-flex align-items-center mb-0">
-                <i className="isax isax-eye me-2" />
-                {hotel.viewsCount} Views
-              </p>
-            ) : (
-              <span className="fs-14 text-muted mb-0">Request-only hotel</span>
-            )}
+            <span className="fs-14 text-muted mb-0">Request-only hotel</span>
             <Link to="#availability" className="link-primary text-decoration-underline fs-14">
               View Request Details
             </Link>
@@ -237,19 +245,36 @@ const StickyContent = ({
           </div>
         )}
         <div className="card-body">
-          <div className="mb-1 d-flex align-items-center justify-content-between flex-wrap">
+          <div className="mb-2 d-flex align-items-center justify-content-between flex-wrap">
             <p className="d-flex align-items-center mb-3">
               <i className="isax isax-location5 me-2" />
               {hotel?.location || 'Property location not specified'}
             </p>
+            {mapLink ? (
+              <a
+                href={mapLink}
+                target="_blank"
+                rel="noreferrer"
+                className="btn btn-light btn-sm mb-3"
+              >
+                View on Map
+              </a>
+            ) : null}
           </div>
           <h5 className="mb-3 fs-18">Nearby Landmarks & Visits</h5>
-          {(hotel?.nearbyLandmarks?.length ? hotel.nearbyLandmarks : ['Nearby attractions not provided']).map((landmark) => (
-            <p className="d-flex align-items-center mb-2" key={landmark}>
-              <i className="isax isax-tick-circle me-2" />
-              {landmark}
-            </p>
-          ))}
+          <div className="hotel-nearby-list">
+            {nearbySections.map((section) => (
+              <div className="hotel-nearby-group" key={`${section.title}-${section.items.join('|')}`}>
+                <h6>{section.title}</h6>
+                {section.items.map((item) => (
+                  <p className="d-flex align-items-start mb-2" key={`${section.title}-${item}`}>
+                    <i className="isax isax-tick-circle me-2 mt-1" />
+                    <span>{item}</span>
+                  </p>
+                ))}
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 
