@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { normalizeHotelImageUrlList, normalizeAbsoluteImageUrl } from './tunisiebooking-image-utils.mjs';
 
 const ROOT = process.cwd();
 const TMP_DIR = path.join(ROOT, 'tmp');
@@ -170,42 +171,7 @@ const parseNumber = (value) => {
   return Number.isFinite(n) ? n : null;
 };
 
-const normalizeAbsoluteUrl = (value, baseUrl = MAIN_LISTING_URL) => {
-  const raw = decodeHtmlEntities(clean(value));
-  if (!raw) return '';
-  try {
-    const parsed = new URL(raw, baseUrl);
-    parsed.hash = '';
-    parsed.search = '';
-    parsed.hostname = parsed.hostname.toLowerCase();
-    return parsed.toString();
-  } catch {
-    return '';
-  }
-};
-
-const isRealHotelImage = (url) => {
-  if (!/^https?:\/\//i.test(url)) return false;
-  if (/(logo|icon|favicon|preloader|loader|spinner|tracking|pixel|sprite|placeholder|facebook\.com\/tr)/i.test(url)) return false;
-  return /\.(?:jpg|jpeg|png|webp)(?:$|\?)/i.test(url);
-};
-
-const normalizeImageUrlList = (items, { baseUrl = MAIN_LISTING_URL, excludeUrl = '' } = {}) => {
-  const excludeNormalized = excludeUrl ? normalizeAbsoluteUrl(excludeUrl, baseUrl) : '';
-  const seen = new Set();
-  const result = [];
-
-  for (const item of items) {
-    const normalized = normalizeAbsoluteUrl(item, baseUrl);
-    if (!normalized || !isRealHotelImage(normalized)) continue;
-    if (excludeNormalized && normalized === excludeNormalized) continue;
-    if (seen.has(normalized)) continue;
-    seen.add(normalized);
-    result.push(normalized);
-  }
-
-  return result;
-};
+const normalizeAbsoluteUrl = (value, baseUrl = MAIN_LISTING_URL) => normalizeAbsoluteImageUrl(value, baseUrl);
 
 const fetchText = async (url) => {
   const response = await fetch(url, {
@@ -351,7 +317,7 @@ const parseServiceTexts = (html) =>
   );
 
 const parseGalleryImages = (html, sourceUrl) =>
-  normalizeImageUrlList(
+  normalizeHotelImageUrlList(
     [
       ...html.matchAll(/"src"\s*:\s*"([^"]+)"/g),
       ...html.matchAll(/<meta[^>]+property="og:image(?:secure_url)?"[^>]+content="([^"]+)"/gi),
@@ -572,8 +538,8 @@ const extractDetailHotel = async ({ candidate, region }) => {
   const address = clean(detailHotel.address?.streetAddress || '');
   const regionLabel = region.label;
   const country = 'Tunisia';
-  const image = normalizeImageUrlList([detailHotel.image, detailProduct.image, candidate.listingImage, gallery[0]], { baseUrl: candidate.sourceUrl })[0] || '';
-  const normalizedGallery = normalizeImageUrlList(gallery, { baseUrl: candidate.sourceUrl, excludeUrl: image });
+  const image = normalizeHotelImageUrlList([detailHotel.image, detailProduct.image, candidate.listingImage, gallery[0]], { baseUrl: candidate.sourceUrl })[0] || '';
+  const normalizedGallery = normalizeHotelImageUrlList(gallery, { baseUrl: candidate.sourceUrl, excludeUrl: image });
   const displayImages = buildDisplayImages([image, ...normalizedGallery], 8);
   const normalizedUniqueImageCount = new Set(displayImages.map((item) => normalizeAbsoluteUrl(item, candidate.sourceUrl))).size;
   const ratingValue = Number(detailHotel.aggregateRating?.ratingValue || detailProduct.aggregateRating?.ratingValue || candidate.listingRatingValue || 0) || null;

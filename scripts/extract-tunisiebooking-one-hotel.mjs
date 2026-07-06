@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { normalizeHotelImageUrlList, normalizeAbsoluteImageUrl } from './tunisiebooking-image-utils.mjs';
 
 const LISTING_URL = 'https://www.tunisiebooking.com/hotel-tunisie/';
 const DETAIL_ENDPOINT_URL = 'https://www.tunisiebooking.com/theme/traitement_detailv4resp2_fr_new.php';
@@ -13,8 +14,6 @@ const unique = (items) => [...new Set(items.filter(Boolean))];
 
 const hasBrokenReplacement = (value) => /�/.test(String(value || ''));
 const hasCommonMojibake = (value) => /Ã.|Â.|â.|ï¿½/.test(String(value || ''));
-const IMAGE_REJECT_PATTERN = /(?:logo|icon|favicon|preloader|loader|spinner|tracking|pixel|sprite|placeholder|doubleclick|facebook\.com\/tr|fbcdn|google-analytics)/i;
-
 const repairMojibake = (value) => {
   const text = clean(value);
   if (!text || !hasCommonMojibake(text)) return text;
@@ -69,45 +68,8 @@ const sniffCharset = (buffer) => {
   return head.match(/charset=([a-z0-9._-]+)/i)?.[1]?.trim().toLowerCase() || '';
 };
 
-const normalizeAbsoluteUrl = (value, baseUrl = LISTING_URL) => {
-  const raw = decodeHtmlEntities(clean(value));
-  if (!raw) return '';
-  try {
-    const parsed = new URL(raw, baseUrl);
-    parsed.hash = '';
-    parsed.search = '';
-    parsed.hostname = parsed.hostname.toLowerCase();
-    return parsed.toString();
-  } catch {
-    return '';
-  }
-};
-
-const isRealHotelImage = (url) => {
-  if (!/^https?:\/\//i.test(url)) return false;
-  if (IMAGE_REJECT_PATTERN.test(url)) return false;
-  return /\.(?:jpg|jpeg|png|webp)(?:$|\?)/i.test(url);
-};
-
-const normalizeImageUrlList = (items, { baseUrl = LISTING_URL, excludeUrl = '' } = {}) => {
-  const excludeNormalized = excludeUrl ? normalizeAbsoluteUrl(excludeUrl, baseUrl) : '';
-  const seen = new Set();
-  const result = [];
-
-  for (const item of items) {
-    const normalized = normalizeAbsoluteUrl(item, baseUrl);
-    if (!normalized || !isRealHotelImage(normalized)) continue;
-    if (excludeNormalized && normalized === excludeNormalized) continue;
-    if (seen.has(normalized)) continue;
-    seen.add(normalized);
-    result.push(normalized);
-  }
-
-  return result;
-};
-
 const normalizeUrlList = (items) =>
-  unique(items.map((item) => normalizeAbsoluteUrl(item)).filter((item) => /^https?:\/\//i.test(item)));
+  unique(items.map((item) => normalizeAbsoluteImageUrl(item)).filter((item) => /^https?:\/\//i.test(item)));
 
 const normalizeSlug = (value) =>
   clean(value)
@@ -188,7 +150,7 @@ const parseServiceTexts = (html) =>
   );
 
 const parseGalleryImages = (html, sourceUrl) =>
-  normalizeImageUrlList(
+  normalizeHotelImageUrlList(
     [...html.matchAll(/"src"\s*:\s*"([^"]+)"/g)]
       .map((match) => match[1])
       .filter((src) => /image\.resabooking\.com|tunisiebooking\.com/i.test(src) && /Vincci_Helios_Beach/i.test(src)),
@@ -383,8 +345,8 @@ async function main() {
   const region = inferRegionFromUrl(sourceUrl) || clean(detailHotel.address?.addressRegion || '');
   const city = clean(detailHotel.address?.addressLocality || '').split(',')[0].trim() || region || '';
   const address = clean(detailHotel.address?.streetAddress || listingItem.address?.streetAddress || '');
-  const image = normalizeImageUrlList([listingItem.image, detailHotel.image, gallery[0]], { baseUrl: sourceUrl })[0] || '';
-  const normalizedGallery = normalizeImageUrlList(gallery, { baseUrl: sourceUrl, excludeUrl: image });
+  const image = normalizeHotelImageUrlList([listingItem.image, detailHotel.image, gallery[0]], { baseUrl: sourceUrl })[0] || '';
+  const normalizedGallery = normalizeHotelImageUrlList(gallery, { baseUrl: sourceUrl, excludeUrl: image });
   const ratingValue = Number(listingItem.aggregateRating?.ratingValue || detailHotel.aggregateRating?.ratingValue || 0) || null;
   const ratingLabel = ratingValue && ratingValue >= 4.5 ? 'Excellent' : ratingValue && ratingValue >= 4 ? 'Très Bien' : '';
   const reviewsCount = Number(listingItem.aggregateRating?.reviewCount || reviews.length || 0) || reviews.length || 0;

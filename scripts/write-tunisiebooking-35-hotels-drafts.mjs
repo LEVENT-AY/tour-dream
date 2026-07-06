@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import admin from 'firebase-admin';
 import { getFirestore } from 'firebase-admin/firestore';
+import { normalizeHotelImageUrlList, normalizeAbsoluteImageUrl } from './tunisiebooking-image-utils.mjs';
 
 const PROJECT_ID = 'tour-tunisi';
 const INPUT_PATH = path.join(process.cwd(), 'tmp', 'tunisiebooking-35-hotels-dry-run.json');
@@ -105,19 +106,7 @@ const repairMojibake = (value) => {
 
 const normalizeText = (value) => repairMojibake(cleanText(value));
 
-const normalizeUrl = (value) => {
-  const text = normalizeText(value);
-  if (!text) return '';
-  try {
-    const parsed = new URL(text);
-    parsed.hash = '';
-    parsed.search = '';
-    parsed.hostname = parsed.hostname.toLowerCase();
-    return parsed.toString();
-  } catch {
-    return text;
-  }
-};
+const normalizeUrl = (value) => normalizeAbsoluteImageUrl(normalizeText(value));
 
 const uniqueStrings = (value) =>
   [...new Set((Array.isArray(value) ? value : []).map((entry) => normalizeText(entry)).filter(Boolean))];
@@ -234,7 +223,7 @@ const buildHotelDoc = (hotel, importedAt) => {
   const boardOptions = normalizeObject(hotel.boardOptions);
   const faq = normalizeObject(hotel.faq);
   const reviews = normalizeObject(hotel.reviews);
-  const gallery = uniqueStrings(hotel.gallery);
+  const gallery = normalizeHotelImageUrlList(hotel.gallery, { baseUrl: hotel.sourceUrl || hotel.sourceListingUrl || '', excludeUrl: hotel.image || '' });
   const qualityStatus = String(hotel.qualityStatus || hotel.quality?.qualityStatus || 'needs_manual_review');
   const qualityWarnings = uniqueStrings(hotel.qualityWarnings || hotel.quality?.warnings);
   const reviewSummaryForAdmin = buildReviewSummaryForAdmin(hotel);
@@ -254,7 +243,7 @@ const buildHotelDoc = (hotel, importedAt) => {
     title,
     hotelName: normalizeText(hotel.hotelName || title),
     slug: slugify(`${title}-${city || sourceRegion || 'hotel'}`),
-    image: normalizeUrl(hotel.image || ''),
+    image: normalizeHotelImageUrlList([hotel.image], { baseUrl: hotel.sourceUrl || hotel.sourceListingUrl || '' })[0] || '',
     gallery,
     latitude: Number.isFinite(Number(hotel.latitude)) ? Number(hotel.latitude) : null,
     longitude: Number.isFinite(Number(hotel.longitude)) ? Number(hotel.longitude) : null,
