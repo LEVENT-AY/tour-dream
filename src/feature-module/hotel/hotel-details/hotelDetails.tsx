@@ -1,4 +1,4 @@
-import { startTransition, useEffect, useMemo, useState } from "react";
+import { startTransition, useEffect, useMemo, useRef, useState } from "react";
 import Breadcrumb from "../../../core/common/Breadcrumb/breadcrumb";
 import { useSearchParams } from "react-router-dom";
 import ImageWithBasePath from "../../../core/common/imageWithBasePath";
@@ -73,19 +73,19 @@ const TEMPLATE_IMAGE_PATTERN = /assets\/img\/hotels|hotel-large-|hotel-thumb-|lo
 
 const NEARBY_MARKERS = [
   /\bles\s+environs\b/i,
-  /\brestaurants?\s+à\s+proximité\b/i,
-  /\bcafés?\s+aux\s+alentours\b/i,
-  /\bhôtels?\s+à\s+proximité\b/i,
-  /\blieux\s+à\s+proximité\b/i,
+  /\brestaurants?\s+ï¿½\s+proximitï¿½\b/i,
+  /\bcafï¿½s?\s+aux\s+alentours\b/i,
+  /\bhï¿½tels?\s+ï¿½\s+proximitï¿½\b/i,
+  /\blieux\s+ï¿½\s+proximitï¿½\b/i,
   /\bsites?\s+historiques\b/i,
-  /\battractions?\s+à\s+proximité\b/i,
+  /\battractions?\s+ï¿½\s+proximitï¿½\b/i,
   /\brestaurants?\s+nearby\b/i,
   /\bcafes?\s+nearby\b/i,
   /\bhotels?\s+nearby\b/i,
 ];
 
 const DIRECT_BOOKING_PATTERNS = [
-  /réservez dès maintenant[^.]*\.\s*/gi,
+  /rï¿½servez dï¿½s maintenant[^.]*\.\s*/gi,
   /book now[^.]*\.\s*/gi,
   /instant booking[^.]*\.\s*/gi,
   /confirmed booking[^.]*\.\s*/gi,
@@ -96,7 +96,7 @@ const DIRECT_BOOKING_PATTERNS = [
   /reserve now/gi,
   /make a reservation/gi,
   /request this hotel/gi,
-  /réserver maintenant/gi,
+  /rï¿½server maintenant/gi,
   /book your stay/gi,
 ];
 
@@ -122,12 +122,12 @@ const PREFERRED_AMENITY_PATTERNS: Array<{ pattern: RegExp; score: number }> = [
 ];
 
 const SECTION_TITLE_PATTERNS: Array<{ pattern: RegExp; title: string }> = [
-  { pattern: /\brestaurants?\s+à\s+proximité\b/i, title: 'Restaurants à proximité' },
-  { pattern: /\bcafés?\s+aux\s+alentours\b/i, title: 'Cafés aux alentours' },
-  { pattern: /\bhôtels?\s+à\s+proximité\b/i, title: 'Hôtels à proximité' },
-  { pattern: /\blieux\s+à\s+proximité\b/i, title: 'Lieux à proximité' },
+  { pattern: /\brestaurants?\s+ï¿½\s+proximitï¿½\b/i, title: 'Restaurants ï¿½ proximitï¿½' },
+  { pattern: /\bcafï¿½s?\s+aux\s+alentours\b/i, title: 'Cafï¿½s aux alentours' },
+  { pattern: /\bhï¿½tels?\s+ï¿½\s+proximitï¿½\b/i, title: 'Hï¿½tels ï¿½ proximitï¿½' },
+  { pattern: /\blieux\s+ï¿½\s+proximitï¿½\b/i, title: 'Lieux ï¿½ proximitï¿½' },
   { pattern: /\bsites?\s+historiques\b/i, title: 'Sites historiques' },
-  { pattern: /\battractions?\s+à\s+proximité\b/i, title: 'Attractions à proximité' },
+  { pattern: /\battractions?\s+ï¿½\s+proximitï¿½\b/i, title: 'Attractions ï¿½ proximitï¿½' },
   { pattern: /\brestaurants?\s+nearby\b/i, title: 'Restaurants nearby' },
   { pattern: /\bcafes?\s+nearby\b/i, title: 'Cafes nearby' },
   { pattern: /\bhotels?\s+nearby\b/i, title: 'Hotels nearby' },
@@ -535,6 +535,8 @@ const HotelDetails = () => {
   const [showAllServices, setShowAllServices] = useState(false);
   const [showAllReviews, setShowAllReviews] = useState(false);
   const [activeSection, setActiveSection] = useState("overview");
+  const sectionActivationLockRef = useRef<string | null>(null);
+  const sectionActivationLockTimerRef = useRef<number | null>(null);
   const { loading: authLoading, isAdmin } = useAuth();
 
   const hotelId = searchParams.get("id");
@@ -666,6 +668,16 @@ const HotelDetails = () => {
   }, [displayHotel, thumbnailWindow]);
 
   useEffect(() => {
+    return () => {
+      if (sectionActivationLockTimerRef.current != null) {
+        window.clearTimeout(sectionActivationLockTimerRef.current);
+        sectionActivationLockTimerRef.current = null;
+      }
+      sectionActivationLockRef.current = null;
+    };
+  }, [displayHotel]);
+
+  useEffect(() => {
     if (!displayHotel) return;
 
     const observer = new IntersectionObserver(
@@ -674,8 +686,16 @@ const HotelDetails = () => {
           .filter((entry) => entry.isIntersecting)
           .sort((a, b) => b.intersectionRatio - a.intersectionRatio || a.boundingClientRect.top - b.boundingClientRect.top);
 
-        if (visible[0]?.target?.id) {
-          setActiveSection(visible[0].target.id);
+        const nextSectionId = visible[0]?.target?.id;
+        const lockedSectionId = sectionActivationLockRef.current;
+
+        if (!nextSectionId) return;
+        if (lockedSectionId && nextSectionId !== lockedSectionId) return;
+
+        setActiveSection(nextSectionId);
+
+        if (lockedSectionId === nextSectionId && sectionActivationLockTimerRef.current == null) {
+          sectionActivationLockRef.current = null;
         }
       },
       { rootMargin: "-22% 0px -62% 0px", threshold: [0.1, 0.25, 0.5, 0.75] },
@@ -716,6 +736,23 @@ const HotelDetails = () => {
       active: true,
     },
   ];
+
+  const activateSection = (sectionId: string) => {
+    sectionActivationLockRef.current = sectionId;
+    if (sectionActivationLockTimerRef.current != null) {
+      window.clearTimeout(sectionActivationLockTimerRef.current);
+    }
+    sectionActivationLockTimerRef.current = window.setTimeout(() => {
+      if (sectionActivationLockRef.current === sectionId) {
+        sectionActivationLockRef.current = null;
+      }
+      sectionActivationLockTimerRef.current = null;
+    }, 900);
+    startTransition(() => {
+      setActiveSection(sectionId);
+    });
+    scrollToSection(sectionId);
+  };
 
   const mainImageCount = displayHotel?.gallery.length || 0;
   const canSlideMainImage = mainImageCount > 1;
@@ -933,8 +970,7 @@ const HotelDetails = () => {
                         type="button"
                         className={`hotel-section-tab ${activeSection === item.id ? "is-active" : ""}`}
                         onClick={() => {
-                          setActiveSection(item.id);
-                          scrollToSection(item.id);
+                          activateSection(item.id);
                         }}
                       >
                         {item.label}

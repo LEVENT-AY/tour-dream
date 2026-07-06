@@ -167,10 +167,19 @@ try {
   const serviceCountBefore = await desktop.locator('#services .row > div').count();
   const boardOptionsText = await desktop.locator('#rooms').innerText();
 
-  await desktop.getByRole('button', { name: 'Amenities' }).click();
-  const activeAfterAmenities = await desktop.locator('.hotel-section-tab.is-active').innerText();
-  await desktop.getByRole('button', { name: 'Rooms' }).click();
-  const activeAfterRooms = await desktop.locator('.hotel-section-tab.is-active').innerText();
+  const waitForActiveSection = async (label) => {
+    await desktop.waitForFunction(
+      (expected) => Array.from(document.querySelectorAll('.hotel-section-tab.is-active')).some((button) => button.textContent?.trim() === expected),
+      label,
+      { timeout: 5000 },
+    );
+    return desktop.locator('.hotel-section-tab.is-active').innerText();
+  };
+
+  await desktop.getByRole('button', { name: 'Amenities', exact: true }).click();
+  const activeAfterAmenities = await waitForActiveSection('Amenities');
+  await desktop.getByRole('button', { name: 'Rooms', exact: true }).click();
+  const activeAfterRooms = await waitForActiveSection('Rooms');
 
   if (await desktop.getByRole('button', { name: 'Show All' }).isVisible()) {
     await desktop.getByRole('button', { name: 'Show All' }).click();
