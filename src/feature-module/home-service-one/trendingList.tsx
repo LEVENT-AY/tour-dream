@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import ImageWithBasePath from "../../core/common/imageWithBasePath";
 import { getCategoryFallbackSrc } from "../../core/services/firebaseStorage";
+import { all_routes } from "../../feature-module/router/all_routes";
 import {
   TRENDING_FALLBACK_DATA,
   fetchTrendingSectionCards,
@@ -685,7 +686,16 @@ const TrendingList = () => {
               <div className="row justify-content-center">{cards.flights.map(renderFlightCard)}</div>
             </div>
             <div className="tab-pane fade" id="tab-2">
-              <div className="row row-gap-4 justify-content-center">{cards.hotels.map(renderHotelCard)}</div>
+              {cards.hotels.length > 0 ? (
+                <div className="row row-gap-4 justify-content-center">{cards.hotels.map(renderHotelCard)}</div>
+              ) : (
+                <div className="text-center py-5">
+                  <p className="mb-2 text-muted">No featured hotels are available right now.</p>
+                  <Link to={all_routes.hotelGrid} className="btn btn-outline-primary btn-sm">
+                    View all hotels
+                  </Link>
+                </div>
+              )}
             </div>
             <div className="tab-pane fade" id="tab-3">
               <div className="row row-gap-4 justify-content-center">{cards.cars.map(renderCarCard)}</div>

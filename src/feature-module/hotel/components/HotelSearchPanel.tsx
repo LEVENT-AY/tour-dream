@@ -29,6 +29,12 @@ const formatDateValue = (value: Date): string => {
   return `${year}-${month}-${day}`;
 };
 
+const normalizeDestination = (value: string): string => {
+  const text = value.trim();
+  if (!text || text.toLowerCase() === 'select') return '';
+  return text;
+};
+
 const HotelSearchPanel = ({
   standalone = false,
   initialDestination = '',
@@ -88,9 +94,14 @@ const HotelSearchPanel = ({
   const guestSummary = `${adults} Adult${adults === 1 ? '' : 's'}, ${rooms} Room${rooms === 1 ? '' : 's'}`;
 
   const handleSearch = () => {
+    const realDestination = normalizeDestination(destination);
+    if (!realDestination) {
+      navigate(routes.hotelGrid);
+      return;
+    }
     const params = new URLSearchParams();
     params.set('source', 'manual');
-    params.set('destination', selectedLocation?.city || destination || 'Tunis');
+    params.set('destination', selectedLocation?.city || realDestination);
     params.set('checkInDate', formatDateValue(checkInDate));
     params.set('checkOutDate', formatDateValue(checkOutDate));
     params.set('adults', String(Math.max(1, adults)));

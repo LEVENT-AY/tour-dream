@@ -193,6 +193,8 @@ export const fetchHotels = async (): Promise<DocumentData[]> => {
         country: data.country || 'Tunisia',
         address: data.address || '',
         location: data.location || data.city || data.address || data.country || '',
+        featured: data.featured === true || data.isFeatured === true,
+        isFeatured: data.isFeatured === true || data.featured === true,
         amenities: Array.isArray(data.amenities)
           ? data.amenities.filter(Boolean)
           : typeof data.amenities === 'string' && data.amenities.trim()

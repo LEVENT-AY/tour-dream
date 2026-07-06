@@ -131,9 +131,9 @@ const firstGalleryImage = (data: Record<string, any>): string =>
 const resolveImage = (data: Record<string, any>, category: Parameters<typeof getCategoryFallbackSrc>[0]) =>
   toStringValue(data.image || data.mainImage || data.thumbnail || firstGalleryImage(data), getCategoryFallbackSrc(category));
 
-const resolveFeatured = (data: Record<string, any>) => data.featured === true;
+const resolveFeatured = (data: Record<string, any>) => data.featured === true || data.isFeatured === true;
 
-const resolvePublished = (data: Record<string, any>) => data.published !== false && data.status !== "draft";
+const resolvePublished = (data: Record<string, any>) => data.published === true;
 
 const buildFlightDetailsRoute = (itemId?: string) =>
   itemId ? `${all_routes.flightDetails}?id=${encodeURIComponent(itemId)}` : all_routes.flightDetails;
@@ -166,6 +166,9 @@ const takeTrendingItems = (items: Record<string, any>[], fallback: Record<string
     : fallback.map((item) => ({ ...item, __fallback: true }));
 };
 
+const takeFeaturedHotels = (items: Record<string, any>[]) =>
+  sortTrendingItems(items.filter((item) => resolvePublished(item) && resolveFeatured(item))).slice(0, FALLBACK_LIMIT);
+
 const mapFlightCard = (data: Record<string, any>, index: number): TrendingFlightCard => ({
   id: toStringValue(data.id, `flight-${index}`),
   title: toStringValue(data.title || data.flightName || data.airlineName || data.flightNumber, `Flight ${index + 1}`),
@@ -195,8 +198,14 @@ const mapHotelCard = (data: Record<string, any>, index: number): TrendingHotelCa
   rating: toStringValue(data.rating ?? data.starRating ?? 0, "0"),
   reviewsLabel: `(${toNumberValue(data.reviewsCount, 0)} Reviews)`,
   location: toStringValue(data.location || data.city || data.country, "Unknown location"),
-  price: formatCurrency(data.price ?? data.pricePerNight, 0),
-  priceSuffix: "/ Night",
+  price: (() => {
+    const price = data.priceFrom ?? data.price ?? data.pricePerNight;
+    if (price == null || price === '' || Number(price) <= 0) return 'Price confirmed after request';
+    const currency = toStringValue(data.priceCurrency || data.currency, '');
+    const unit = toStringValue(data.priceUnit || data.pricePerNightUnit, 'night');
+    return `Starts From ${price}${currency ? ` ${currency}` : ''}${unit ? ` / ${unit}` : ''}`;
+  })(),
+  priceSuffix: '',
   facilitiesLabel: toStringValue(data.facilitiesLabel, "Facilities"),
   hostName: toStringValue(data.hostName || data.ownerName || data.agentName, "Host"),
   hostAvatar: toStringValue(data.hostAvatar || "assets/img/users/user-08.jpg"),
@@ -369,72 +378,7 @@ export const TRENDING_FALLBACK_DATA: TrendingSectionCards = {
       3
     ),
   ],
-  hotels: [
-    mapHotelCard(
-      {
-        id: "fallback-hotel-1",
-        title: "Hotel Plaza Athenee",
-        location: "Ciutat Vella, Barcelona",
-        rating: 5,
-        reviewsCount: 400,
-        price: 500,
-        image: "assets/img/hotels/hotel-01.jpg",
-        hostName: "Beth Will",
-        hostAvatar: "assets/img/users/user-08.jpg",
-        featured: true,
-        published: true,
-      },
-      0
-    ),
-    mapHotelCard(
-      {
-        id: "fallback-hotel-2",
-        title: "The Luxe Haven",
-        location: "Oxford Street, London",
-        rating: 4.7,
-        reviewsCount: 360,
-        price: 600,
-        image: "assets/img/hotels/hotel-05.jpg",
-        hostName: "Andrews",
-        hostAvatar: "assets/img/users/user-09.jpg",
-        featured: true,
-        published: true,
-      },
-      1
-    ),
-    mapHotelCard(
-      {
-        id: "fallback-hotel-3",
-        title: "The Urban Retreat",
-        location: "Princes Street, Edinburgh",
-        rating: 4.5,
-        reviewsCount: 500,
-        price: 500,
-        image: "assets/img/hotels/hotel-06.jpg",
-        hostName: "Robert",
-        hostAvatar: "assets/img/users/user-10.jpg",
-        featured: true,
-        published: true,
-      },
-      2
-    ),
-    mapHotelCard(
-      {
-        id: "fallback-hotel-4",
-        title: "Hotel Evergreen",
-        location: "King's Road, Chelsea",
-        rating: 4.3,
-        reviewsCount: 380,
-        price: 450,
-        image: "assets/img/hotels/hotel-08.jpg",
-        hostName: "Beth Williams",
-        hostAvatar: "assets/img/users/user-11.jpg",
-        featured: true,
-        published: true,
-      },
-      3
-    ),
-  ],
+  hotels: [],
   cars: [
     mapCarCard(
       {
@@ -812,10 +756,11 @@ export async function fetchTrendingSectionCards(): Promise<TrendingSectionCards>
       fetchTours(),
       fetchActivities(),
     ]);
+    const featuredHotels = takeFeaturedHotels(hotels);
 
     return {
       flights: takeTrendingItems(flights, TRENDING_FALLBACK_DATA.flights).map(mapFlightCard),
-      hotels: takeTrendingItems(hotels, TRENDING_FALLBACK_DATA.hotels).map(mapHotelCard),
+      hotels: featuredHotels.map(mapHotelCard),
       cars: takeTrendingItems(cars, TRENDING_FALLBACK_DATA.cars).map(mapCarCard),
       cruise: TRENDING_FALLBACK_DATA.cruise,
       tour: takeTrendingItems(tours, TRENDING_FALLBACK_DATA.tour).map(mapTourCard),

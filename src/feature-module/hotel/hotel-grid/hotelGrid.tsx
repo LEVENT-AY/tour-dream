@@ -39,6 +39,13 @@ type ManualHotelCard = {
 };
 
 const MANUAL_SELECTION_KEY = 'manualHotelSelection';
+const PAGE_SIZE = 12;
+
+const normalizeDestination = (value: string): string => {
+  const text = value.trim();
+  if (!text || text.toLowerCase() === 'select') return '';
+  return text;
+};
 
 const HotelGrid = () => {
   const routes = all_routes;
@@ -49,6 +56,7 @@ const HotelGrid = () => {
   const [stays, setStays] = useState<DuffelStay[]>([]);
   const [loadingStays, setLoadingStays] = useState(false);
   const [staysError, setStaysError] = useState('');
+  const [hotelNameQuery, setHotelNameQuery] = useState('');
 
   const destination = searchParams.get('destination') || '';
   const checkInDate = searchParams.get('checkInDate') || '';
@@ -56,8 +64,9 @@ const HotelGrid = () => {
   const adults = searchParams.get('adults') || '1';
   const rooms = searchParams.get('rooms') || '1';
   const source = searchParams.get('source') || '';
+  const destinationFilter = normalizeDestination(destination);
   const hasCoordinates = !!searchParams.get('lat') && !!searchParams.get('lng');
-  const manualMode = source === 'manual' || (!!destination && !!checkInDate && !!checkOutDate && !hasCoordinates);
+  const manualMode = source === 'manual' || (!!destinationFilter && !!checkInDate && !!checkOutDate && !hasCoordinates);
   const duffelMode = !!destination && !!checkInDate && !!checkOutDate && hasCoordinates && !manualMode;
 
   useEffect(() => {
@@ -99,9 +108,33 @@ const HotelGrid = () => {
   }, [duffelMode, destination, checkInDate, checkOutDate, adults, rooms]);
 
   const filteredManualHotels = useMemo(() => {
-    if (!manualMode) return [];
-    return hotels.filter((hotel) => matchesTunisiaHotelDestination(hotel, destination));
-  }, [destination, hotels, manualMode]);
+    const destinationFiltered = !destinationFilter
+      ? hotels
+      : hotels.filter((hotel) => matchesTunisiaHotelDestination(hotel, destinationFilter));
+    const nameQuery = hotelNameQuery.trim().toLowerCase();
+    if (!nameQuery) return destinationFiltered;
+    return destinationFiltered.filter((hotel) => {
+      const title = String(hotel.title || hotel.name || '').toLowerCase();
+      return title.includes(nameQuery);
+    });
+  }, [destinationFilter, hotelNameQuery, hotels, manualMode]);
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const totalPages = Math.max(1, Math.ceil(filteredManualHotels.length / PAGE_SIZE));
+  const visibleHotels = useMemo(
+    () => filteredManualHotels.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE),
+    [currentPage, filteredManualHotels],
+  );
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [destinationFilter, checkInDate, checkOutDate, adults, rooms, source, duffelMode, hotelNameQuery]);
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
 
   //Breadcrumb Data
   const breadcrumbs = [
@@ -180,7 +213,7 @@ const HotelGrid = () => {
     const params = new URLSearchParams();
     params.set('provider', 'manual');
     params.set('source', 'manual');
-    if (destination) params.set('destination', destination);
+    if (destinationFilter) params.set('destination', destinationFilter);
     if (checkInDate) params.set('checkInDate', checkInDate);
     if (checkOutDate) params.set('checkOutDate', checkOutDate);
     params.set('adults', adults || '1');
@@ -215,16 +248,16 @@ const HotelGrid = () => {
             {!manualMode && (
               <div className="col-xl-3 col-lg-3 ">
                 {/* Sidebar */}
-                <HotelFilter />
+                <HotelFilter hotelNameSearch={hotelNameQuery} onHotelNameSearchChange={setHotelNameQuery} />
               </div>
             )}
 
             <div className={manualMode ? 'col-12 theiaStickySidebar' : 'col-xl-9 col-lg-8 theiaStickySidebar'}>
               <div className="d-flex align-items-center justify-content-between flex-wrap">
                 <h6 className="mb-3">
-                  {manualMode
-                    ? `${filteredManualHotels.length} Hotels Available${destination ? ` in ${destination}` : ''}`
-                    : `${hotels.length} Hotels Found on Your Search`}
+                  {manualMode || destinationFilter
+                    ? `${filteredManualHotels.length} Hotels Available${destinationFilter ? ` in ${destinationFilter}` : ''}`
+                    : `${filteredManualHotels.length} Hotels Found on Your Search`}
                 </h6>
                 {!manualMode && (
                   <div className="d-flex align-items-center flex-wrap">
@@ -340,13 +373,17 @@ const HotelGrid = () => {
                   </div>
                 ) : filteredManualHotels.length === 0 ? (
                   <div className="text-center py-5 w-100">
-                    <p className="text-muted">No hotels are available for this destination yet. Send us a request and our team will help you.</p>
+                    <p className="text-muted">
+                      {hotelNameQuery.trim()
+                        ? `No hotels match "${hotelNameQuery.trim()}".`
+                        : 'No hotels are available for this destination yet. Send us a request and our team will help you.'}
+                    </p>
                     <button type="button" className="btn btn-primary mt-3" onClick={() => openManualRequest()}>
                       Send hotel request
                     </button>
                   </div>
                 ) : (
-                  filteredManualHotels.map((hotel, index) => (
+                  visibleHotels.map((hotel, index) => (
                     <div className="col-xl-4 col-md-6 d-flex" key={hotel.id || index}>
                       <div className={`place-item mb-4 flex-fill ${hotel.gallery && hotel.gallery.length > 1 ? 'common-grid-slider' : ''}`}>
                         <div className="place-img">
@@ -443,23 +480,41 @@ const HotelGrid = () => {
                   </div>
                 )}
               </div>
-              {!manualMode && (
+              {!duffelMode && filteredManualHotels.length > PAGE_SIZE && (
                 <nav className="pagination-nav">
                   <ul className="pagination justify-content-center">
-                    <li className="page-item disabled">
-                      <Link className="page-link" to="#" aria-label="Previous">
+                    <li className={`page-item ${currentPage === 1 ? 'disabled' : ''}`}>
+                      <button
+                        type="button"
+                        className="page-link"
+                        aria-label="Previous"
+                        disabled={currentPage === 1}
+                        onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+                      >
                         <span aria-hidden="true"><i className="fa-solid fa-chevron-left"></i></span>
-                      </Link>
+                      </button>
                     </li>
-                    <li className="page-item"><Link className="page-link" to="#">1</Link></li>
-                    <li className="page-item"><Link className="page-link" to="#">2</Link></li>
-                    <li className="page-item"><Link className="page-link" to="#">3</Link></li>
-                    <li className="page-item active"><Link className="page-link" to="#">4</Link></li>
-                    <li className="page-item"><Link className="page-link" to="#">5</Link></li>
-                    <li className="page-item">
-                      <Link className="page-link" to="#" aria-label="Next">
+                    {Array.from({ length: totalPages }, (_, pageIndex) => pageIndex + 1).map((pageNumber) => (
+                      <li key={pageNumber} className={`page-item ${pageNumber === currentPage ? 'active' : ''}`}>
+                        <button
+                          type="button"
+                          className="page-link"
+                          onClick={() => setCurrentPage(pageNumber)}
+                        >
+                          {pageNumber}
+                        </button>
+                      </li>
+                    ))}
+                    <li className={`page-item ${currentPage === totalPages ? 'disabled' : ''}`}>
+                      <button
+                        type="button"
+                        className="page-link"
+                        aria-label="Next"
+                        disabled={currentPage === totalPages}
+                        onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
+                      >
                         <span aria-hidden="true"><i className="fa-solid fa-chevron-right"></i></span>
-                      </Link>
+                      </button>
                     </li>
                   </ul>
                 </nav>

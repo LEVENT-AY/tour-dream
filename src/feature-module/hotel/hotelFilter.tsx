@@ -3,7 +3,12 @@ import  { useState } from 'react'
 import { Link } from 'react-router-dom'
 import type { SliderSingleProps } from 'antd';
 
-const HotelFilter = () => {
+type HotelFilterProps = {
+    hotelNameSearch?: string;
+    onHotelNameSearchChange?: (value: string) => void;
+};
+
+const HotelFilter = ({ hotelNameSearch = '', onHotelNameSearchChange }: HotelFilterProps) => {
     const [showMenu,setShowMenu] = useState(false)
     const [showMenu2,setShowMenu2] = useState(false)
     const [showMenu3,setShowMenu3] = useState(false)
@@ -20,7 +25,13 @@ const HotelFilter = () => {
             <form>
                 <div className="p-3 border-bottom">
                     <label className="form-label fs-16">Search by Hotel Name</label>
-                    <input type="text" className="form-control" placeholder="Search by Hotel Name" />
+                    <input
+                      type="text"
+                      className="form-control"
+                      placeholder="Search by Hotel Name"
+                      value={hotelNameSearch}
+                      onChange={(event) => onHotelNameSearchChange?.(event.target.value)}
+                    />
                 </div>
                 <div className="accordion accordion-list">
                     <div className="accordion-item border-bottom p-3">
