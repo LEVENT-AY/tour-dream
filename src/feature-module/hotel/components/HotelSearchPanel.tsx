@@ -95,18 +95,16 @@ const HotelSearchPanel = ({
 
   const handleSearch = () => {
     const realDestination = normalizeDestination(destination);
-    if (!realDestination) {
-      navigate(routes.hotelGrid);
-      return;
-    }
     const params = new URLSearchParams();
     params.set('source', 'manual');
-    params.set('destination', selectedLocation?.city || realDestination);
     params.set('checkInDate', formatDateValue(checkInDate));
     params.set('checkOutDate', formatDateValue(checkOutDate));
     params.set('adults', String(Math.max(1, adults)));
     params.set('rooms', String(Math.max(1, rooms)));
-    navigate(`/hotel/hotel-grid?${params.toString()}`);
+    if (realDestination) {
+      params.set('destination', selectedLocation?.city || realDestination);
+    }
+    navigate(`${routes.hotelMap}?${params.toString()}`);
   };
 
   const hotelSearchForm = (

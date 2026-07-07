@@ -274,7 +274,7 @@ const guidePassenger =
     params.set('checkOutDate', end.toISOString().slice(0, 10));
     params.set('adults', String(Math.max(1, appliedData.hotel.adults || 1)));
     params.set('rooms', String(Math.max(1, appliedData.hotel.rooms || 1)));
-    navigate(`/hotel/hotel-grid?${params.toString()}`);
+    navigate(`/hotel/hotel-map?${params.toString()}`);
   };
 
   const handleHotelDateApply = (start: Date, end: Date) => {

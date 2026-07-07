@@ -14,6 +14,7 @@ const staticFiles = {
   grid: read('src/feature-module/hotel/hotel-grid/hotelGrid.tsx'),
   list: read('src/feature-module/hotel/hotel-list/hotelList.tsx'),
   map: read('src/feature-module/hotel/hotel-map/hotelMap.tsx'),
+  results: read('src/feature-module/hotel/components/PublicHotelResults.tsx'),
   services: read('src/core/services/firebaseServices.ts'),
   planner: read('scripts/plan-tunisiebooking-hotels-pay-now.mjs'),
 };
@@ -23,8 +24,9 @@ assert(/Price not configured yet/.test(staticFiles.sticky), 'Sticky content show
 assert(/Price required before payment/.test(staticFiles.sticky), 'Sticky content blocks payment when price is missing');
 assert(/bookingMode === 'pay_now'/.test(staticFiles.sticky) && /manual_payment/.test(staticFiles.sticky), 'Sticky content passes manual payment mode');
 assert(/Manual payment\. Booking is confirmed after payment verification\./.test(staticFiles.grid), 'Hotel grid shows manual-payment copy for pay-now cards');
-assert(/Manual payment\. Booking is confirmed after payment verification\./.test(staticFiles.list), 'Hotel list shows manual-payment copy for pay-now cards');
-assert(/Manual payment\. Booking is confirmed after payment verification\./.test(staticFiles.map), 'Hotel map shows manual-payment copy for pay-now cards');
+assert(/Manual payment\. Booking is confirmed after payment verification\./.test(staticFiles.results), 'Shared hotel map/list cards show manual-payment copy for pay-now cards');
+assert(/PublicHotelResults/.test(staticFiles.list) && /mode="list"/.test(staticFiles.list), 'Hotel list routes through the shared public results surface');
+assert(/PublicHotelResults/.test(staticFiles.map) && /mode="map"/.test(staticFiles.map), 'Hotel map routes through the shared public results surface');
 assert(/Hotel Payment/.test(staticFiles.request), 'Hotel payment page title exists');
 assert(/Price not configured yet/.test(staticFiles.request), 'Payment page shows missing-price state');
 assert(/Admin must add a price before payment/.test(staticFiles.request), 'Payment page blocks missing-price submissions');
