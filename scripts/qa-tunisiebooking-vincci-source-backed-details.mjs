@@ -207,9 +207,17 @@ try {
   assert(serviceCountBefore <= 18, 'Services are collapsed by default');
   assert(serviceCountAfter >= serviceCountBefore, 'Show All services expands or preserves the visible set');
   assert(boardOptionsText.length > 20, 'Board options show real meal-plan names');
-  assert(/Check-in/i.test(availabilityText) && /Check-out/i.test(availabilityText) && /Nights/i.test(availabilityText) && /Price reference/i.test(availabilityText), 'Availability renders a useful request summary');
+  assert(
+    /Check-in/i.test(availabilityText) &&
+      /Check-out/i.test(availabilityText) &&
+      /Nights/i.test(availabilityText) &&
+      /Payable amount/i.test(availabilityText) &&
+      /Pay Now/i.test(availabilityText) &&
+      /Manual payment\. Booking is confirmed after payment verification\./i.test(availabilityText),
+    'Availability renders a useful pay-now summary',
+  );
   assert(!/160 Rooms \\+ 32 Bungalows/i.test(availabilityText), 'Availability does not repeat the room inventory badge');
-  assert(/Request-only/i.test(availabilityText) && !/instant availability|final total/i.test(availabilityText), 'Availability remains request-only');
+  assert(!/instant availability|final total/i.test(availabilityText), 'Availability avoids instant availability language');
   assert(/WhatsApp Us/i.test(bodyText) && /Chat Now/i.test(bodyText), 'Provider button labels remain intact');
   assert(/Coming soon/i.test(bodyText), 'Provider helper note is visible without replacing labels');
   assert(!/support@example\\.com/i.test(bodyText), 'Provider details do not expose placeholder email');

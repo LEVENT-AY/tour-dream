@@ -1,12 +1,13 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import admin from 'firebase-admin';
-import { getFirestore } from 'firebase-admin/firestore';
+import { FieldValue, getFirestore } from 'firebase-admin/firestore';
 
 const root = process.cwd();
 const tmpDir = path.join(root, 'tmp');
 const jsonPath = path.join(tmpDir, 'tunisiebooking-hotels-pay-now-plan.json');
 const mdPath = path.join(tmpDir, 'tunisiebooking-hotels-pay-now-plan.md');
+const shouldWrite = process.argv.includes('--write');
 
 const ensureTmpDir = () => {
   if (!fs.existsSync(tmpDir)) fs.mkdirSync(tmpDir, { recursive: true });
@@ -93,6 +94,41 @@ const report = {
   needsAdminPriceHotels,
 };
 
+if (shouldWrite) {
+  const batchSize = 400;
+  const chunks = [];
+  for (let i = 0; i < proposedUpdates.length; i += batchSize) {
+    chunks.push(proposedUpdates.slice(i, i + batchSize));
+  }
+
+  for (const chunk of chunks) {
+    const batch = db.batch();
+    for (const item of chunk) {
+      const ref = db.collection('hotels').doc(item.id);
+      const update = {
+        bookingMode: 'pay_now',
+        paymentMode: 'manual_payment',
+        bookingEnabled: item.paymentReady,
+        paymentReady: item.paymentReady,
+      };
+      if (item.paymentReady) {
+        update.paymentDisabledReason = FieldValue.delete();
+        update.adminActionRequired = FieldValue.delete();
+      } else {
+        update.paymentDisabledReason = 'missing_price';
+        update.adminActionRequired = 'add_price';
+      }
+      batch.update(ref, update);
+    }
+    await batch.commit();
+  }
+  report.writeResult = {
+    updatedDocs: proposedUpdates.length,
+    paymentReadyDocs: paymentReadyHotels.length,
+    needsAdminPriceDocs: needsAdminPriceHotels.length,
+  };
+}
+
 ensureTmpDir();
 fs.writeFileSync(jsonPath, JSON.stringify(report, null, 2));
 fs.writeFileSync(
@@ -109,6 +145,7 @@ fs.writeFileSync(
     `- Payment-ready hotels: ${paymentReadyCount}`,
     `- Need admin price first: ${needsAdminPriceCount}`,
     `- Would update: ${wouldUpdate}`,
+    shouldWrite ? `- Write result: updated ${proposedUpdates.length} docs` : '',
     '',
     '## Proposed updates',
     ...proposedUpdates.map((item) =>
