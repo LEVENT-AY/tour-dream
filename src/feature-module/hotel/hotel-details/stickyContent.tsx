@@ -86,7 +86,9 @@ const StickyContent = ({
           priceFrom: hotel?.priceFrom ?? hotel?.price,
           priceCurrency: hotel?.priceCurrency,
           priceUnit: hotel?.priceUnit,
-          priceNote: hotel?.priceNote || (hasPayableAmount ? 'Manual payment. Booking is confirmed after payment verification.' : 'Price required before payment'),
+          priceNote: isPayNow
+            ? (hasPayableAmount ? 'Manual payment. Booking is confirmed after payment verification.' : 'Price required before payment')
+            : hotel?.priceNote || undefined,
         },
         { prefix: 'Starts From', fallbackLabel: isPayNow ? 'Price not configured yet' : 'Price on request', includeFinalNote: !isPayNow && !hasPayableAmount },
       ),
@@ -123,7 +125,9 @@ const StickyContent = ({
       priceFrom: hotel?.priceFrom ?? hotel?.price ?? 0,
       priceCurrency: hotel?.priceCurrency || '',
       priceUnit: hotel?.priceUnit || 'night',
-      priceNote: hotel?.priceNote || (hasPayableAmount ? 'Manual payment. Booking is confirmed after payment verification.' : 'Price required before payment'),
+      priceNote: isPayNow
+        ? (hasPayableAmount ? 'Manual payment. Booking is confirmed after payment verification.' : 'Price required before payment')
+        : hotel?.priceNote || undefined,
       image: hotel?.image || hotel?.gallery?.[0] || '',
       amenities: [],
       bookingMode: hotel?.bookingMode || '',
@@ -168,7 +172,7 @@ const StickyContent = ({
             <span className="hotel-sidebar-kicker">Starts From</span>
             <p className="hotel-sidebar-price mb-1">{priceCopy.headline.replace(/^Starts From\s*/i, '')}</p>
             <p className="fs-12 text-muted mb-0">
-              {priceCopy.note || (isPayNow ? 'Manual payment. Booking is confirmed after payment verification.' : 'Final price and availability are confirmed after request')}
+              {priceCopy.note || (isPayNow ? (hasPayableAmount ? 'Manual payment. Booking is confirmed after payment verification.' : 'Price required before payment') : 'Final price and availability are confirmed after request')}
             </p>
             {isPayNow && payableAmount ? (
               <p className="fs-12 text-primary fw-medium mt-2 mb-0">

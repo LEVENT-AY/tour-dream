@@ -196,12 +196,16 @@ const HotelList = () => {
             </h6>
             <div className="text-end mb-3">
               {(() => {
+                const isPayNowHotel = hotel.bookingMode === 'pay_now';
+                const hasPayableAmount = isPayNowHotel && Number(hotel.priceFrom ?? hotel.price ?? 0) > 0 && Boolean(hotel.priceCurrency);
                 const priceInfo = formatHotelPrice(
                   {
                     priceFrom: hotel.priceFrom ?? hotel.price,
                     priceCurrency: hotel.priceCurrency,
                     priceUnit: hotel.priceUnit,
-                    priceNote: hotel.priceNote,
+                    priceNote: isPayNowHotel
+                      ? (hasPayableAmount ? 'Manual payment. Booking is confirmed after payment verification.' : 'Price required before payment')
+                      : hotel.priceNote || undefined,
                   },
                   { prefix: 'From', fallbackLabel: 'Price on request' },
                 );
@@ -209,6 +213,7 @@ const HotelList = () => {
                   <>
                     <h5 className="text-primary text-nowrap mb-0">{priceInfo.headline}</h5>
                     {priceInfo.note && <div className="fs-12 text-muted">{priceInfo.note}</div>}
+                    {isPayNowHotel && !hasPayableAmount && !priceInfo.note ? <div className="fs-12 text-muted">Price required before payment</div> : null}
                   </>
                 );
               })()}

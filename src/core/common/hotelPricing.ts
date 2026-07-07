@@ -33,6 +33,7 @@ export const formatHotelPrice = (
   const price = normalizePositiveNumber(input.priceFrom ?? input.price);
   const currency = normalizePriceCurrency(input.priceCurrency);
   const unit = normalizePriceUnit(input.priceUnit);
+  const note = normalizeText(input.priceNote);
   const prefix = options.prefix || 'From';
   const fallbackLabel = options.fallbackLabel || 'Price on request';
   const includeFinalNote = options.includeFinalNote !== false;
@@ -41,7 +42,7 @@ export const formatHotelPrice = (
     const unitPart = unit ? ` / ${unit}` : '';
     return {
       headline: `${prefix} ${price}${currencyPart}${unitPart}`,
-      note: includeFinalNote ? 'Final price confirmed after request' : undefined,
+      note: note || (includeFinalNote ? 'Final price confirmed after request' : undefined),
       hasPrice: true,
     };
   }

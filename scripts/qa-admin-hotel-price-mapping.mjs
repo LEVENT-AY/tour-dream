@@ -2,12 +2,26 @@ import fs from 'node:fs';
 import path from 'node:path';
 import admin from 'firebase-admin';
 import { getFirestore } from 'firebase-admin/firestore';
+import { chromium } from 'playwright';
 
 const root = process.cwd();
+const BASE_URL = process.env.BASE_URL || 'http://localhost:5174';
 const read = (rel) => fs.readFileSync(path.join(root, rel), 'utf8');
 const assert = (condition, message) => {
   if (!condition) throw new Error(message);
 };
+
+const normalizeText = (value) => String(value ?? '').trim().replace(/\s+/g, ' ');
+
+const parseNumber = (value) => {
+  const numeric = typeof value === 'number' ? value : Number(String(value ?? '').trim());
+  return Number.isFinite(numeric) ? numeric : null;
+};
+
+const getHotelTitle = (hotel) => normalizeText(hotel.title || hotel.name || hotel.hotelName || '');
+
+const isTunisieBookingHotel = (hotel) =>
+  String(hotel.importSource || hotel.sourceName || hotel.sourceUrl || '').toLowerCase().includes('tunisiebooking');
 
 const sanitizeDescription = (value) => {
   const text = String(value ?? '').replace(/\s+/g, ' ').trim();
@@ -50,10 +64,13 @@ if (admin.getApps().length === 0) {
 }
 
 const db = getFirestore();
-const snap = await db.collection('hotels').doc('imported-tunisiebooking-cesar-palace-sousse-sousse').get();
+const snapshot = await db.collection('hotels').get();
+const docId = 'imported-tunisiebooking-cesar-palace-sousse-sousse';
+const snap = await db.collection('hotels').doc(docId).get();
 assert(snap.exists, 'Cesar Palace Sousse exists in Firestore');
 const doc = snap.data();
 assert(doc, 'Cesar Palace Sousse data is readable');
+const hotels = snapshot.docs.map((docSnap) => ({ id: docSnap.id, ...docSnap.data() }));
 
 const publicPrice = `${doc.priceFrom} ${doc.priceCurrency} / ${doc.priceUnit}`;
 assert(doc.priceFrom === 27, 'Public priceFrom is 27');
@@ -90,10 +107,82 @@ const description = sanitizeDescription(doc.rawSource?.detail?.descriptionExtend
 assert(description.length > 0, 'Admin has a description candidate to normalize');
 assert(!/[\uFFFD]/.test(description), 'Description candidate does not contain replacement character');
 
-console.log(JSON.stringify({
-  publicPrice,
-  adminNormalized,
-  savePayload,
-  descriptionSample: description.slice(0, 180),
-  checks: 'passed',
-}, null, 2));
+const browserExecutablePath = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
+const launchOptions = fs.existsSync(browserExecutablePath) ? { headless: true, executablePath: browserExecutablePath } : { headless: true };
+const browser = await chromium.launch(launchOptions);
+const page = await browser.newPage({ viewport: { width: 1440, height: 1200 } });
+
+try {
+  await page.goto(`${BASE_URL}/login`, { waitUntil: 'domcontentloaded', timeout: 60000 });
+  await page.waitForSelector('input[placeholder="Enter Email"]', { timeout: 60000 });
+  await page.locator('input[placeholder="Enter Email"]').fill('manager.emtilek@gmail.com');
+  await page.locator('input[placeholder="Enter Password"]').fill('ChangeMe123!');
+  await page.locator('button[type="submit"]').click();
+  await page.waitForTimeout(5000);
+
+  await page.goto(`${BASE_URL}/admin/hotels`, { waitUntil: 'domcontentloaded', timeout: 60000 });
+  await page.waitForSelector('input[placeholder="Search by title..."]', { timeout: 60000 });
+
+  const search = page.locator('input[placeholder="Search by title..."]');
+  await search.fill('Cesar Palace Sousse');
+  await page.waitForTimeout(700);
+
+  const cesarRow = page.locator('tr', { hasText: 'Cesar Palace Sousse' }).first();
+  await cesarRow.waitFor({ state: 'visible', timeout: 15000 });
+  const cesarRowText = normalizeText(await cesarRow.innerText());
+  assert(/27 EUR \/ night/.test(cesarRowText), 'Admin table shows Cesar Palace Sousse as 27 EUR / night');
+  assert(!/TND 0/.test(cesarRowText), 'Admin table does not show TND 0 for Cesar Palace Sousse');
+
+  const searchResultsText = normalizeText(await page.locator('table').innerText());
+  assert(/27 EUR \/ night/.test(searchResultsText), 'Admin table keeps the canonical price label visible');
+
+  await page.waitForSelector(`[data-testid="admin-edit-${docId}"]`, { timeout: 15000 });
+  const editButton = page.getByTestId(`admin-edit-${docId}`);
+  await editButton.click();
+  const modal = page.locator('.modal.show');
+  await modal.waitFor({ state: 'visible', timeout: 15000 });
+  const modalText = normalizeText(await modal.innerText());
+  assert(/Price per Night/.test(modalText) && /Currency/.test(modalText) && /Price Unit/.test(modalText), 'Admin edit modal exposes canonical price fields');
+  const modalInputs = modal.locator('input');
+  const priceValue = await modalInputs.nth(6).inputValue();
+  const currencyValue = await modalInputs.nth(7).inputValue();
+  const unitValue = await modalInputs.nth(8).inputValue();
+  assert(priceValue === '27', 'Admin edit modal price input resolves to 27');
+  assert(currencyValue === 'EUR', 'Admin edit modal currency input resolves to EUR');
+  assert(unitValue === 'night', 'Admin edit modal unit input resolves to night');
+
+  const missingPriceHotel = hotels.find((hotel) => {
+    if (!isTunisieBookingHotel(hotel)) return false;
+    const price = parseNumber(hotel.priceFrom ?? hotel.price ?? hotel.pricePerNight);
+    return price === null || price <= 0;
+  });
+
+  assert(missingPriceHotel, 'At least one TunisieBooking hotel is missing a price');
+  const missingTitle = getHotelTitle(missingPriceHotel);
+  await search.fill(missingTitle);
+  await page.waitForTimeout(700);
+  const missingRow = page.locator('tr', { hasText: missingTitle }).first();
+  await missingRow.waitFor({ state: 'visible', timeout: 15000 });
+  const missingRowText = normalizeText(await missingRow.innerText());
+  assert(/Missing price/.test(missingRowText), 'Admin table marks missing prices clearly');
+  assert(!/TND 0/.test(missingRowText), 'Admin table does not invent TND 0 for missing prices');
+
+  console.log(JSON.stringify({
+    publicPrice,
+    adminNormalized,
+    savePayload,
+    descriptionSample: description.slice(0, 180),
+    liveChecks: {
+      cesarRowText,
+      missingTitle,
+      missingRowText,
+      priceValue,
+      currencyValue,
+      unitValue,
+    },
+    checks: 'passed',
+  }, null, 2));
+} finally {
+  await page.close();
+  await browser.close();
+}

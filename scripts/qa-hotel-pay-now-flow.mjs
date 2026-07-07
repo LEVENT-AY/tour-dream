@@ -12,6 +12,8 @@ const staticFiles = {
   sticky: read('src/feature-module/hotel/hotel-details/stickyContent.tsx'),
   request: read('src/feature-module/hotel/hotel-request/hotelRequest.tsx'),
   grid: read('src/feature-module/hotel/hotel-grid/hotelGrid.tsx'),
+  list: read('src/feature-module/hotel/hotel-list/hotelList.tsx'),
+  map: read('src/feature-module/hotel/hotel-map/hotelMap.tsx'),
   services: read('src/core/services/firebaseServices.ts'),
   planner: read('scripts/plan-tunisiebooking-hotels-pay-now.mjs'),
 };
@@ -20,6 +22,9 @@ assert(/Pay Now/.test(staticFiles.sticky), 'Sticky content has Pay Now CTA');
 assert(/Price not configured yet/.test(staticFiles.sticky), 'Sticky content shows missing-price copy');
 assert(/Price required before payment/.test(staticFiles.sticky), 'Sticky content blocks payment when price is missing');
 assert(/bookingMode === 'pay_now'/.test(staticFiles.sticky) && /manual_payment/.test(staticFiles.sticky), 'Sticky content passes manual payment mode');
+assert(/Manual payment\. Booking is confirmed after payment verification\./.test(staticFiles.grid), 'Hotel grid shows manual-payment copy for pay-now cards');
+assert(/Manual payment\. Booking is confirmed after payment verification\./.test(staticFiles.list), 'Hotel list shows manual-payment copy for pay-now cards');
+assert(/Manual payment\. Booking is confirmed after payment verification\./.test(staticFiles.map), 'Hotel map shows manual-payment copy for pay-now cards');
 assert(/Hotel Payment/.test(staticFiles.request), 'Hotel payment page title exists');
 assert(/Price not configured yet/.test(staticFiles.request), 'Payment page shows missing-price state');
 assert(/Admin must add a price before payment/.test(staticFiles.request), 'Payment page blocks missing-price submissions');
@@ -92,8 +97,21 @@ assert(/Payable amount/.test(payText), 'Pay-now payable amount is shown');
 assert(/Submit Payment/.test(payText), 'Pay-now submit button is labeled Submit Payment');
 assert(/Phone \/ WhatsApp/.test(payText), 'Pay-now form requires phone / WhatsApp');
 assert(/I understand my booking will be confirmed after DreamsTour verifies the payment/.test(payText), 'Consent checkbox copy is visible');
+assert(/Manual payment verification/.test(payText), 'Pay-now page shows manual-payment verification copy');
+assert(/Pay now using Wafa Cash or Bank Transfer\. DreamsTour will verify the payment and confirm your booking after manual review\./.test(payText), 'Pay-now page shows the manual review guidance');
+assert(!/Final price confirmed after request/.test(payText), 'Pay-now page no longer shows request-only price copy');
 assert(/Coming soon/.test(payText), 'Card is shown as coming soon');
 assert(!/Hotel ID:/.test(payText) && !/Source:/.test(payText), 'Internal hotel fields stay hidden on the pay-now page');
+
+const gridPage = await context.newPage();
+await gridPage.goto('http://localhost:5174/hotel/hotel-grid?source=manual&destination=Djerba&checkInDate=2026-07-06&checkOutDate=2026-07-08&adults=1&rooms=1', { waitUntil: 'domcontentloaded', timeout: 60000 });
+await gridPage.waitForFunction(() => document.querySelectorAll('.place-item').length > 0, { timeout: 20000 }).catch(() => {});
+const payNowCard = gridPage.locator('.place-item').filter({ hasText: 'Vincci Helios Beach' }).first();
+await payNowCard.waitFor({ state: 'visible', timeout: 15000 });
+const payNowCardText = await payNowCard.innerText();
+assert(/Pay Now/.test(payNowCardText), 'Hotel grid labels pay-now hotels correctly');
+assert(/Manual payment\. Booking is confirmed after payment verification\./.test(payNowCardText), 'Hotel grid shows manual-payment verification copy');
+assert(!/Final price confirmed after request/.test(payNowCardText), 'Hotel grid no longer shows request-only price copy');
 
 const missingPage = await context.newPage();
 await missingPage.addInitScript((selection) => {

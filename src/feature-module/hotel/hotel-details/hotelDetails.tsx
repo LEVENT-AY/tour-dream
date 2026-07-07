@@ -716,7 +716,11 @@ const HotelDetails = () => {
           priceFrom: displayHotel.priceFrom,
           priceCurrency: displayHotel.priceCurrency,
           priceUnit: displayHotel.priceUnit,
-          priceNote: displayHotel.priceNote,
+          priceNote: isPayNowHotel
+            ? (displayHotel.priceFrom && displayHotel.priceCurrency
+              ? "Manual payment. Booking is confirmed after payment verification."
+              : "Price required before payment")
+            : displayHotel.priceNote,
         },
         { prefix: "Starts From", fallbackLabel: isPayNowHotel ? "Price not configured yet" : "Price on request", includeFinalNote: !isPayNowHotel },
       )
@@ -787,7 +791,7 @@ const HotelDetails = () => {
         `Rooms: ${Math.max(1, initialRooms || 1)}`,
         `Adults: ${Math.max(1, initialAdults || 1)}`,
         `Children: ${Math.max(0, initialChildren || 0)}`,
-        `${isPayNowHotel ? "Payable amount" : "Price reference"}: ${availabilityPrice.headline}${availabilityPrice.note ? ` · ${availabilityPrice.note}` : ""}`,
+        `${isPayNowHotel ? "Payable amount" : "Price reference"}: ${availabilityPrice.headline}${!isPayNowHotel && availabilityPrice.note ? ` · ${availabilityPrice.note}` : ""}`,
       ]
     : [];
 
@@ -1083,7 +1087,7 @@ const HotelDetails = () => {
                               {isPayNowHotel
                                 ? (canSubmitPayNow
                                   ? "Manual payment. Booking is confirmed after payment verification."
-                                  : "Admin must add a price before payment can be submitted.")
+                                  : "Price required before payment")
                                 : (availabilityPrice.note || "Final price and availability are confirmed after request")}
                             </p>
                           </div>

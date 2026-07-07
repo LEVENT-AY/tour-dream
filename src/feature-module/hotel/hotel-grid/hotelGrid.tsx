@@ -457,7 +457,9 @@ const HotelGrid = () => {
                                     priceFrom: hotel.priceFrom ?? hotel.price,
                                     priceCurrency: hotel.priceCurrency,
                                     priceUnit: hotel.priceUnit,
-                                    priceNote: hotel.priceNote || (isPayNowHotel ? (hasPayableAmount ? 'Amount to pay now is based on selected dates and rooms' : 'Admin must add a price before payment') : undefined),
+                                    priceNote: isPayNowHotel
+                                      ? (hasPayableAmount ? 'Manual payment. Booking is confirmed after payment verification.' : 'Price required before payment')
+                                      : hotel.priceNote || undefined,
                                   },
                                   { prefix: 'From', fallbackLabel: isPayNowHotel ? 'Price not configured yet' : 'Price on request' },
                                 );

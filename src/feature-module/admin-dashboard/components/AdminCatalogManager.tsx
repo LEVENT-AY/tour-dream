@@ -81,6 +81,26 @@ const parseNumericInput = (value: unknown): number | null => {
   return Number.isFinite(numeric) ? numeric : null;
 };
 
+const normalizeDisplayText = (value: unknown): string => {
+  if (typeof value !== 'string') return '';
+  return value.trim().replace(/\s+/g, ' ');
+};
+
+const isTunisieBookingItem = (item: Record<string, any>): boolean =>
+  String(item.importSource || item.sourceName || item.sourceUrl || '').toLowerCase().includes('tunisiebooking');
+
+const resolveAdminPriceLabel = (item: Record<string, any>): string => {
+  const price = parseNumericInput(item.priceFrom ?? item.price ?? item.pricePerNight);
+  if (price === null || price <= 0) return 'Missing price';
+
+  const currency = normalizeDisplayText(
+    item.priceCurrency || item.currency || (isTunisieBookingItem(item) ? 'EUR' : ''),
+  ).toUpperCase();
+  const unit = normalizeDisplayText(item.priceUnit || item.pricePerNightUnit || 'night').toLowerCase();
+
+  return `${price}${currency ? ` ${currency}` : ''}${unit ? ` / ${unit}` : ''}`;
+};
+
 interface AdminCatalogManagerProps {
   title: string;
   collectionName: string;
@@ -561,7 +581,7 @@ const AdminCatalogManager: React.FC<AdminCatalogManagerProps> = ({
                             ? `${item.departureCity} → ${item.arrivalCity}`
                             : item.departureCity || item.arrivalCity || '—')}
                       </td>
-                      <td>{`${item.currency || 'TND'} ${item.price ?? item.startingPrice ?? item.pricePerNight ?? 0}`}</td>
+                      <td>{resolveAdminPriceLabel(item)}</td>
                       <td>
                         {typeof item.rating === 'number' &&
                         !Number.isNaN(item.rating) &&
