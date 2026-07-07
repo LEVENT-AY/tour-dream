@@ -151,21 +151,25 @@ try {
   assert(currencyValue === 'EUR', 'Admin edit modal currency input resolves to EUR');
   assert(unitValue === 'night', 'Admin edit modal unit input resolves to night');
 
-  const missingPriceHotel = hotels.find((hotel) => {
+  const missingPriceHotels = hotels.filter((hotel) => {
     if (!isTunisieBookingHotel(hotel)) return false;
     const price = parseNumber(hotel.priceFrom ?? hotel.price ?? hotel.pricePerNight);
     return price === null || price <= 0;
   });
 
-  assert(missingPriceHotel, 'At least one TunisieBooking hotel is missing a price');
-  const missingTitle = getHotelTitle(missingPriceHotel);
-  await search.fill(missingTitle);
+  assert(missingPriceHotels.length === 0, 'No TunisieBooking hotel is missing a price');
+
+  const formerMissingHotel = hotels.find((hotel) => getHotelTitle(hotel) === 'El Mouradi Gammarth') || null;
+  assert(formerMissingHotel, 'El Mouradi Gammarth exists in Firestore');
+  const formerMissingTitle = getHotelTitle(formerMissingHotel);
+  await search.fill(formerMissingTitle);
   await page.waitForTimeout(700);
-  const missingRow = page.locator('tr', { hasText: missingTitle }).first();
-  await missingRow.waitFor({ state: 'visible', timeout: 15000 });
-  const missingRowText = normalizeText(await missingRow.innerText());
-  assert(/Missing price/.test(missingRowText), 'Admin table marks missing prices clearly');
-  assert(!/TND 0/.test(missingRowText), 'Admin table does not invent TND 0 for missing prices');
+  const formerMissingRow = page.locator('tr', { hasText: formerMissingTitle }).first();
+  await formerMissingRow.waitFor({ state: 'visible', timeout: 15000 });
+  const formerMissingRowText = normalizeText(await formerMissingRow.innerText());
+  assert(/44 EUR \/ night/.test(formerMissingRowText), 'Formerly missing hotel now shows the admin-entered price');
+  assert(!/Missing price/.test(formerMissingRowText), 'Formerly missing hotel no longer shows Missing price');
+  assert(!/TND 0/.test(formerMissingRowText), 'Formerly missing hotel does not invent TND 0');
 
   console.log(JSON.stringify({
     publicPrice,
@@ -174,11 +178,11 @@ try {
     descriptionSample: description.slice(0, 180),
     liveChecks: {
       cesarRowText,
-      missingTitle,
-      missingRowText,
       priceValue,
       currencyValue,
       unitValue,
+      formerMissingTitle,
+      formerMissingRowText,
     },
     checks: 'passed',
   }, null, 2));
