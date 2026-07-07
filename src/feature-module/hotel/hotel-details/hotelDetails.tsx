@@ -709,6 +709,7 @@ const HotelDetails = () => {
     return () => observer.disconnect();
   }, [displayHotel, sectionTabs]);
 
+  const isPayNowHotel = Boolean(displayHotel && displayHotel.bookingMode === "pay_now");
   const availabilityPrice = isRenderableHotel && displayHotel
     ? formatHotelPrice(
         {
@@ -717,9 +718,10 @@ const HotelDetails = () => {
           priceUnit: displayHotel.priceUnit,
           priceNote: displayHotel.priceNote,
         },
-        { prefix: "Starts From", fallbackLabel: "Price on request" },
+        { prefix: "Starts From", fallbackLabel: isPayNowHotel ? "Price not configured yet" : "Price on request", includeFinalNote: !isPayNowHotel },
       )
     : { headline: "Price on request", note: undefined, hasPrice: false };
+  const canSubmitPayNow = Boolean(displayHotel && isPayNowHotel && displayHotel.bookingEnabled !== false && availabilityPrice.hasPrice && displayHotel.priceCurrency);
 
   const breadcrumbs = [
     {
@@ -785,7 +787,7 @@ const HotelDetails = () => {
         `Rooms: ${Math.max(1, initialRooms || 1)}`,
         `Adults: ${Math.max(1, initialAdults || 1)}`,
         `Children: ${Math.max(0, initialChildren || 0)}`,
-        `Price reference: ${availabilityPrice.headline}${availabilityPrice.note ? ` · ${availabilityPrice.note}` : ""}`,
+        `${isPayNowHotel ? "Payable amount" : "Price reference"}: ${availabilityPrice.headline}${availabilityPrice.note ? ` · ${availabilityPrice.note}` : ""}`,
       ]
     : [];
 
@@ -1078,10 +1080,14 @@ const HotelDetails = () => {
                           <div>
                             <p className="fs-16 fw-medium mb-1">{availabilityPrice.headline}</p>
                             <p className="text-muted mb-0">
-                              {availabilityPrice.note || "Final price and availability are confirmed after request"}
+                              {isPayNowHotel
+                                ? (canSubmitPayNow
+                                  ? "Manual payment. Booking is confirmed after payment verification."
+                                  : "Admin must add a price before payment can be submitted.")
+                                : (availabilityPrice.note || "Final price and availability are confirmed after request")}
                             </p>
                           </div>
-                          <span className="hotel-request-pill">Request-only</span>
+                          <span className="hotel-request-pill">{isPayNowHotel ? "Pay Now" : "Request-only"}</span>
                         </div>
                         <div className="hotel-request-summary-grid">
                           {requestSummary.map((item) => (
@@ -1091,7 +1097,11 @@ const HotelDetails = () => {
                           ))}
                         </div>
                         <p className="mb-0 text-muted">
-                          This hotel is available by request only. We confirm room options and final pricing after you send your request.
+                          {isPayNowHotel
+                            ? (canSubmitPayNow
+                              ? "Manual payment. Booking is confirmed after payment verification."
+                              : "This hotel is configured for Pay Now, but the payment price has not been added yet.")
+                            : "This hotel is available by request only. We confirm room options and final pricing after you send your request."}
                         </p>
                       </div>
                     </div>
@@ -1249,3 +1259,4 @@ const HotelDetails = () => {
 };
 
 export default HotelDetails;
+

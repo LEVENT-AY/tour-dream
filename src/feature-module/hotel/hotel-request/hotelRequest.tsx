@@ -1,9 +1,10 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import Breadcrumb from '../../../core/common/Breadcrumb/breadcrumb';
 import { createServiceRequest } from '../../../core/services/firebaseServices';
 import { getStorage, ref, uploadBytesResumable } from 'firebase/storage';
 import { app } from '../../../firebase';
+import dayjs from 'dayjs';
 import type { PreferredPaymentMethod, ManualPaymentStatus } from '../../../core/services/firebaseServices';
 
 const storage = getStorage(app);
@@ -88,21 +89,56 @@ const HotelRequest = () => {
   const checkInDate = searchParams.get('checkInDate') || checkIn;
   const checkOutDate = searchParams.get('checkOutDate') || checkOut;
   const manualHotelSelection = useMemo(() => (provider === 'manual' ? readManualSelection() : null), [provider]);
+  const bookingMode = searchParams.get('bookingMode') || manualHotelSelection?.bookingMode || '';
+  const paymentMode = searchParams.get('paymentMode') || '';
   const isManualMode = provider === 'manual';
   const isDuffelMode = !isManualMode && !!(stayId || name);
+  const isPayNowMode = isManualMode && (bookingMode === 'pay_now' || paymentMode === 'manual_payment');
+  const resolvedManualPrice = Number(manualHotelSelection?.priceFrom ?? manualHotelSelection?.price ?? (priceFrom ? Number(priceFrom) : 0));
+  const resolvedManualCurrency = manualHotelSelection?.priceCurrency || priceCurrency;
+  const hasPayableAmount = isPayNowMode && resolvedManualPrice > 0 && Boolean(resolvedManualCurrency);
+  const pageTitle = isPayNowMode ? 'Hotel Payment' : 'Review Hotel Request';
+
+  useEffect(() => {
+    const previousTitle = document.title;
+    document.title = `${pageTitle} | DreamsTour Tunisia`;
+    return () => {
+      document.title = previousTitle;
+    };
+  }, [pageTitle]);
 
   const manualTitle = manualHotelSelection?.title || hotelName || destination;
   const manualCity = manualHotelSelection?.city || destination;
   const manualLocation = manualHotelSelection?.location || manualCity;
   const manualPriceLabel = (() => {
-    const resolvedPrice = manualHotelSelection?.priceFrom ?? manualHotelSelection?.price ?? (priceFrom ? Number(priceFrom) : null);
-    const resolvedCurrency = manualHotelSelection?.priceCurrency || priceCurrency;
+    const resolvedPrice = resolvedManualPrice > 0 ? resolvedManualPrice : null;
+    const resolvedCurrency = resolvedManualCurrency;
     const resolvedUnit = manualHotelSelection?.priceUnit || priceUnit;
     if (typeof resolvedPrice === 'number' && resolvedPrice > 0) {
       return `From ${resolvedPrice}${resolvedCurrency ? ` ${resolvedCurrency}` : ''}${resolvedUnit ? ` / ${resolvedUnit}` : ''}`;
     }
+    if (isPayNowMode) return 'Price not configured yet';
     if (amount) return `${currency ? `${currency} ` : ''}${amount}`.trim();
     return 'Contact for pricing';
+  })();
+  const payableAmountValue = (() => {
+    if (!hasPayableAmount) return null;
+    const resolvedNights = (() => {
+      const start = dayjs(checkInDate);
+      const end = dayjs(checkOutDate);
+      const diff = end.diff(start, 'day');
+      return Number.isFinite(diff) && diff > 0 ? diff : Number(nights) || 1;
+    })();
+    const stayNights = Math.max(1, resolvedNights);
+    const stayRooms = Math.max(1, Number(rooms) || 1);
+    const basePrice = resolvedManualPrice;
+    return basePrice > 0 ? basePrice * stayNights * stayRooms : 0;
+  })();
+  const stayNights = (() => {
+    const start = dayjs(checkInDate);
+    const end = dayjs(checkOutDate);
+    const diff = end.diff(start, 'day');
+    return Math.max(1, Number.isFinite(diff) && diff > 0 ? diff : Number(nights) || 1);
   })();
 
   const [customerName, setCustomerName] = useState('');
@@ -110,8 +146,10 @@ const HotelRequest = () => {
   const [customerPhone, setCustomerPhone] = useState('');
   const [message, setMessage] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<PreferredPaymentMethod | ''>('');
+  const [paymentReference, setPaymentReference] = useState('');
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
   const [receiptError, setReceiptError] = useState('');
+  const [consentAccepted, setConsentAccepted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState('');
@@ -125,12 +163,28 @@ const HotelRequest = () => {
       setError('Name and email are required');
       return;
     }
+    if (isPayNowMode && !hasPayableAmount) {
+      setError('This hotel is configured for Pay Now, but the payment price has not been added yet.');
+      return;
+    }
+    if (isPayNowMode && !customerPhone.trim()) {
+      setError('Phone / WhatsApp is required for payment verification');
+      return;
+    }
     if (!paymentMethod) {
       setError('Please select a payment method');
       return;
     }
+    if (isPayNowMode && paymentMethod === 'card') {
+      setError('Card payment is coming soon');
+      return;
+    }
     if ((paymentMethod === 'wafa_cash' || paymentMethod === 'bank_transfer') && !receiptFile) {
       setError('Please upload your payment receipt');
+      return;
+    }
+    if (isPayNowMode && !consentAccepted) {
+      setError('Please confirm that DreamsTour will verify the payment and booking availability');
       return;
     }
 
@@ -138,19 +192,19 @@ const HotelRequest = () => {
     let uploadedReceiptPath = '';
     let uploadedReceiptFileName = '';
     let uploadedReceiptContentType = '';
-    let paymentStatus: ManualPaymentStatus = paymentMethod === 'card' ? 'not_requested' : 'receipt_pending';
+    let paymentStatus: ManualPaymentStatus = isPayNowMode ? 'submitted' : (paymentMethod === 'card' ? 'not_requested' : 'receipt_pending');
 
     try {
       if (receiptFile) {
         uploadedReceiptFileName = receiptFile.name;
         uploadedReceiptContentType = receiptFile.type;
         uploadedReceiptPath = await uploadReceipt(receiptFile);
-        paymentStatus = 'receipt_uploaded';
+        paymentStatus = isPayNowMode ? 'submitted' : 'receipt_uploaded';
       }
 
       const offerSnapshot = isManualMode
         ? {
-            type: manualHotelSelection ? 'manual_hotel' : 'manual_request',
+            type: isPayNowMode ? 'manual_hotel_payment' : (manualHotelSelection ? 'manual_hotel' : 'manual_request'),
             provider: 'manual',
             hotelId: manualHotelSelection?.id || hotelId || stayId || '',
             accommodationName: manualTitle,
@@ -175,8 +229,9 @@ const HotelRequest = () => {
             childAges: childAges || '',
             sourceName: manualHotelSelection?.sourceName || sourceName || '',
             sourceUrl: manualHotelSelection?.sourceUrl || sourceUrl || '',
-            bookingMode: manualHotelSelection?.bookingMode || '',
             selectedBoardType: manualHotelSelection?.selectedBoardType || selectedBoardType || '',
+            bookingMode: bookingMode || manualHotelSelection?.bookingMode || '',
+            paymentMode: isPayNowMode ? 'manual_payment' : undefined,
           } as Record<string, unknown>
         : {
             type: 'stay',
@@ -196,13 +251,18 @@ const HotelRequest = () => {
       await createServiceRequest({
         serviceType: 'hotel',
         serviceId: isManualMode ? (manualHotelSelection?.id || stayId || `manual-hotel-request-${destination}`) : (stayId || 'hotel-request'),
-        serviceTitle: isManualMode ? `Hotel Request - ${destination}` : (name || 'Hotel Request'),
+        serviceTitle: isManualMode ? (isPayNowMode ? `Hotel Payment - ${manualTitle}` : `Hotel Request - ${destination}`) : (name || 'Hotel Request'),
         customerName: customerName.trim(),
         customerEmail: customerEmail.trim(),
         customerPhone: customerPhone.trim() || undefined,
         message: message.trim() || undefined,
         preferredPaymentMethod: paymentMethod as PreferredPaymentMethod,
         paymentStatus,
+        paymentMode: isPayNowMode ? 'manual_payment' : undefined,
+        bookingMode: isPayNowMode ? 'pay_now' : (isManualMode ? 'request_only' : undefined),
+        bookingStatus: isPayNowMode ? 'pending_admin_confirmation' : undefined,
+        requestType: isPayNowMode ? 'hotel_payment' : 'hotel_request',
+        paymentReference: paymentReference.trim() || undefined,
         receiptPath: uploadedReceiptPath || undefined,
         receiptFileName: uploadedReceiptFileName || undefined,
         receiptContentType: uploadedReceiptContentType || undefined,
@@ -228,7 +288,7 @@ const HotelRequest = () => {
   if (submitted) {
     return (
       <div>
-        <Breadcrumb title="Hotel Request Sent" breadcrumbs={breadcrumbs} backgroundClass="breadcrumb-bg-01" />
+        <Breadcrumb title={isPayNowMode ? 'Payment Submitted' : 'Hotel Request Sent'} breadcrumbs={breadcrumbs} backgroundClass="breadcrumb-bg-01" />
         <div className="content">
           <div className="container">
             <div className="row justify-content-center">
@@ -236,17 +296,30 @@ const HotelRequest = () => {
                 <div className="card shadow-none border mt-4">
                   <div className="card-body text-center py-5">
                     <div className="mb-3"><i className="isax isax-tick-circle text-success" style={{ fontSize: '4rem' }}></i></div>
-                    <h4 className="mb-2">Hotel Request Sent</h4>
+                    <h4 className="mb-2">{isPayNowMode ? 'Payment Submitted' : 'Hotel Request Sent'}</h4>
                     <p className="text-muted mb-0">
-                      Your request for <strong>{isManualMode ? manualTitle : (name || destination)}</strong> has been submitted. Our team will review it and contact you shortly.
+                      {isPayNowMode
+                        ? <>Your payment request for <strong>{manualTitle}</strong> has been submitted. DreamsTour will verify the payment and confirm your booking.</>
+                        : <>Your request for <strong>{isManualMode ? manualTitle : (name || destination)}</strong> has been submitted. Our team will review it and contact you shortly.</>}
                     </p>
                     <div className="bg-light rounded p-3 mt-3 text-start">
-                      <h6 className="fs-14 mb-2">What happens next?</h6>
+                      <h6 className="fs-14 mb-2">{isPayNowMode ? 'What happens next?' : 'What happens next?'}</h6>
                       <ul className="fs-13 mb-0 ps-3">
-                        <li>Our team reviews your request and confirms availability.</li>
-                        <li>We contact you via phone or WhatsApp with the details.</li>
-                        <li>Payment instructions (Wafa Cash or bank transfer) will be shared after confirmation.</li>
-                        <li>No card payment is collected on the website.</li>
+                        {isPayNowMode ? (
+                          <>
+                            <li>Our team verifies your payment and checks booking availability.</li>
+                            <li>We contact you via phone or WhatsApp if anything needs clarification.</li>
+                            <li>Your booking is only confirmed after manual verification.</li>
+                            <li>No card payment is collected on the website.</li>
+                          </>
+                        ) : (
+                          <>
+                            <li>Our team reviews your request and confirms availability.</li>
+                            <li>We contact you via phone or WhatsApp with the details.</li>
+                            <li>Payment instructions (Wafa Cash or bank transfer) will be shared after confirmation.</li>
+                            <li>No card payment is collected on the website.</li>
+                          </>
+                        )}
                       </ul>
                     </div>
                   </div>
@@ -261,33 +334,52 @@ const HotelRequest = () => {
 
   return (
     <div>
-      <Breadcrumb title="Review Hotel Request" breadcrumbs={breadcrumbs} backgroundClass="breadcrumb-bg-01" />
+      <Breadcrumb title={pageTitle} breadcrumbs={breadcrumbs} backgroundClass="breadcrumb-bg-01" />
       <div className="content">
         <div className="container">
           <div className="row justify-content-center">
             <div className="col-lg-8">
               <div className="card shadow-none border mt-4">
                 <div className="card-body">
-                  <h5 className="mb-3">Review Hotel Request</h5>
+                  <h5 className="mb-3">{pageTitle}</h5>
 
                   {isManualMode && (
+                    isPayNowMode ? (
                     <div className="bg-light rounded p-3 mb-3">
-                      <h6 className="fs-14 fw-semibold mb-2">Request Details</h6>
+                      <h6 className="fs-14 fw-semibold mb-2">Payment Summary</h6>
                       <div className="row g-2 fs-14">
-                        <div className="col-md-6"><span className="text-muted">Hotel:</span> {manualTitle}</div>
-                        <div className="col-md-6"><span className="text-muted">Location:</span> {manualCity}</div>
-                        {!!manualHotelSelection?.address && <div className="col-md-12"><span className="text-muted">Address:</span> {manualHotelSelection.address}</div>}
-                        <div className="col-md-6"><span className="text-muted">Check-in:</span> {checkInDate || 'Not provided'}</div>
-                        <div className="col-md-6"><span className="text-muted">Check-out:</span> {checkOutDate || 'Not provided'}</div>
-                        <div className="col-md-6"><span className="text-muted">Guests:</span> {adults} Adult(s){Number(children) > 0 ? `, ${children} Child(ren)` : ''}</div>
-                        <div className="col-md-6"><span className="text-muted">Rooms:</span> {rooms}</div>
-                        <div className="col-md-6"><span className="text-muted">Price:</span> <strong>{manualPriceLabel}</strong></div>
-                        <div className="col-md-6"><span className="text-muted">Provider:</span> <span className="badge bg-secondary">{sourceName || 'manual'}</span></div>
-                        {hotelId && <div className="col-md-6"><span className="text-muted">Hotel ID:</span> {hotelId}</div>}
-                        {selectedBoardType && <div className="col-md-6"><span className="text-muted">Board:</span> {selectedBoardType}</div>}
-                        {sourceUrl && <div className="col-md-12"><span className="text-muted">Source:</span> {sourceUrl}</div>}
+                          <div className="col-md-6"><span className="text-muted">Hotel:</span> {manualTitle}</div>
+                          <div className="col-md-6"><span className="text-muted">Location:</span> {manualCity}</div>
+                          {!!manualHotelSelection?.address && <div className="col-md-12"><span className="text-muted">Address:</span> {manualHotelSelection.address}</div>}
+                          <div className="col-md-6"><span className="text-muted">Check-in:</span> {checkInDate || 'Not provided'}</div>
+                          <div className="col-md-6"><span className="text-muted">Check-out:</span> {checkOutDate || 'Not provided'}</div>
+                          <div className="col-md-6"><span className="text-muted">Nights:</span> {stayNights}</div>
+                          <div className="col-md-6"><span className="text-muted">Rooms:</span> {rooms}</div>
+                          <div className="col-md-6"><span className="text-muted">Adults:</span> {adults}</div>
+                          <div className="col-md-6"><span className="text-muted">Children:</span> {children}</div>
+                          <div className="col-md-6"><span className="text-muted">Price per night:</span> <strong>{resolvedManualPrice > 0 && resolvedManualCurrency ? `${resolvedManualPrice} ${resolvedManualCurrency}`.trim() : 'Price not configured yet'}</strong></div>
+                          <div className="col-md-6"><span className="text-muted">Payable amount:</span> <strong>{payableAmountValue ? `${payableAmountValue} ${resolvedManualCurrency || ''}`.trim() : 'Pending admin price'}</strong></div>
+                          <div className="col-md-6"><span className="text-muted">Provider:</span> <span className="badge bg-secondary">{sourceName || manualHotelSelection?.sourceName || 'manual'}</span></div>
+                          {selectedBoardType && <div className="col-md-6"><span className="text-muted">Board:</span> {selectedBoardType}</div>}
+                        </div>
                       </div>
-                    </div>
+                    ) : (
+                      <div className="bg-light rounded p-3 mb-3">
+                        <h6 className="fs-14 fw-semibold mb-2">Request Details</h6>
+                        <div className="row g-2 fs-14">
+                          <div className="col-md-6"><span className="text-muted">Hotel:</span> {manualTitle}</div>
+                          <div className="col-md-6"><span className="text-muted">Location:</span> {manualCity}</div>
+                          {!!manualHotelSelection?.address && <div className="col-md-12"><span className="text-muted">Address:</span> {manualHotelSelection.address}</div>}
+                          <div className="col-md-6"><span className="text-muted">Check-in:</span> {checkInDate || 'Not provided'}</div>
+                          <div className="col-md-6"><span className="text-muted">Check-out:</span> {checkOutDate || 'Not provided'}</div>
+                          <div className="col-md-6"><span className="text-muted">Guests:</span> {adults} Adult(s){Number(children) > 0 ? `, ${children} Child(ren)` : ''}</div>
+                          <div className="col-md-6"><span className="text-muted">Rooms:</span> {rooms}</div>
+                          <div className="col-md-6"><span className="text-muted">Price:</span> <strong>{manualPriceLabel}</strong></div>
+                          <div className="col-md-6"><span className="text-muted">Provider:</span> <span className="badge bg-secondary">{sourceName || 'manual'}</span></div>
+                          {selectedBoardType && <div className="col-md-6"><span className="text-muted">Board:</span> {selectedBoardType}</div>}
+                        </div>
+                      </div>
+                    )
                   )}
 
                   {!isManualMode && isDuffelMode && (
@@ -321,10 +413,19 @@ const HotelRequest = () => {
                     </div>
                   )}
 
+                  {isPayNowMode && !hasPayableAmount ? (
+                    <div className="alert alert-warning py-3 mb-3">
+                      <strong>This hotel is configured for Pay Now, but the payment price has not been added yet.</strong>
+                      <div className="mt-1">Admin must add a price before payment can be submitted.</div>
+                    </div>
+                  ) : null}
+
                   <div className="bg-info bg-opacity-10 border border-info border-opacity-25 rounded p-3 mb-3">
-                    <h6 className="fs-14 fw-semibold mb-1">Manual payment after confirmation</h6>
+                    <h6 className="fs-14 fw-semibold mb-1">{isPayNowMode ? 'Manual payment verification' : 'Manual payment after confirmation'}</h6>
                     <p className="fs-13 text-muted mb-0">
-                      Submit your request first. Our team will confirm availability and contact you with Wafa Cash or bank transfer instructions. No card payment is collected on the website.
+                      {isPayNowMode
+                        ? 'Pay now using Wafa Cash or Bank Transfer. DreamsTour will verify the payment and confirm your booking after manual review.'
+                        : 'Submit your request first. Our team will confirm availability and contact you with Wafa Cash or bank transfer instructions. No card payment is collected on the website.'}
                     </p>
                   </div>
 
@@ -341,8 +442,8 @@ const HotelRequest = () => {
                         <input type="email" className="form-control" placeholder="Email address" value={customerEmail} onChange={(e) => setCustomerEmail(e.target.value)} required />
                       </div>
                       <div className="col-md-6 mb-3">
-                        <label className="form-label fs-14">Phone / WhatsApp</label>
-                        <input type="tel" className="form-control" placeholder="Phone number" value={customerPhone} onChange={(e) => setCustomerPhone(e.target.value)} />
+                        <label className="form-label fs-14">Phone / WhatsApp {isPayNowMode ? <span className="text-danger">*</span> : null}</label>
+                        <input type="tel" className="form-control" placeholder="Phone number" value={customerPhone} onChange={(e) => setCustomerPhone(e.target.value)} required={isPayNowMode} />
                       </div>
                     </div>
                     <div className="mb-3">
@@ -354,12 +455,12 @@ const HotelRequest = () => {
                       <label className="form-label fs-14">Payment method <span className="text-danger">*</span></label>
                       <div className="d-flex flex-wrap gap-2">
                         <div
-                          className={`border rounded p-3 cursor-pointer flex-fill ${paymentMethod === 'card' ? 'border-primary bg-primary bg-opacity-10' : ''}`}
-                          onClick={() => { setPaymentMethod('card'); setReceiptFile(null); setReceiptError(''); }}
-                          style={{ cursor: 'pointer', minWidth: 140 }}
+                          className={`border rounded p-3 flex-fill ${paymentMethod === 'card' ? 'border-secondary bg-light text-muted' : ''}`}
+                          style={{ minWidth: 140, opacity: 0.7, cursor: 'not-allowed' }}
+                          aria-disabled="true"
                         >
                           <div className="fw-medium">Card</div>
-                          <small className="text-muted">Secure card payment coming soon</small>
+                          <small className="text-muted">Coming soon</small>
                         </div>
                         {PAYMENT_METHODS.map((pm) => (
                           <div
@@ -369,13 +470,13 @@ const HotelRequest = () => {
                             style={{ cursor: 'pointer', minWidth: 140 }}
                           >
                             <div className="fw-medium">{pm.label}</div>
-                            <small className="text-muted">Upload payment receipt</small>
+                            <small className="text-muted">{isPayNowMode ? 'Upload payment receipt' : 'Upload payment receipt'}</small>
                           </div>
                         ))}
                       </div>
                     </div>
 
-                    {(paymentMethod === 'wafa_cash' || paymentMethod === 'bank_transfer') && (
+                    {hasPayableAmount && (paymentMethod === 'wafa_cash' || paymentMethod === 'bank_transfer') && (
                       <div className="mb-3">
                         <label className="form-label fs-14">Upload receipt <span className="text-danger">*</span></label>
                         <input
@@ -389,9 +490,43 @@ const HotelRequest = () => {
                       </div>
                     )}
 
-                    <button type="submit" className="btn btn-primary w-100" disabled={submitting}>
-                      {submitting ? <><span className="spinner-border spinner-border-sm me-2" />Sending...</> : 'Send Request'}
+                    {isPayNowMode && hasPayableAmount && (
+                      <div className="mb-3">
+                        <label className="form-label fs-14">Payment reference or note <span className="text-muted fw-normal">(optional)</span></label>
+                        <input
+                          type="text"
+                          className="form-control"
+                          placeholder="Transfer reference, Wafa Cash code, or note"
+                          value={paymentReference}
+                          onChange={(e) => setPaymentReference(e.target.value)}
+                          maxLength={120}
+                        />
+                      </div>
+                    )}
+
+                    {isPayNowMode && hasPayableAmount && (
+                      <div className="form-check mb-3">
+                        <input
+                          className="form-check-input"
+                          type="checkbox"
+                          id="paymentConsent"
+                          checked={consentAccepted}
+                          onChange={(e) => setConsentAccepted(e.target.checked)}
+                        />
+                        <label className="form-check-label fs-14" htmlFor="paymentConsent">
+                          I understand my booking will be confirmed after DreamsTour verifies the payment and hotel availability.
+                        </label>
+                      </div>
+                    )}
+
+                    <button type="submit" className="btn btn-primary w-100" disabled={submitting || (isPayNowMode && !hasPayableAmount)}>
+                      {submitting
+                        ? <><span className="spinner-border spinner-border-sm me-2" />Sending...</>
+                        : (isPayNowMode ? (hasPayableAmount ? 'Submit Payment' : 'Pay Now') : 'Send Request')}
                     </button>
+                    {isPayNowMode && !hasPayableAmount ? (
+                      <p className="fs-12 text-muted text-center mt-2 mb-0">Price required before payment</p>
+                    ) : null}
                   </form>
                 </div>
               </div>

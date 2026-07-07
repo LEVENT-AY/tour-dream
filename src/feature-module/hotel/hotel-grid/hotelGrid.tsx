@@ -206,6 +206,9 @@ const HotelGrid = () => {
 
   const openManualRequest = (hotel?: ManualHotelCard) => {
     if (hotel) {
+      const isPayNowHotel = hotel.bookingMode === 'pay_now';
+      const hasPayableAmount = Number(hotel.priceFrom ?? hotel.price ?? 0) > 0 && Boolean(hotel.priceCurrency);
+      if (isPayNowHotel && !hasPayableAmount) return;
       storeManualHotelSelection(hotel);
     } else {
       sessionStorage.removeItem(MANUAL_SELECTION_KEY);
@@ -227,6 +230,7 @@ const HotelGrid = () => {
     if (hotel?.sourceName) params.set('sourceName', hotel.sourceName);
     if (hotel?.sourceUrl) params.set('sourceUrl', hotel.sourceUrl);
     if (hotel?.selectedBoardType) params.set('selectedBoardType', hotel.selectedBoardType);
+    if (hotel?.bookingMode === 'pay_now') params.set('paymentMode', 'manual_payment');
     navigate(`/hotel/hotel-request?${params.toString()}`);
   };
 
@@ -442,14 +446,20 @@ const HotelGrid = () => {
                           <div className="d-flex align-items-center justify-content-between border-top pt-3">
                             <div className="me-2">
                               {(() => {
+                                const isPayNowHotel =
+                                  hotel.bookingMode === 'pay_now';
+                                const hasPayableAmount =
+                                  isPayNowHotel &&
+                                  Number(hotel.priceFrom ?? hotel.price ?? 0) > 0 &&
+                                  Boolean(hotel.priceCurrency);
                                 const priceInfo = formatHotelPrice(
                                   {
                                     priceFrom: hotel.priceFrom ?? hotel.price,
                                     priceCurrency: hotel.priceCurrency,
                                     priceUnit: hotel.priceUnit,
-                                    priceNote: hotel.priceNote,
+                                    priceNote: hotel.priceNote || (isPayNowHotel ? (hasPayableAmount ? 'Amount to pay now is based on selected dates and rooms' : 'Admin must add a price before payment') : undefined),
                                   },
-                                  { prefix: 'From', fallbackLabel: 'Price on request' },
+                                  { prefix: 'From', fallbackLabel: isPayNowHotel ? 'Price not configured yet' : 'Price on request' },
                                 );
                                 return (
                                   <>
@@ -459,13 +469,27 @@ const HotelGrid = () => {
                                 );
                               })()}
                             </div>
-                            <button
-                              type="button"
-                              className="btn btn-primary btn-sm"
-                              onClick={() => openManualRequest(hotel)}
-                            >
-                              Request this hotel
-                            </button>
+                            {(() => {
+                              const isPayNowHotel = hotel.bookingMode === 'pay_now';
+                              const hasPayableAmount = Number(hotel.priceFrom ?? hotel.price ?? 0) > 0 && Boolean(hotel.priceCurrency);
+                              return (
+                            <div className="text-end">
+                              <button
+                                type="button"
+                                className="btn btn-primary btn-sm"
+                                onClick={() => openManualRequest(hotel)}
+                                disabled={isPayNowHotel && !hasPayableAmount}
+                                aria-disabled={isPayNowHotel && !hasPayableAmount}
+                                title={isPayNowHotel && !hasPayableAmount ? 'Price required before payment' : undefined}
+                              >
+                                {isPayNowHotel ? 'Pay Now' : 'Request this hotel'}
+                              </button>
+                              {isPayNowHotel && !hasPayableAmount ? (
+                                <p className="fs-12 text-muted mt-2 mb-0">Price required before payment</p>
+                              ) : null}
+                            </div>
+                              );
+                            })()}
                           </div>
                         </div>
                       </div>

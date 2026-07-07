@@ -174,6 +174,8 @@ export const fetchHotels = async (): Promise<DocumentData[]> => {
     })
     .map((hotel) => {
       const data = hotel as DocumentData;
+      const priceFrom = data.priceFrom ?? data.price ?? data.pricePerNight ?? null;
+      const isTunisieBooking = String(data.importSource || data.sourceName || data.sourceUrl || '').toLowerCase().includes('tunisiebooking');
       return {
         ...hotel,
         title: data.title || data.name || '',
@@ -182,9 +184,9 @@ export const fetchHotels = async (): Promise<DocumentData[]> => {
         propertyType: data.propertyType || 'hotel',
         image: data.image || data.mainImage || (Array.isArray(data.gallery) ? data.gallery[0] : ''),
         gallery: Array.isArray(data.gallery) ? data.gallery : [],
-        price: data.priceFrom ?? data.price ?? data.pricePerNight ?? null,
-        priceFrom: data.priceFrom ?? data.price ?? data.pricePerNight ?? null,
-        priceCurrency: data.priceCurrency || data.currency || '',
+        price: priceFrom,
+        priceFrom,
+        priceCurrency: data.priceCurrency || data.currency || (isTunisieBooking ? 'EUR' : ''),
         priceUnit: data.priceUnit || data.pricePerNightUnit || 'night',
         priceNote: data.priceNote || data.priceLabel || '',
         rating: data.rating ?? data.starRating ?? 0,
@@ -605,7 +607,11 @@ export type ServiceRequestStatus = "pending" | "contacted" | "confirmed" | "canc
 export type ServiceType = "cruise" | "bus" | "visa" | "guide" | "tour" | "hotel" | "activity" | "flight" | "other";
 export type ServiceRequestPriority = "low" | "normal" | "high" | "urgent";
 export type PreferredPaymentMethod = "not_sure" | "wafa_cash" | "bank_transfer" | "card";
-export type ManualPaymentStatus = "not_requested" | "pending_confirmation" | "receipt_pending" | "receipt_uploaded";
+export type ManualPaymentStatus = "not_requested" | "pending_confirmation" | "receipt_pending" | "receipt_uploaded" | "submitted" | "payment_submitted";
+export type HotelBookingMode = "request_only" | "pay_now";
+export type HotelPaymentMode = "manual_payment";
+export type HotelBookingStatus = "pending_admin_confirmation" | "confirmed" | "cancelled";
+export type HotelRequestType = "hotel_request" | "hotel_payment";
 
 export interface ServiceRequest {
   id?: string;
@@ -631,6 +637,10 @@ export interface ServiceRequest {
   paymentStatus?: ManualPaymentStatus;
   preferredPaymentMethod?: PreferredPaymentMethod;
   paymentReference?: string;
+  paymentMode?: HotelPaymentMode;
+  bookingMode?: HotelBookingMode;
+  bookingStatus?: HotelBookingStatus;
+  requestType?: HotelRequestType;
   receiptUrl?: string;
   receiptPath?: string;
   receiptFileName?: string;
@@ -721,6 +731,10 @@ export interface CreateServiceRequestInput {
   preferredPaymentMethod?: PreferredPaymentMethod;
   paymentStatus?: ManualPaymentStatus;
   paymentReference?: string;
+  paymentMode?: HotelPaymentMode;
+  bookingMode?: HotelBookingMode;
+  bookingStatus?: HotelBookingStatus;
+  requestType?: HotelRequestType;
   receiptUrl?: string;
   receiptPath?: string;
   receiptFileName?: string;
@@ -762,6 +776,10 @@ export const createServiceRequest = async (
   if (input.preferredPaymentMethod) payload.preferredPaymentMethod = input.preferredPaymentMethod;
   if (input.paymentStatus) payload.paymentStatus = input.paymentStatus;
   if (input.paymentReference?.trim()) payload.paymentReference = input.paymentReference.trim();
+  if (input.paymentMode) payload.paymentMode = input.paymentMode;
+  if (input.bookingMode) payload.bookingMode = input.bookingMode;
+  if (input.bookingStatus) payload.bookingStatus = input.bookingStatus;
+  if (input.requestType) payload.requestType = input.requestType;
   if (input.receiptUrl) payload.receiptUrl = input.receiptUrl;
   if (input.receiptPath) payload.receiptPath = input.receiptPath;
   if (input.receiptFileName) payload.receiptFileName = input.receiptFileName;

@@ -60,6 +60,7 @@ const PAYMENT_STATUS_OPTIONS = [
   { value: 'not_requested', label: 'Not requested' },
   { value: 'receipt_pending', label: 'Receipt pending' },
   { value: 'receipt_uploaded', label: 'Receipt uploaded' },
+  { value: 'submitted', label: 'Payment submitted' },
 ];
 
 const FOLLOWUP_FILTER_OPTIONS = [
@@ -232,7 +233,12 @@ const AdminBookings: React.FC<AdminBookingsProps> = ({ title = 'All Bookings', d
       });
     }
     if (paymentStatusFilter !== 'all') {
-      result = result.filter((r) => r.paymentStatus === paymentStatusFilter);
+      result = result.filter((r) => {
+        if (paymentStatusFilter === 'submitted') {
+          return r.paymentStatus === 'submitted' || r.paymentStatus === 'payment_submitted';
+        }
+        return r.paymentStatus === paymentStatusFilter;
+      });
     }
     if (followUpFilter !== 'all') {
       const today = todayStr();
@@ -1046,12 +1052,26 @@ const AdminBookings: React.FC<AdminBookingsProps> = ({ title = 'All Bookings', d
                       </div>
                       <div className="col-md-3">
                         <span className="fs-13 text-muted">Status</span>
-                        <p className="mb-0">{selectedRequest.paymentStatus === 'not_requested' ? 'Not requested' : selectedRequest.paymentStatus ? selectedRequest.paymentStatus.replace(/_/g, ' ') : <em className="text-muted">Not requested</em>}</p>
+                        <p className="mb-0">
+                          {selectedRequest.paymentStatus === 'not_requested'
+                            ? 'Not requested'
+                            : selectedRequest.paymentStatus === 'submitted' || selectedRequest.paymentStatus === 'payment_submitted'
+                              ? 'submitted'
+                              : selectedRequest.paymentStatus
+                                ? selectedRequest.paymentStatus.replace(/_/g, ' ')
+                                : <em className="text-muted">Not requested</em>}
+                        </p>
                       </div>
                       <div className="col-md-3">
                         <span className="fs-13 text-muted">Preferred method</span>
                         <p className="mb-0">{selectedRequest.preferredPaymentMethod ? (PAYMENT_METHOD_LABELS[selectedRequest.preferredPaymentMethod] || selectedRequest.preferredPaymentMethod.replace(/_/g, ' ')) : <em className="text-muted">Not selected</em>}</p>
                       </div>
+                      {selectedRequest.bookingStatus && (
+                        <div className="col-md-3">
+                          <span className="fs-13 text-muted">Booking status</span>
+                          <p className="mb-0">{selectedRequest.bookingStatus.replace(/_/g, ' ')}</p>
+                        </div>
+                      )}
                       <div className="col-md-3">
                         <span className="fs-13 text-muted">Reference</span>
                         <p className="mb-0" style={{ wordBreak: 'break-word' }}>{selectedRequest.paymentReference || <em className="text-muted">Not provided</em>}</p>

@@ -73,7 +73,11 @@ const StickyContent = ({
   const [adults, setAdults] = useState(Math.max(1, initialAdults || 1));
   const [children, setChildren] = useState(Math.max(0, initialChildren || 0));
 
-  const isRequestOnly = hotel?.bookingMode === 'request_only' || hotel?.bookingEnabled === false;
+  const isPayNow = hotel?.bookingMode === 'pay_now';
+  const priceFromValue = Number(hotel?.priceFrom ?? hotel?.price ?? 0);
+  const hasPayableAmount = isPayNow && priceFromValue > 0 && Boolean(hotel?.priceCurrency);
+  const nights = Math.max(1, dayjs(checkOutDate).diff(dayjs(checkInDate), 'day') || 1);
+  const payableAmount = hasPayableAmount ? priceFromValue * nights * Math.max(1, rooms) : null;
 
   const priceCopy = useMemo(
     () =>
@@ -82,11 +86,11 @@ const StickyContent = ({
           priceFrom: hotel?.priceFrom ?? hotel?.price,
           priceCurrency: hotel?.priceCurrency,
           priceUnit: hotel?.priceUnit,
-          priceNote: hotel?.priceNote || 'Final price and availability are confirmed after request',
+          priceNote: hotel?.priceNote || (hasPayableAmount ? 'Manual payment. Booking is confirmed after payment verification.' : 'Price required before payment'),
         },
-        { prefix: 'Starts From', fallbackLabel: 'Price on request' },
+        { prefix: 'Starts From', fallbackLabel: isPayNow ? 'Price not configured yet' : 'Price on request', includeFinalNote: !isPayNow && !hasPayableAmount },
       ),
-    [hotel?.price, hotel?.priceCurrency, hotel?.priceFrom, hotel?.priceNote, hotel?.priceUnit],
+    [hasPayableAmount, hotel?.price, hotel?.priceCurrency, hotel?.priceFrom, hotel?.priceNote, hotel?.priceUnit, isPayNow],
   );
 
   const hasValidCoordinates =
@@ -119,7 +123,7 @@ const StickyContent = ({
       priceFrom: hotel?.priceFrom ?? hotel?.price ?? 0,
       priceCurrency: hotel?.priceCurrency || '',
       priceUnit: hotel?.priceUnit || 'night',
-      priceNote: hotel?.priceNote || 'Final price and availability are confirmed after request',
+      priceNote: hotel?.priceNote || (hasPayableAmount ? 'Manual payment. Booking is confirmed after payment verification.' : 'Price required before payment'),
       image: hotel?.image || hotel?.gallery?.[0] || '',
       amenities: [],
       bookingMode: hotel?.bookingMode || '',
@@ -131,6 +135,7 @@ const StickyContent = ({
   };
 
   const goToRequest = () => {
+    if (isPayNow && !hasPayableAmount) return;
     persistSelection();
     const params = new URLSearchParams();
     params.set('provider', 'manual');
@@ -150,6 +155,8 @@ const StickyContent = ({
     if (hotel?.priceUnit) params.set('priceUnit', hotel.priceUnit);
     if (hotel?.sourceName) params.set('sourceName', hotel.sourceName);
     if (hotel?.sourceUrl) params.set('sourceUrl', hotel.sourceUrl);
+    if (hotel?.bookingMode) params.set('bookingMode', hotel.bookingMode);
+    if (hotel?.bookingMode === 'pay_now') params.set('paymentMode', 'manual_payment');
     navigate(`/hotel/hotel-request?${params.toString()}`);
   };
 
@@ -161,8 +168,13 @@ const StickyContent = ({
             <span className="hotel-sidebar-kicker">Starts From</span>
             <p className="hotel-sidebar-price mb-1">{priceCopy.headline.replace(/^Starts From\s*/i, '')}</p>
             <p className="fs-12 text-muted mb-0">
-              {priceCopy.note || 'Final price and availability are confirmed after request'}
+              {priceCopy.note || (isPayNow ? 'Manual payment. Booking is confirmed after payment verification.' : 'Final price and availability are confirmed after request')}
             </p>
+            {isPayNow && payableAmount ? (
+              <p className="fs-12 text-primary fw-medium mt-2 mb-0">
+                Estimated payable amount: {payableAmount} {hotel?.priceCurrency || ''}
+              </p>
+            ) : null}
           </div>
           <div className="banner-form">
             <form>
@@ -215,21 +227,26 @@ const StickyContent = ({
                 type="button"
                 className="btn btn-primary btn-lg search-btn ms-0 mb-3 w-100 fs-14 d-flex justify-content-center"
                 onClick={goToRequest}
+                disabled={isPayNow && !hasPayableAmount}
+                aria-disabled={isPayNow && !hasPayableAmount}
+                title={isPayNow && !hasPayableAmount ? 'Price required before payment' : undefined}
               >
-                {isRequestOnly ? 'Request this hotel' : 'Continue'}
+                {isPayNow ? 'Pay Now' : 'Request this hotel'}
               </button>
             </form>
           </div>
           <div className="d-flex align-items-center justify-content-between mt-1">
-            <span className="fs-14 text-muted mb-0">Request-only hotel</span>
+            <span className="fs-14 text-muted mb-0">
+              {isPayNow ? (hasPayableAmount ? 'Manual payment verification' : 'Price required before payment') : 'Request-only hotel'}
+            </span>
             <Link to="#availability" className="link-primary text-decoration-underline fs-14">
-              View Request Details
+              {isPayNow ? 'View Payment Details' : 'View Request Details'}
             </Link>
           </div>
           <div className="border-top pt-4 mt-4">
             <h5 className="mb-3 fs-18">Provider Details</h5>
             <p className="text-muted mb-3">
-              {hotel?.providerMessage || 'DreamsTour will confirm availability and price after request.'}
+              {hotel?.providerMessage || (isPayNow ? 'DreamsTour will verify your payment and confirm your booking.' : 'DreamsTour will confirm availability and price after request.')}
             </p>
             <div className="row g-2">
               <div className="col-sm-6">
