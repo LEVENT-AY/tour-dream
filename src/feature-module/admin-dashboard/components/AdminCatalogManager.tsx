@@ -72,6 +72,15 @@ const AdminCatalogImageCell: React.FC<{ item: any }> = ({ item }) => {
   );
 };
 
+const parseNumericInput = (value: unknown): number | null => {
+  if (value === null || value === undefined) return null;
+  if (typeof value === 'number') return Number.isFinite(value) ? value : null;
+  const text = String(value).trim();
+  if (!text || text === '.' || text === '-' || text === '+') return null;
+  const numeric = Number(text);
+  return Number.isFinite(numeric) ? numeric : null;
+};
+
 interface AdminCatalogManagerProps {
   title: string;
   collectionName: string;
@@ -396,16 +405,34 @@ const AdminCatalogManager: React.FC<AdminCatalogManagerProps> = ({
         </div>
       );
     }
+    if (field.type === 'number') {
+      const displayValue =
+        value === undefined || value === null || value === '' || (typeof value === 'number' && Number.isNaN(value))
+          ? ''
+          : typeof value === 'string'
+            ? parseNumericInput(value) ?? ''
+            : value;
+      return (
+        <input
+          type="number"
+          className="form-control"
+          min={field.min ?? 0}
+          max={field.max}
+          value={displayValue}
+          onChange={(e) => {
+            const nextValue = parseNumericInput(e.target.value);
+            updateFormField(field.name, e.target.value === '' || nextValue === null ? '' : nextValue);
+          }}
+          required={field.required}
+        />
+      );
+    }
     return (
       <input
-        type={field.type === 'number' ? 'number' : 'text'}
+        type="text"
         className="form-control"
-        min={field.type === 'number' ? field.min ?? 0 : undefined}
-        max={field.type === 'number' ? field.max : undefined}
         value={value === undefined || value === null || (typeof value === 'number' && Number.isNaN(value)) ? '' : value}
-        onChange={(e) =>
-          updateFormField(field.name, field.type === 'number' ? parseFloat(e.target.value) : e.target.value)
-        }
+        onChange={(e) => updateFormField(field.name, e.target.value)}
         required={field.required}
       />
     );
