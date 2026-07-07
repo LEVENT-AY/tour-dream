@@ -1,4 +1,4 @@
-import { type FormEvent, useEffect, useMemo, useState } from 'react';
+import { Component, type FormEvent, type ReactNode, useEffect, useMemo, useState } from 'react';
 import { GoogleMap, InfoWindow, Marker, useLoadScript } from '@react-google-maps/api';
 import Slider from 'react-slick';
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
@@ -21,6 +21,15 @@ type MarkerHotel = HotelRecord & {
   mapLat: number;
   mapLng: number;
 };
+
+const KNOWN_GOOGLE_MAPS_WARNINGS = [
+  /Maps Demo Key limit reached/i,
+  /OVER_QUERY_LIMIT/i,
+  /ApiProjectMapError/i,
+  /This page can’t load Google Maps correctly/i,
+  /This page can't load Google Maps correctly/i,
+  /You must provide either an anchor/i,
+];
 
 const PAGE_SIZE = 12;
 const DEFAULT_CENTER = { lat: 33.8869, lng: 9.5375 };
@@ -127,6 +136,39 @@ const buildHotelLocation = (hotel: HotelRecord): string => {
   return unique.join(', ') || normalizeText(hotel.location) || 'Tunisia';
 };
 
+const isKnownGoogleMapsWarning = (message: string): boolean =>
+  KNOWN_GOOGLE_MAPS_WARNINGS.some((pattern) => pattern.test(message));
+
+type MapErrorBoundaryProps = {
+  onError: (error: Error) => void;
+  fallback: ReactNode;
+  children: ReactNode;
+};
+
+type MapErrorBoundaryState = {
+  hasError: boolean;
+};
+
+class MapErrorBoundary extends Component<MapErrorBoundaryProps, MapErrorBoundaryState> {
+  state: MapErrorBoundaryState = { hasError: false };
+
+  static getDerivedStateFromError(): MapErrorBoundaryState {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error: Error) {
+    this.props.onError(error);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return this.props.fallback;
+    }
+
+    return this.props.children;
+  }
+}
+
 const PublicHotelResults = ({ mode }: PublicHotelResultsProps) => {
   const routes = all_routes;
   const navigate = useNavigate();
@@ -173,6 +215,7 @@ const PublicHotelResults = ({ mode }: PublicHotelResultsProps) => {
   const { isLoaded } = useLoadScript({
     googleMapsApiKey: 'AIzaSyD6adZVdzTvBpE2yBRK8cDfsss8QXChK0I',
   });
+  const [mapUnavailable, setMapUnavailable] = useState(false);
 
   useEffect(() => {
     const loadHotels = async () => {
@@ -486,6 +529,16 @@ const PublicHotelResults = ({ mode }: PublicHotelResultsProps) => {
   };
 
   const paginationItems = Array.from({ length: totalPages }, (_, index) => index + 1);
+  const mapFallback = (
+    <div className="public-hotel-results__map-fallback" data-testid="public-hotel-map-fallback">
+      <i className="isax isax-map-1 public-hotel-results__map-fallback-icon" aria-hidden="true"></i>
+      <h6 className="mb-2">Map temporarily unavailable</h6>
+      <p className="mb-0 text-muted">
+        The hotel list remains available while Google Maps recovers. Hotel cards, pricing, and Pay Now actions still work.
+      </p>
+    </div>
+  );
+  const shouldShowFallbackMap = !isLoaded || mapUnavailable;
 
   return (
     <>
@@ -595,75 +648,87 @@ const PublicHotelResults = ({ mode }: PublicHotelResultsProps) => {
               {mode === 'map' ? (
                 <div className="col-xl-5 map-right public-hotel-results__map-column">
                   <div className="map-listing public-hotel-results__map-shell">
-                    {isLoaded ? (
-                      <GoogleMap
-                        mapContainerStyle={MAP_CONTAINER_STYLE}
-                        center={selectedMarker ? { lat: selectedMarker.mapLat, lng: selectedMarker.mapLng } : DEFAULT_CENTER}
-                        zoom={6}
-                        onLoad={(map) => setMapInstance(map)}
-                        options={{
-                          scrollwheel: false,
-                          mapTypeId: 'roadmap',
-                          streetViewControl: false,
-                          fullscreenControl: false,
+                    {shouldShowFallbackMap ? (
+                      mapFallback
+                    ) : (
+                      <MapErrorBoundary
+                        fallback={mapFallback}
+                        onError={(error) => {
+                          const message = error?.message || String(error);
+                          if (isKnownGoogleMapsWarning(message)) {
+                            setMapUnavailable(true);
+                            return;
+                          }
+                          setMapUnavailable(true);
                         }}
                       >
-                        {markerHotels.map((hotel) => (
-                          <Marker
-                            key={hotel.id}
-                            position={{ lat: hotel.mapLat, lng: hotel.mapLng }}
-                            onClick={() => setSelectedMarkerId(hotel.id)}
-                          />
-                        ))}
+                        <GoogleMap
+                          mapContainerStyle={MAP_CONTAINER_STYLE}
+                          center={selectedMarker ? { lat: selectedMarker.mapLat, lng: selectedMarker.mapLng } : DEFAULT_CENTER}
+                          zoom={6}
+                          onLoad={(map) => setMapInstance(map)}
+                          options={{
+                            scrollwheel: false,
+                            mapTypeId: 'roadmap',
+                            streetViewControl: false,
+                            fullscreenControl: false,
+                          }}
+                        >
+                          {markerHotels.map((hotel) => (
+                            <Marker
+                              key={hotel.id}
+                              position={{ lat: hotel.mapLat, lng: hotel.mapLng }}
+                              onClick={() => setSelectedMarkerId(hotel.id)}
+                            />
+                          ))}
 
-                        {selectedMarker ? (
-                          <InfoWindow
-                            position={{ lat: selectedMarker.mapLat, lng: selectedMarker.mapLng }}
-                            onCloseClick={() => setSelectedMarkerId(null)}
-                          >
-                            <div className="public-hotel-map-popup" data-testid="public-hotel-map-popup">
-                              <Link to={buildHotelDetailsLink(selectedMarker.id)} className="public-hotel-map-popup__image">
-                                <ImageWithBasePath
-                                  className="img-fluid w-100"
-                                  alt={selectedMarker.title || 'Hotel image'}
-                                  src={selectedMarker.image || getHotelImages(selectedMarker)[0]}
-                                  fallbackSrc={getCategoryFallbackSrc('hotels')}
-                                />
-                              </Link>
-                              <div className="public-hotel-map-popup__content">
-                                <h6 className="mb-1">
-                                  <Link to={buildHotelDetailsLink(selectedMarker.id)} tabIndex={-1}>
-                                    {selectedMarker.title}
-                                  </Link>
-                                </h6>
-                                <p className="mb-2">{buildHotelLocation(selectedMarker)}</p>
-                                <div className="d-flex align-items-center justify-content-between gap-2">
-                                  <span className="text-primary fw-semibold">
-                                    {formatHotelPrice(
-                                      {
-                                        priceFrom: selectedMarker.priceFrom ?? selectedMarker.price,
-                                        priceCurrency: selectedMarker.priceCurrency,
-                                        priceUnit: selectedMarker.priceUnit,
-                                      },
-                                      { prefix: 'From', fallbackLabel: 'Price available soon', includeFinalNote: false },
-                                    ).headline}
-                                  </span>
-                                  <div className="d-flex gap-2">
-                                    <Link to={buildHotelDetailsLink(selectedMarker.id)} className="btn btn-light btn-sm">
-                                      View Details
+                          {selectedMarker ? (
+                            <InfoWindow
+                              position={{ lat: selectedMarker.mapLat, lng: selectedMarker.mapLng }}
+                              onCloseClick={() => setSelectedMarkerId(null)}
+                            >
+                              <div className="public-hotel-map-popup" data-testid="public-hotel-map-popup">
+                                <Link to={buildHotelDetailsLink(selectedMarker.id)} className="public-hotel-map-popup__image">
+                                  <ImageWithBasePath
+                                    className="img-fluid w-100"
+                                    alt={selectedMarker.title || 'Hotel image'}
+                                    src={selectedMarker.image || getHotelImages(selectedMarker)[0]}
+                                    fallbackSrc={getCategoryFallbackSrc('hotels')}
+                                  />
+                                </Link>
+                                <div className="public-hotel-map-popup__content">
+                                  <h6 className="mb-1">
+                                    <Link to={buildHotelDetailsLink(selectedMarker.id)} tabIndex={-1}>
+                                      {selectedMarker.title}
                                     </Link>
-                                    <button type="button" className="btn btn-primary btn-sm" onClick={() => handlePrimaryAction(selectedMarker)}>
-                                      {selectedMarker.bookingMode === 'pay_now' ? 'Pay Now' : 'Request'}
-                                    </button>
+                                  </h6>
+                                  <p className="mb-2">{buildHotelLocation(selectedMarker)}</p>
+                                  <div className="d-flex align-items-center justify-content-between gap-2">
+                                    <span className="text-primary fw-semibold">
+                                      {formatHotelPrice(
+                                        {
+                                          priceFrom: selectedMarker.priceFrom ?? selectedMarker.price,
+                                          priceCurrency: selectedMarker.priceCurrency,
+                                          priceUnit: selectedMarker.priceUnit,
+                                        },
+                                        { prefix: 'From', fallbackLabel: 'Price available soon', includeFinalNote: false },
+                                      ).headline}
+                                    </span>
+                                    <div className="d-flex gap-2">
+                                      <Link to={buildHotelDetailsLink(selectedMarker.id)} className="btn btn-light btn-sm">
+                                        View Details
+                                      </Link>
+                                      <button type="button" className="btn btn-primary btn-sm" onClick={() => handlePrimaryAction(selectedMarker)}>
+                                        {selectedMarker.bookingMode === 'pay_now' ? 'Pay Now' : 'Request'}
+                                      </button>
+                                    </div>
                                   </div>
                                 </div>
                               </div>
-                            </div>
-                          </InfoWindow>
-                        ) : null}
-                      </GoogleMap>
-                    ) : (
-                      <div className="text-center py-5">Loading map...</div>
+                            </InfoWindow>
+                          ) : null}
+                        </GoogleMap>
+                      </MapErrorBoundary>
                     )}
                   </div>
                 </div>
