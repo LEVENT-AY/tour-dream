@@ -244,8 +244,8 @@ const CarMap = () => {
         <>
             <Breadcrumb title="Car" breadcrumbs={breadcrumbs} backgroundClass="breadcrumb-bg-03" />
             {/* Page Wrapper */}
-            <div className="content pb-0">
-                <div className="map-content">
+            <div className="content pb-0 public-results-shell">
+                <div className="map-content public-results-full-width">
 
                     <CarSearch />
 

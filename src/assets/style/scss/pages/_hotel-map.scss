@@ -295,8 +295,34 @@
 	display: none;
 }
 
+.public-results-shell {
+	width: 100%;
+	padding-left: 32px;
+	padding-right: 32px;
+	margin-left: auto;
+	margin-right: auto;
+
+	@include mixins.respond-below(lg) {
+		padding-left: 20px;
+		padding-right: 20px;
+	}
+
+	@include mixins.respond-below(md) {
+		padding-left: 16px;
+		padding-right: 16px;
+	}
+}
+
+.public-results-full-width {
+	width: 100%;
+	max-width: none !important;
+	padding-left: 0 !important;
+	padding-right: 0 !important;
+}
+
 .public-hotel-results {
 	padding-bottom: 40px;
+	width: 100%;
 
 	&__toolbar {
 		display: flex;

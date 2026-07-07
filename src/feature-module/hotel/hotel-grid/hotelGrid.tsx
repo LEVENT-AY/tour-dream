@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import Breadcrumb from '../../../core/common/Breadcrumb/breadcrumb';
 import Slider from 'react-slick';
 import 'slick-carousel/slick/slick.css';
@@ -66,6 +66,8 @@ const HotelGrid = () => {
   const source = searchParams.get('source') || '';
   const destinationFilter = normalizeDestination(destination);
   const hasCoordinates = !!searchParams.get('lat') && !!searchParams.get('lng');
+  const requestedView = (searchParams.get('view') || '').toLowerCase();
+  const shouldRedirectToMap = requestedView !== 'grid';
   const manualMode = source === 'manual' || (!!destinationFilter && !!checkInDate && !!checkOutDate && !hasCoordinates);
   const duffelMode = !!destination && !!checkInDate && !!checkOutDate && hasCoordinates && !manualMode;
 
@@ -135,6 +137,13 @@ const HotelGrid = () => {
       setCurrentPage(totalPages);
     }
   }, [currentPage, totalPages]);
+
+  if (shouldRedirectToMap) {
+    const redirectParams = new URLSearchParams(searchParams);
+    redirectParams.delete('view');
+    const query = redirectParams.toString();
+    return <Navigate to={`${routes.hotelMap}${query ? `?${query}` : ''}`} replace />;
+  }
 
   //Breadcrumb Data
   const breadcrumbs = [
@@ -237,8 +246,8 @@ const HotelGrid = () => {
   return (
     <>
       <Breadcrumb title="Hotel" breadcrumbs={breadcrumbs} backgroundClass="breadcrumb-bg-01" />
-      <div className="content">
-        <div className="container">
+      <div className="content public-results-shell">
+        <div className="container public-results-full-width">
           <HotelSearchPanel
             standalone
             initialDestination={destination}

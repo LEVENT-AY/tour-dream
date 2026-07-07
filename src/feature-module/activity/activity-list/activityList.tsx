@@ -157,8 +157,8 @@ const ActivityList = () => {
         backgroundClass="breadcrumb-bg-01"
       />
       {/* Page Wrapper */}
-      <div className="content">
-        <div className="container">
+      <div className="content public-results-shell">
+        <div className="container public-results-full-width">
           {/* Hotel Search */}
           <ActivitySearch />
           {/* /Hotel Search */}

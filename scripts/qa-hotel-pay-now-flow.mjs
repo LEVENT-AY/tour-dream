@@ -23,8 +23,10 @@ assert(/Pay Now/.test(staticFiles.sticky), 'Sticky content has Pay Now CTA');
 assert(/Price not configured yet/.test(staticFiles.sticky), 'Sticky content shows missing-price copy');
 assert(/Price required before payment/.test(staticFiles.sticky), 'Sticky content blocks payment when price is missing');
 assert(/bookingMode === 'pay_now'/.test(staticFiles.sticky) && /manual_payment/.test(staticFiles.sticky), 'Sticky content passes manual payment mode');
-assert(/Manual payment\. Booking is confirmed after payment verification\./.test(staticFiles.grid), 'Hotel grid shows manual-payment copy for pay-now cards');
+assert(/public-results-full-width/.test(staticFiles.grid), 'Hotel grid keeps the public full-width shell');
+assert(/Navigate/.test(staticFiles.grid) && /hotelMap/.test(staticFiles.grid), 'Hotel grid redirects to the hotel-map default flow');
 assert(/Manual payment\. Booking is confirmed after payment verification\./.test(staticFiles.results), 'Shared hotel map/list cards show manual-payment copy for pay-now cards');
+assert(/public-results-full-width/.test(staticFiles.results) && /public-results-shell/.test(staticFiles.results), 'Shared hotel map/list surface uses the full-width shell');
 assert(/PublicHotelResults/.test(staticFiles.list) && /mode="list"/.test(staticFiles.list), 'Hotel list routes through the shared public results surface');
 assert(/PublicHotelResults/.test(staticFiles.map) && /mode="map"/.test(staticFiles.map), 'Hotel map routes through the shared public results surface');
 assert(/Hotel Payment/.test(staticFiles.request), 'Hotel payment page title exists');
@@ -34,8 +36,8 @@ assert(/submitted/.test(staticFiles.request), 'Pay-now payment status is submitt
 assert(/pending_admin_confirmation/.test(staticFiles.request), 'Pay-now booking status is pending admin confirmation');
 assert(/I understand my booking will be confirmed after DreamsTour verifies the payment/.test(staticFiles.request), 'Consent copy exists');
 assert(/Card/.test(staticFiles.request) && /Coming soon/.test(staticFiles.request), 'Card is disabled with coming-soon copy');
-assert(/Pay Now/.test(staticFiles.grid), 'Hotel grid can label pay-now hotels');
-assert(/Price required before payment/.test(staticFiles.grid), 'Hotel grid blocks pay-now hotels with missing price');
+assert(/Pay Now/.test(staticFiles.results), 'Shared hotel map/list cards can label pay-now hotels');
+assert(/Price required before payment/.test(staticFiles.results), 'Shared hotel map/list cards block pay-now hotels with missing price');
 assert(/HotelBookingMode = "request_only" \| "pay_now"/.test(staticFiles.services), 'Shared request schema supports pay-now booking mode');
 assert(/payNowModeCount/.test(staticFiles.planner) && /paymentReadyCount/.test(staticFiles.planner), 'Planner tracks pay-now and payment-ready counts');
 assert(!/Book Now/.test(staticFiles.sticky) && !/Book Now/.test(staticFiles.request) && !/Book Now/.test(staticFiles.grid), 'Template Book Now copy is removed from pay-now surfaces');
@@ -107,8 +109,9 @@ assert(!/Hotel ID:/.test(payText) && !/Source:/.test(payText), 'Internal hotel f
 
 const gridPage = await context.newPage();
 await gridPage.goto('http://localhost:5174/hotel/hotel-grid?source=manual&destination=Djerba&checkInDate=2026-07-06&checkOutDate=2026-07-08&adults=1&rooms=1', { waitUntil: 'domcontentloaded', timeout: 60000 });
+await gridPage.waitForURL('http://localhost:5174/hotel/hotel-map?source=manual&destination=Djerba&checkInDate=2026-07-06&checkOutDate=2026-07-08&adults=1&rooms=1', { timeoutMs: 60000, waitUntil: 'load' });
 await gridPage.waitForFunction(() => document.querySelectorAll('.place-item').length > 0, { timeout: 20000 }).catch(() => {});
-const payNowCard = gridPage.locator('.place-item').filter({ hasText: 'Vincci Helios Beach' }).first();
+const payNowCard = gridPage.locator('[data-testid="public-hotel-card"]').filter({ hasText: 'Vincci Helios Beach' }).first();
 await payNowCard.waitFor({ state: 'visible', timeout: 15000 });
 const payNowCardText = await payNowCard.innerText();
 assert(/Pay Now/.test(payNowCardText), 'Hotel grid labels pay-now hotels correctly');

@@ -206,8 +206,8 @@ const TourMap = () => {
       />
 
       {/* Page Wrapper */}
-      <div className="content pb-0">
-        <div className="map-content">
+      <div className="content pb-0 public-results-shell">
+        <div className="map-content public-results-full-width">
           {/* Tour Search */}
           <TourSearch/>
           {/* /Tour Search */}

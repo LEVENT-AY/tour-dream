@@ -216,8 +216,8 @@ const ActivityMap = () => {
         backgroundClass="breadcrumb-bg-01"
       />
       {/* Page Wrapper */}
-      <div className="content pb-0">
-        <div className="map-content">
+      <div className="content pb-0 public-results-shell">
+        <div className="map-content public-results-full-width">
           {/* Hotel Search */}
           <ActivitySearch />
           {/* /Hotel Search */}

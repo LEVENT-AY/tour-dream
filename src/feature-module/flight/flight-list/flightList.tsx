@@ -17,8 +17,8 @@ const FlightList = () => {
     return (
         <>
             <Breadcrumb title="Flight" breadcrumbs={breadcrumbs} backgroundClass="breadcrumb-bg-05" />
-            <div className="content">
-                <div className="container">
+            <div className="content public-results-shell">
+                <div className="container public-results-full-width">
                     <FlightSearch />
 
                 </div>

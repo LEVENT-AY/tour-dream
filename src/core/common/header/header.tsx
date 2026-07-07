@@ -117,7 +117,7 @@ const Header = () => {
   const publicHeaderNavigation = [
     { label: "Home", url: routes.allService1 },
     { label: "Flight", url: routes.flightGrid },
-    { label: "Hotel", url: routes.hotelGrid },
+    { label: "Hotel", url: routes.hotelMap },
     { label: "Car", url: routes.carGrid },
     { label: "Resort", url: routes.resortGrid },
     { label: "Chalet", url: routes.chaletGrid },

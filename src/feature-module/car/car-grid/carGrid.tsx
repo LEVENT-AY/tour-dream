@@ -83,8 +83,8 @@ const CarGrid = () => {
         <>
             <Breadcrumb title="Car" breadcrumbs={breadcrumbs} backgroundClass="breadcrumb-bg-03" />
             {/* Page Wrapper */}
-            <div className="content">
-                <div className="container">
+            <div className="content public-results-shell">
+                <div className="container public-results-full-width">
 
                     <CarSearch />
 

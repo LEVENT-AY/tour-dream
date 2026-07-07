@@ -31,7 +31,7 @@ async function waitForApp(page) {
 
 async function waitForHotelCards(page) {
   await page.waitForFunction(
-    () => document.querySelectorAll('.place-item').length > 0,
+    () => document.querySelectorAll('[data-testid="public-hotel-card"]').length > 0,
     { timeout: 20000 },
   ).catch(() => {});
 }
@@ -77,43 +77,43 @@ async function main() {
   const summary = {};
 
   try {
-    await page.goto(`${BASE_URL}/hotel/hotel-grid`, { waitUntil: 'domcontentloaded' });
+    await page.goto(`${BASE_URL}/hotel/hotel-map`, { waitUntil: 'domcontentloaded' });
     await waitForApp(page);
     await waitForHotelCards(page);
 
-    const defaultCount = await page.locator('.place-item').count();
-    const defaultHeadline = normalizeText(await page.locator('h6.mb-3').first().textContent());
+    const defaultCount = await page.locator('[data-testid="public-hotel-card"]').count();
+    const defaultHeadline = normalizeText(await page.locator('[data-testid="public-hotel-count-label"]').textContent());
     summary.defaultGridCount = defaultCount;
     summary.defaultHeadline = defaultHeadline;
-    assert(defaultCount > 0, 'Default hotel grid shows published hotels');
-    assert(defaultHeadline.includes(String(publishedHotels.length)), 'Default hotel grid headline matches the published total');
-    assert(!(await page.locator('body').textContent() || '').includes('No hotels are available for this destination yet'), 'Default hotel grid does not show the empty state');
-    const defaultFirstTitle = normalizeText(await page.locator('.place-item .place-content h5 a').first().textContent());
-    assert(defaultFirstTitle.length > 0, 'Default hotel grid shows a visible hotel title');
+    assert(defaultCount > 0, 'Default hotel map shows published hotels');
+    assert(defaultHeadline.includes(String(publishedHotels.length)), 'Default hotel map headline matches the published total');
+    assert(!(await page.locator('body').textContent() || '').includes('No published hotels match the current search.'), 'Default hotel map does not show the empty state');
+    const defaultFirstTitle = normalizeText(await page.locator('[data-testid="public-hotel-card"] .place-content h5 a').first().textContent());
+    assert(defaultFirstTitle.length > 0, 'Default hotel map shows a visible hotel title');
 
-    await page.goto(`${BASE_URL}/hotel/hotel-grid?destination=Select`, { waitUntil: 'domcontentloaded' });
+    await page.goto(`${BASE_URL}/hotel/hotel-map?destination=Select`, { waitUntil: 'domcontentloaded' });
     await waitForApp(page);
     await waitForHotelCards(page);
-    const selectCount = await page.locator('.place-item').count();
-    const selectHeadline = normalizeText(await page.locator('h6.mb-3').first().textContent());
+    const selectCount = await page.locator('[data-testid="public-hotel-card"]').count();
+    const selectHeadline = normalizeText(await page.locator('[data-testid="public-hotel-count-label"]').textContent());
     summary.selectGridCount = selectCount;
     summary.selectHeadline = selectHeadline;
-    assert(selectCount === defaultCount, 'destination=Select behaves like the default grid');
-    assert(selectHeadline === defaultHeadline, 'destination=Select keeps the same headline as the default grid');
-    const selectFirstTitle = normalizeText(await page.locator('.place-item .place-content h5 a').first().textContent());
+    assert(selectCount === defaultCount, 'destination=Select behaves like the default map');
+    assert(selectHeadline === defaultHeadline, 'destination=Select keeps the same headline as the default map');
+    const selectFirstTitle = normalizeText(await page.locator('[data-testid="public-hotel-card"] .place-content h5 a').first().textContent());
     assert(selectFirstTitle === defaultFirstTitle, 'destination=Select keeps the same first visible hotel');
 
-    await page.goto(`${BASE_URL}/hotel/hotel-grid`, { waitUntil: 'domcontentloaded' });
+    await page.goto(`${BASE_URL}/hotel/hotel-map`, { waitUntil: 'domcontentloaded' });
     await waitForApp(page);
     await waitForHotelCards(page);
     const hotelNameInput = page.locator('input[placeholder="Search by Hotel Name"]').first();
     await hotelNameInput.waitFor({ state: 'visible', timeout: 15000 });
     await hotelNameInput.fill(defaultFirstTitle);
     await page.waitForTimeout(700);
-    const searchedCount = await page.locator('.place-item').count();
+    const searchedCount = await page.locator('[data-testid="public-hotel-card"]').count();
     summary.searchedCount = searchedCount;
     assert(searchedCount >= 1, 'Hotel name search still returns results');
-    assert((await page.locator('.place-item .place-content h5 a').first().textContent())?.includes(defaultFirstTitle) ?? false, 'Hotel name search can surface a matching hotel');
+    assert((await page.locator('[data-testid="public-hotel-card"] .place-content h5 a').first().textContent())?.includes(defaultFirstTitle) ?? false, 'Hotel name search can surface a matching hotel');
 
     if (destinationHotel && destination) {
       const destinationQuery = new URLSearchParams({
@@ -125,13 +125,13 @@ async function main() {
         rooms: '1',
       }).toString();
 
-      await page.goto(`${BASE_URL}/hotel/hotel-grid?${destinationQuery}`, { waitUntil: 'domcontentloaded' });
+      await page.goto(`${BASE_URL}/hotel/hotel-map?${destinationQuery}`, { waitUntil: 'domcontentloaded' });
       await waitForApp(page);
       await waitForHotelCards(page);
       const destinationBody = (await page.textContent('body')) || '';
-      const destinationHeadline = normalizeText(await page.locator('h6.mb-3').first().textContent());
+      const destinationHeadline = normalizeText(await page.locator('[data-testid="public-hotel-count-label"]').textContent());
       summary.destination = destination;
-      summary.destinationCount = await page.locator('.place-item').count();
+      summary.destinationCount = await page.locator('[data-testid="public-hotel-card"]').count();
       summary.destinationHeadline = destinationHeadline;
       assert(destinationBody.includes(getHotelTitle(destinationHotel)), `Destination filter shows the selected destination hotel (${destination})`);
       assert(destinationHeadline.startsWith(String(summary.destinationCount)), 'Destination headline matches the filtered card count');
@@ -151,7 +151,7 @@ async function main() {
     if (nonFeaturedHotel) {
       assert(!featuredBody.includes(getHotelTitle(nonFeaturedHotel)), 'Homepage featured Hotels tab excludes non-featured hotels');
     }
-    assert(!featuredBody.includes('Hotel Plaza Athenee'), 'Homepage featured Hotels tab does not show template hotel cards');
+      assert(!featuredBody.includes('Hotel Plaza Athenee'), 'Homepage featured Hotels tab does not show template hotel cards');
     assert(!featuredBody.includes('The Luxe Haven'), 'Homepage featured Hotels tab does not show template hotel cards');
     assert(!featuredBody.includes('The Urban Retreat'), 'Homepage featured Hotels tab does not show template hotel cards');
     assert(!featuredBody.includes('Hotel Evergreen'), 'Homepage featured Hotels tab does not show template hotel cards');
@@ -165,7 +165,7 @@ async function main() {
 
     if (draftHotel) {
       const draftTitle = getHotelTitle(draftHotel);
-      assert(!destinationBody.includes(draftTitle), 'Draft hotels do not appear on the public hotel grid');
+      assert(!destinationBody.includes(draftTitle), 'Draft hotels do not appear on the public hotel results');
       assert(!featuredBody.includes(draftTitle), 'Draft hotels do not appear in the homepage Hotels tab');
     }
 

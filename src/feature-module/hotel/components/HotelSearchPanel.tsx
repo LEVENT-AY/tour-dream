@@ -369,7 +369,7 @@ const HotelSearchPanel = ({
           </Link>
         </li>
         <li>
-          <Link to={routes.hotelGrid} className="nav-link active">
+          <Link to={routes.hotelMap} className="nav-link active">
             <i className="isax isax-buildings5 me-2" />
             Hotels
           </Link>

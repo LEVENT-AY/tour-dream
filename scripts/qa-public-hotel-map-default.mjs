@@ -41,9 +41,12 @@ const staticFiles = {
   styles: read('src/assets/style/scss/pages/_hotel-map.scss'),
 };
 
-assert(/menuValue: "Hotel Map"/.test(staticFiles.header), 'Header hotel menu surfaces Hotel Map first');
+assert(/publicHeaderNavigation\s*=\s*\[[\s\S]*\{\s*label:\s*"Hotel",\s*url:\s*routes\.hotelMap\s*\}/.test(staticFiles.header), 'Primary hotel nav points to hotel-map');
+assert(!/publicHeaderNavigation[\s\S]*\{\s*label:\s*"Hotel",\s*url:\s*routes\.hotelGrid\s*\}/.test(staticFiles.header), 'Primary hotel nav no longer points to hotel-grid');
 assert(/navigate\(`\/hotel\/hotel-map\?/.test(staticFiles.home), 'Homepage hotel search routes to hotel-map');
 assert(/navigate\(`\$\{routes\.hotelMap\}\?/.test(staticFiles.search), 'Hotel search panel routes to hotel-map');
+assert(/Link to=\{routes\.hotelMap\}/.test(staticFiles.search), 'Standalone hotel tabs make map the active hotel entry');
+assert(/public-results-full-width/.test(staticFiles.results) && /public-results-shell/.test(staticFiles.results), 'Public hotel results use the scoped full-width shell');
 assert(!/53\.470692/.test(staticFiles.results) && !/-2\.220328/.test(staticFiles.results), 'Hotel map no longer uses the Manchester fallback center');
 assert(/Map location unavailable/.test(staticFiles.results), 'Hotels without coordinates are handled safely in the list');
 assert(/Manual payment\. Booking is confirmed after payment verification\./.test(staticFiles.results), 'Pay-now card copy is consistent on map/list results');
@@ -99,6 +102,8 @@ try {
   const defaultHeadline = normalizeText(await page.locator('[data-testid="public-hotel-count-label"]').textContent());
   const defaultSummary = normalizeText(await page.locator('[data-testid="public-hotel-map-summary"]').textContent());
   const defaultVisibleCards = await page.locator('[data-testid="public-hotel-card"]').count();
+  const defaultGridActiveCount = await page.locator('a[aria-label="Grid view"].active').count();
+  const defaultMapActiveCount = await page.locator('a[aria-label="Map view"].active').count();
   const defaultBody = normalizeText(await page.locator('body').innerText());
   summary.defaultHeadline = defaultHeadline;
   summary.defaultSummary = defaultSummary;
@@ -108,6 +113,8 @@ try {
   assert(defaultVisibleCards > 0, 'Default hotel map shows visible hotel cards');
   assert(defaultSummary.includes(`${allMarkerCount} shown on map`), 'Default hotel map summary matches hotels with coordinates');
   assert(defaultSummary.includes(`${allMissingMapCount} without map location`), 'Default hotel map summary matches hotels without coordinates');
+  assert(defaultGridActiveCount === 0, 'Grid view is not active by default');
+  assert(defaultMapActiveCount === 1, 'Map view is active by default');
   assert(!defaultBody.includes('Condos 216 Hotels'), 'Fake category counts are removed from hotel map');
   assert(!defaultBody.includes('Apartments 569 Hotels'), 'Fake category counts are removed from hotel map');
   assert(!defaultBody.includes('5 Star Hotels 600 Hotels'), 'Fake category counts are removed from hotel map');
@@ -166,6 +173,16 @@ try {
     const sousseTitle = normalizeText(sousseHotels[0].title || sousseHotels[0].name || '');
     assert(sousseBody.includes(sousseTitle), 'Sousse filter shows Sousse hotels');
   }
+
+  await page.goto(`${BASE_URL}/hotel/hotel-grid`, { waitUntil: 'domcontentloaded', timeout: 60000 });
+  await page.waitForURL(`${BASE_URL}/hotel/hotel-map`, { timeoutMs: 20000, waitUntil: 'load' });
+  const redirectedGridUrl = await page.url();
+  assert(redirectedGridUrl === `${BASE_URL}/hotel/hotel-map`, 'Direct /hotel/hotel-grid redirects to the map default');
+
+  await page.goto(`${BASE_URL}/hotel/hotel-grid?destination=Sousse&checkInDate=2026-07-06&checkOutDate=2026-07-08&adults=1&rooms=1`, { waitUntil: 'domcontentloaded', timeout: 60000 });
+  await page.waitForURL(`${BASE_URL}/hotel/hotel-map?destination=Sousse&checkInDate=2026-07-06&checkOutDate=2026-07-08&adults=1&rooms=1`, { timeoutMs: 20000, waitUntil: 'load' });
+  const redirectedQueryUrl = await page.url();
+  assert(redirectedQueryUrl === `${BASE_URL}/hotel/hotel-map?destination=Sousse&checkInDate=2026-07-06&checkOutDate=2026-07-08&adults=1&rooms=1`, 'Direct /hotel/hotel-grid preserves query params while redirecting to map');
 
   await page.waitForSelector('[data-testid="public-hotel-map-popup"]', { timeout: 20000 });
   const popupText = normalizeText(await page.locator('[data-testid="public-hotel-map-popup"]').innerText());

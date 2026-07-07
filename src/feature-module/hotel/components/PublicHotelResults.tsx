@@ -222,7 +222,9 @@ const PublicHotelResults = ({ mode }: PublicHotelResultsProps) => {
   const queryString = searchParams.toString();
   const listUrl = queryString ? `${routes.hotelList}?${queryString}` : routes.hotelList;
   const mapUrl = queryString ? `${routes.hotelMap}?${queryString}` : routes.hotelMap;
-  const gridUrl = queryString ? `${routes.hotelGrid}?${queryString}` : routes.hotelGrid;
+  const gridParams = new URLSearchParams(queryString);
+  gridParams.set('view', 'grid');
+  const gridUrl = `${routes.hotelGrid}?${gridParams.toString()}`;
 
   useEffect(() => {
     if (selectedMarkerId && !markerHotels.some((hotel) => hotel.id === selectedMarkerId)) {
@@ -492,8 +494,8 @@ const PublicHotelResults = ({ mode }: PublicHotelResultsProps) => {
         breadcrumbs={breadcrumbs}
         backgroundClass="breadcrumb-bg-01"
       />
-      <div className="content pb-0">
-        <div className="container">
+      <div className="content pb-0 public-results-shell">
+        <div className="container public-results-full-width">
           <HotelSearchPanel
             standalone
             initialDestination={destination}
