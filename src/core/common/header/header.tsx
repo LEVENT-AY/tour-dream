@@ -483,17 +483,6 @@ const Header = () => {
           icon: "",
         },
         {
-          menuValue: "Hotel Grid",
-          route: routes.hotelGrid,
-          hasSubRoute: false,
-          showSubRoute: false,
-          base: "hotel-grid",
-          page: "",
-          last: "",
-          subMenus: [],
-          icon: "",
-        },
-        {
           menuValue: "Hotel List",
           route: routes.hotelList,
           hasSubRoute: false,

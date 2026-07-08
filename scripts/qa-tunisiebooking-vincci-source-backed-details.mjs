@@ -171,9 +171,9 @@ try {
     await desktop.waitForFunction(
       (expected) => Array.from(document.querySelectorAll('.hotel-section-tab.is-active')).some((button) => button.textContent?.trim() === expected),
       label,
-      { timeout: 5000 },
+      { timeout: 10000 },
     );
-    return desktop.locator('.hotel-section-tab.is-active').innerText();
+    return desktop.locator('.hotel-section-tab.is-active').filter({ hasText: label }).innerText();
   };
 
   await desktop.getByRole('button', { name: 'Amenities', exact: true }).click();

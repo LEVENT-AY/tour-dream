@@ -1,5 +1,7 @@
-import { Component, type FormEvent, type ReactNode, useEffect, useMemo, useState } from 'react';
-import { GoogleMap, InfoWindow, Marker, useLoadScript } from '@react-google-maps/api';
+import { type FormEvent, useEffect, useMemo, useState } from 'react';
+import { divIcon, latLngBounds, type DivIcon, type LatLngExpression } from 'leaflet';
+import 'leaflet/dist/leaflet.css';
+import { MapContainer, Marker, TileLayer, useMap } from 'react-leaflet';
 import Slider from 'react-slick';
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import Breadcrumb from '../../../core/common/Breadcrumb/breadcrumb';
@@ -17,29 +19,32 @@ type PublicHotelResultsProps = {
   mode: 'map' | 'list';
 };
 
-type MarkerHotel = HotelRecord & {
+type ResolvedMapHotel = HotelRecord & {
+  approximateLocation: boolean;
   mapLat: number;
   mapLng: number;
+  mapPlacementKey: string;
+  mapPlacementLabel: string;
+  markerLabel: string;
 };
 
-const KNOWN_GOOGLE_MAPS_WARNINGS = [
-  /Maps Demo Key limit reached/i,
-  /OVER_QUERY_LIMIT/i,
-  /ApiProjectMapError/i,
-  /This page can’t load Google Maps correctly/i,
-  /This page can't load Google Maps correctly/i,
-  /You must provide either an anchor/i,
-];
+type MapPlacement = {
+  key: string;
+  label: string;
+  lat: number;
+  lng: number;
+  aliases: string[];
+};
 
 const PAGE_SIZE = 12;
-const DEFAULT_CENTER = { lat: 33.8869, lng: 9.5375 };
-const MAP_CONTAINER_STYLE = { width: '100%', height: '100%' };
+const DEFAULT_CENTER: LatLngExpression = [33.8869, 9.5375];
+const DEFAULT_ZOOM = 7;
 const BAD_DESCRIPTION_MARKERS = [
-  /Restaurants à proximité/i,
+  /Restaurants Ã  proximitÃ©/i,
   /Restaurants a proximite/i,
-  /Cafés aux alentours/i,
+  /CafÃ©s aux alentours/i,
   /Cafes aux alentours/i,
-  /Hôtels à proximité/i,
+  /HÃ´tels Ã  proximitÃ©/i,
   /Hotels a proximite/i,
 ];
 const AMENITY_PREFERENCE = [
@@ -56,12 +61,50 @@ const AMENITY_PREFERENCE = [
   'breakfast',
   'wellness',
 ];
+const AMENITY_LABEL_MAP: Array<{ pattern: RegExp; label: string }> = [
+  { pattern: /wifi.*room/i, label: 'WiFi room' },
+  { pattern: /wifi.*recept/i, label: 'WiFi reception' },
+  { pattern: /restaurant.*a la carte/i, label: 'À la carte' },
+  { pattern: /restaurant.*buffet/i, label: 'Buffet' },
+  { pattern: /climatisation/i, label: 'A/C' },
+  { pattern: /wifi/i, label: 'WiFi' },
+  { pattern: /pool/i, label: 'Pool' },
+  { pattern: /beach/i, label: 'Beach' },
+  { pattern: /parking/i, label: 'Parking' },
+  { pattern: /air conditioning|clim/i, label: 'Air conditioning' },
+  { pattern: /spa/i, label: 'Spa' },
+  { pattern: /restaurant/i, label: 'Restaurant' },
+];
+const MAP_PLACEMENTS: MapPlacement[] = [
+  { key: 'djerba', label: 'Djerba', lat: 33.8076, lng: 10.8451, aliases: ['djerba', 'midoun', 'houmt souk', 'medenine', 'mezzraya'] },
+  { key: 'hammamet', label: 'Hammamet', lat: 36.4002, lng: 10.6167, aliases: ['hammamet', 'nabeul', 'yasmine hammamet', 'nabeul governorate'] },
+  { key: 'sousse', label: 'Sousse', lat: 35.8256, lng: 10.6369, aliases: ['sousse', 'port el kantaoui', 'kantaoui', 'zone touristique sousse'] },
+  { key: 'monastir', label: 'Monastir', lat: 35.7778, lng: 10.8262, aliases: ['monastir', 'skanes', 'zone touristique monastir'] },
+  { key: 'mahdia', label: 'Mahdia', lat: 35.5047, lng: 11.0622, aliases: ['mahdia'] },
+  { key: 'tunis', label: 'Tunis', lat: 36.8065, lng: 10.1815, aliases: ['tunis', 'gammarth', 'la marsa', 'carthage', 'les berges du lac', 'lac 1', 'lac 2'] },
+  { key: 'tozeur', label: 'Tozeur', lat: 33.9197, lng: 8.1335, aliases: ['tozeur', 'nefta'] },
+  { key: 'tabarka', label: 'Tabarka', lat: 36.9544, lng: 8.7580, aliases: ['tabarka', 'jendouba'] },
+  { key: 'bizerte', label: 'Bizerte', lat: 37.2744, lng: 9.8739, aliases: ['bizerte'] },
+  { key: 'sfax', label: 'Sfax', lat: 34.7406, lng: 10.7603, aliases: ['sfax'] },
+  { key: 'kairouan', label: 'Kairouan', lat: 35.6781, lng: 10.0963, aliases: ['kairouan'] },
+  { key: 'douz', label: 'Douz', lat: 33.4667, lng: 9.0167, aliases: ['douz', 'kebili'] },
+  { key: 'tataouine', label: 'Tataouine', lat: 32.9297, lng: 10.4518, aliases: ['tataouine'] },
+  { key: 'tunisia_center', label: 'Tunisia', lat: 34.1110, lng: 9.4140, aliases: ['tunisia'] },
+];
 
 const normalizeText = (value: unknown): string =>
   String(value ?? '')
     .replace(/\u0000/g, ' ')
     .replace(/[\uFFFD\u0001-\u001f\u007f-\u009f]/g, ' ')
     .replace(/\s+/g, ' ')
+    .trim();
+
+const normalizePhrase = (value: unknown): string =>
+  normalizeText(value)
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
     .trim();
 
 const normalizeDestination = (value: string): string => {
@@ -115,19 +158,25 @@ const normalizeAmenities = (hotel: HotelRecord): string[] => {
   });
 };
 
-const hasValidTunisiaCoordinates = (hotel: HotelRecord): hotel is MarkerHotel => {
+const shortenAmenityLabel = (value: string): string => {
+  const normalized = normalizeText(value);
+  const customLabel = AMENITY_LABEL_MAP.find(({ pattern }) => pattern.test(normalized));
+  if (customLabel) return customLabel.label;
+
+  return normalized
+    .replace(/\bgratuit\b/gi, '')
+    .replace(/\bdans la chambre\b/gi, 'room')
+    .replace(/\bdans la reception\b/gi, 'reception')
+    .replace(/\s+/g, ' ')
+    .replace(/\(\s*/g, '(')
+    .replace(/\s*\)/g, ')')
+    .trim();
+};
+
+const hasValidTunisiaCoordinates = (hotel: HotelRecord): boolean => {
   const lat = Number(hotel.lat ?? hotel.latitude);
   const lng = Number(hotel.lng ?? hotel.longitude);
   return Number.isFinite(lat) && Number.isFinite(lng) && lat >= 30 && lat <= 38.8 && lng >= 7 && lng <= 12.5;
-};
-
-const getMapHotel = (hotel: HotelRecord): MarkerHotel | null => {
-  if (!hasValidTunisiaCoordinates(hotel)) return null;
-  return {
-    ...hotel,
-    mapLat: Number(hotel.lat ?? hotel.latitude),
-    mapLng: Number(hotel.lng ?? hotel.longitude),
-  };
 };
 
 const buildHotelLocation = (hotel: HotelRecord): string => {
@@ -136,38 +185,118 @@ const buildHotelLocation = (hotel: HotelRecord): string => {
   return unique.join(', ') || normalizeText(hotel.location) || 'Tunisia';
 };
 
-const isKnownGoogleMapsWarning = (message: string): boolean =>
-  KNOWN_GOOGLE_MAPS_WARNINGS.some((pattern) => pattern.test(message));
-
-type MapErrorBoundaryProps = {
-  onError: (error: Error) => void;
-  fallback: ReactNode;
-  children: ReactNode;
+const formatApproximateLabel = (hotel: ResolvedMapHotel): string => {
+  if (hotel.mapPlacementLabel) {
+    return `Approx. near ${hotel.mapPlacementLabel}`;
+  }
+  return 'Approx. location';
 };
 
-type MapErrorBoundaryState = {
-  hasError: boolean;
+const formatMarkerLabel = (hotel: HotelRecord): string => {
+  const priceValue = Number(hotel.priceFrom ?? hotel.price ?? 0);
+  const currency = normalizeText(hotel.priceCurrency || 'EUR');
+  if (priceValue > 0) {
+    const roundedValue = Number.isInteger(priceValue) ? String(priceValue) : priceValue.toFixed(0);
+    return `${roundedValue} ${currency}`.trim();
+  }
+  return 'Price soon';
 };
 
-class MapErrorBoundary extends Component<MapErrorBoundaryProps, MapErrorBoundaryState> {
-  state: MapErrorBoundaryState = { hasError: false };
+const resolveApproximatePlacement = (hotel: HotelRecord): MapPlacement => {
+  const searchableValues = [
+    hotel.city,
+    hotel.location,
+    hotel.address,
+    hotel.region,
+    hotel.country,
+    hotel.rawSource?.detail?.location,
+    hotel.rawSource?.detail?.address,
+  ]
+    .map((value) => normalizePhrase(value))
+    .filter(Boolean);
 
-  static getDerivedStateFromError(): MapErrorBoundaryState {
-    return { hasError: true };
+  const exactMatch = MAP_PLACEMENTS.find((placement) =>
+    placement.aliases.some((alias) => searchableValues.some((value) => value.includes(normalizePhrase(alias)))),
+  );
+
+  return exactMatch || MAP_PLACEMENTS.find((placement) => placement.key === 'tunisia_center')!;
+};
+
+const resolveMapHotel = (hotel: HotelRecord): ResolvedMapHotel => {
+  if (hasValidTunisiaCoordinates(hotel)) {
+    return {
+      ...hotel,
+      approximateLocation: false,
+      mapLat: Number(hotel.lat ?? hotel.latitude),
+      mapLng: Number(hotel.lng ?? hotel.longitude),
+      mapPlacementKey: 'exact',
+      mapPlacementLabel: buildHotelLocation(hotel),
+      markerLabel: formatMarkerLabel(hotel),
+    };
   }
 
-  componentDidCatch(error: Error) {
-    this.props.onError(error);
-  }
+  const placement = resolveApproximatePlacement(hotel);
+  return {
+    ...hotel,
+    approximateLocation: true,
+    mapLat: placement.lat,
+    mapLng: placement.lng,
+    mapPlacementKey: placement.key,
+    mapPlacementLabel: placement.label,
+    markerLabel: formatMarkerLabel(hotel),
+  };
+};
 
-  render() {
-    if (this.state.hasError) {
-      return this.props.fallback;
+const buildPriceMarkerIcon = (hotel: ResolvedMapHotel, isSelected: boolean): DivIcon =>
+  divIcon({
+    className: 'public-hotel-price-marker-wrapper',
+    html: `
+      <div
+        class="public-hotel-price-marker ${hotel.approximateLocation ? 'is-approximate' : 'is-exact'} ${isSelected ? 'is-selected' : ''}"
+        data-map-marker-kind="${hotel.approximateLocation ? 'approximate' : 'exact'}"
+        data-map-marker-label="${hotel.markerLabel}"
+        title="${hotel.approximateLocation ? 'Approximate location' : 'Exact location'}"
+        aria-label="${hotel.approximateLocation ? 'Approximate location' : 'Exact location'} ${hotel.markerLabel}"
+        data-testid="public-hotel-price-marker"
+      >
+        <span>${hotel.markerLabel}</span>
+      </div>
+    `,
+    iconSize: [92, 34],
+    iconAnchor: [46, 17],
+  });
+
+const HotelMapViewport = ({
+  hotels,
+  selectedHotel,
+}: {
+  hotels: ResolvedMapHotel[];
+  selectedHotel: ResolvedMapHotel | null;
+}) => {
+  const map = useMap();
+
+  useEffect(() => {
+    if (!hotels.length) {
+      map.setView(DEFAULT_CENTER, DEFAULT_ZOOM);
+      return;
     }
 
-    return this.props.children;
-  }
-}
+    if (selectedHotel) {
+      map.flyTo([selectedHotel.mapLat, selectedHotel.mapLng], selectedHotel.approximateLocation ? 10 : 12, {
+        duration: 0.5,
+      });
+      return;
+    }
+
+    const boundsHotels = hotels.some((hotel) => hotel.mapPlacementKey !== 'tunisia_center')
+      ? hotels.filter((hotel) => hotel.mapPlacementKey !== 'tunisia_center')
+      : hotels;
+    const bounds = latLngBounds(boundsHotels.map((hotel) => [hotel.mapLat, hotel.mapLng] as [number, number]));
+    map.fitBounds(bounds, { padding: [40, 40], maxZoom: 11 });
+  }, [hotels, map, selectedHotel]);
+
+  return null;
+};
 
 const PublicHotelResults = ({ mode }: PublicHotelResultsProps) => {
   const routes = all_routes;
@@ -177,9 +306,7 @@ const PublicHotelResults = ({ mode }: PublicHotelResultsProps) => {
   const [hotels, setHotels] = useState<HotelRecord[]>([]);
   const [loadingHotels, setLoadingHotels] = useState(true);
   const [hotelNameQuery, setHotelNameQuery] = useState(searchParams.get('hotelName') || '');
-  const [selectedItems, setSelectedItems] = useState<boolean[]>([]);
   const [selectedMarkerId, setSelectedMarkerId] = useState<string | null>(null);
-  const [mapInstance, setMapInstance] = useState<any>(null);
 
   const destination = searchParams.get('destination') || '';
   const checkInDate = searchParams.get('checkInDate') || '';
@@ -195,7 +322,7 @@ const PublicHotelResults = ({ mode }: PublicHotelResultsProps) => {
   ];
 
   const imgslideroption = {
-    dots: true,
+    dots: false,
     arrows: true,
     infinite: true,
     speed: 2000,
@@ -211,11 +338,6 @@ const PublicHotelResults = ({ mode }: PublicHotelResultsProps) => {
       { breakpoint: 0, settings: { slidesToShow: 1 } },
     ],
   };
-
-  const { isLoaded } = useLoadScript({
-    googleMapsApiKey: 'AIzaSyD6adZVdzTvBpE2yBRK8cDfsss8QXChK0I',
-  });
-  const [mapUnavailable, setMapUnavailable] = useState(false);
 
   useEffect(() => {
     const loadHotels = async () => {
@@ -255,46 +377,17 @@ const PublicHotelResults = ({ mode }: PublicHotelResultsProps) => {
     [filteredHotels, safePage],
   );
 
-  const markerHotels = useMemo(
-    () => filteredHotels.map((hotel) => getMapHotel(hotel)).filter(Boolean) as MarkerHotel[],
-    [filteredHotels],
-  );
+  const mapHotels = useMemo(() => filteredHotels.map(resolveMapHotel), [filteredHotels]);
+  const exactLocationCount = mapHotels.filter((hotel) => !hotel.approximateLocation).length;
+  const approximateLocationCount = mapHotels.length - exactLocationCount;
+  const selectedMarker = mapHotels.find((hotel) => hotel.id === selectedMarkerId) || null;
 
-  const missingCoordinateCount = filteredHotels.length - markerHotels.length;
-  const selectedMarker = markerHotels.find((hotel) => hotel.id === selectedMarkerId) || markerHotels[0] || null;
   const queryString = searchParams.toString();
   const listUrl = queryString ? `${routes.hotelList}?${queryString}` : routes.hotelList;
   const mapUrl = queryString ? `${routes.hotelMap}?${queryString}` : routes.hotelMap;
   const gridParams = new URLSearchParams(queryString);
   gridParams.set('view', 'grid');
   const gridUrl = `${routes.hotelGrid}?${gridParams.toString()}`;
-
-  useEffect(() => {
-    if (selectedMarkerId && !markerHotels.some((hotel) => hotel.id === selectedMarkerId)) {
-      setSelectedMarkerId(markerHotels[0]?.id || null);
-    }
-    if (!selectedMarkerId && markerHotels[0]?.id) {
-      setSelectedMarkerId(markerHotels[0].id);
-    }
-  }, [markerHotels, selectedMarkerId]);
-
-  useEffect(() => {
-    if (!mapInstance) return;
-    if (selectedMarker) {
-      mapInstance.panTo({ lat: selectedMarker.mapLat, lng: selectedMarker.mapLng });
-      return;
-    }
-    if (markerHotels.length === 0) {
-      mapInstance.panTo(DEFAULT_CENTER);
-      mapInstance.setZoom(6);
-      return;
-    }
-    const bounds = new google.maps.LatLngBounds();
-    markerHotels.forEach((hotel) => {
-      bounds.extend({ lat: hotel.mapLat, lng: hotel.mapLng });
-    });
-    mapInstance.fitBounds(bounds, 80);
-  }, [mapInstance, markerHotels, selectedMarker]);
 
   const updateSearchParams = (updates: Record<string, string | null>) => {
     const nextParams = new URLSearchParams(searchParams);
@@ -318,12 +411,14 @@ const PublicHotelResults = ({ mode }: PublicHotelResultsProps) => {
     updateSearchParams({ page: String(page) });
   };
 
-  const handleFavoriteClick = (index: number) => {
-    setSelectedItems((previous) => {
-      const next = [...previous];
-      next[index] = !next[index];
-      return next;
-    });
+  const handleMarkerSelect = (hotelId: string) => {
+    setSelectedMarkerId(hotelId);
+    const selectedIndex = filteredHotels.findIndex((hotel) => hotel.id === hotelId);
+    if (selectedIndex < 0) return;
+    const markerPage = Math.floor(selectedIndex / PAGE_SIZE) + 1;
+    if (markerPage !== safePage) {
+      updateSearchParams({ page: String(markerPage) });
+    }
   };
 
   const storeManualHotelSelection = (hotel: HotelRecord) => {
@@ -426,15 +521,18 @@ const PublicHotelResults = ({ mode }: PublicHotelResultsProps) => {
       { prefix: 'From', fallbackLabel: isPayNowHotel ? 'Price available soon' : 'Price on request' },
     );
 
-    const markerHotel = getMapHotel(hotel);
+    const mapHotel = mapHotels.find((candidate) => candidate.id === hotel.id) || null;
+    const compactAmenities = Array.from(new Set(visibleAmenities.map(shortenAmenityLabel).filter(Boolean)));
+    const hotelImageCount = hotelImages.length;
 
     return (
       <article
-        className={`place-item public-hotel-card mb-4 ${selectedMarkerId && markerHotel?.id === selectedMarkerId ? 'is-selected' : ''}`}
+        className={`place-item public-hotel-card mb-4 ${selectedMarkerId && hotel.id === selectedMarkerId ? 'is-selected' : ''}`}
         key={hotel.id || index}
         data-testid="public-hotel-card"
+        onMouseEnter={() => hotel.id && setSelectedMarkerId(hotel.id)}
       >
-        <div className="place-img">
+        <div className="public-hotel-card__media">
           {hotelImages.length > 1 ? (
             <div className="img-slider image-slide owl-carousel nav-center">
               <Slider {...imgslideroption}>
@@ -462,16 +560,9 @@ const PublicHotelResults = ({ mode }: PublicHotelResultsProps) => {
               />
             </Link>
           )}
-          <div className="fav-item" onClick={() => handleFavoriteClick(index)}>
-            {hotel.featured ? (
-              <span className="badge bg-info d-inline-flex align-items-center">
-                <i className="isax isax-ranking me-1"></i>
-                Trending
-              </span>
-            ) : null}
-            <Link to="#" className={`fav-icon ${selectedItems[index] ? 'selected' : ''}`} aria-label="Save hotel">
-              <i className="isax isax-heart5"></i>
-            </Link>
+          <div className="public-hotel-card__image-meta">
+            {hotel.featured ? <span className="badge bg-info">Trending</span> : null}
+            {hotelImageCount > 1 ? <span className="public-hotel-card__image-count">{hotelImageCount} photos</span> : null}
           </div>
         </div>
         <div className="place-content public-hotel-card__content">
@@ -491,26 +582,29 @@ const PublicHotelResults = ({ mode }: PublicHotelResultsProps) => {
           <p className="line-ellipsis fs-14 public-hotel-card__description">{description}</p>
 
           <div className="public-hotel-card__amenities">
-            {visibleAmenities.map((amenity) => (
-              <span className="badge rounded-pill bg-light text-dark border" key={amenity}>
+            {compactAmenities.map((amenity) => (
+              <span className="badge rounded-pill bg-light text-dark border public-hotel-card__amenity-chip" key={amenity}>
                 {amenity}
               </span>
             ))}
             {extraAmenities > 0 ? (
-              <span className="badge rounded-pill bg-light text-dark border">+{extraAmenities}</span>
+              <span className="badge rounded-pill bg-light text-dark border public-hotel-card__amenity-chip">+{extraAmenities}</span>
             ) : null}
           </div>
 
-          {markerHotel ? null : (
-            <div className="public-hotel-card__map-note">Map location unavailable</div>
-          )}
+          {mapHotel?.approximateLocation ? (
+            <div className="public-hotel-card__approximate">
+              <i className="isax isax-location5" aria-hidden="true"></i>
+              <span>{formatApproximateLabel(mapHotel)}</span>
+            </div>
+          ) : null}
 
-          <div className="d-flex align-items-end justify-content-between flex-wrap border-top pt-3 mt-3 gap-3">
+          <div className="public-hotel-card__footer border-top pt-3 mt-3 gap-3">
             <div className="text-start">
               <h5 className="text-primary text-nowrap mb-1">{priceInfo.headline}</h5>
               {priceInfo.note ? <div className="fs-12 text-muted public-hotel-card__note">{priceInfo.note}</div> : null}
             </div>
-            <div className="d-flex align-items-center gap-2">
+            <div className="d-flex align-items-center gap-2 public-hotel-card__actions">
               <Link to={hotelLink} className="btn btn-light btn-sm">
                 View Details
               </Link>
@@ -529,16 +623,6 @@ const PublicHotelResults = ({ mode }: PublicHotelResultsProps) => {
   };
 
   const paginationItems = Array.from({ length: totalPages }, (_, index) => index + 1);
-  const mapFallback = (
-    <div className="public-hotel-results__map-fallback" data-testid="public-hotel-map-fallback">
-      <i className="isax isax-map-1 public-hotel-results__map-fallback-icon" aria-hidden="true"></i>
-      <h6 className="mb-2">Map temporarily unavailable</h6>
-      <p className="mb-0 text-muted">
-        The hotel list remains available while Google Maps recovers. Hotel cards, pricing, and Pay Now actions still work.
-      </p>
-    </div>
-  );
-  const shouldShowFallbackMap = !isLoaded || mapUnavailable;
 
   return (
     <>
@@ -567,8 +651,9 @@ const PublicHotelResults = ({ mode }: PublicHotelResultsProps) => {
                     : `${filteredHotels.length} Hotels${destinationFilter ? ` in ${destinationFilter}` : ''}`}
                 </h6>
                 <div className="public-hotel-results__meta" data-testid="public-hotel-map-summary">
-                  <span>{markerHotels.length} shown on map</span>
-                  <span>{missingCoordinateCount} without map location</span>
+                  <span data-testid="public-hotel-map-total-count">{mapHotels.length} shown on map</span>
+                  <span data-testid="public-hotel-map-exact-count">{exactLocationCount} exact</span>
+                  <span data-testid="public-hotel-map-approximate-count">{approximateLocationCount} approximate</span>
                 </div>
               </div>
 
@@ -648,88 +733,29 @@ const PublicHotelResults = ({ mode }: PublicHotelResultsProps) => {
               {mode === 'map' ? (
                 <div className="col-xl-5 map-right public-hotel-results__map-column">
                   <div className="map-listing public-hotel-results__map-shell">
-                    {shouldShowFallbackMap ? (
-                      mapFallback
-                    ) : (
-                      <MapErrorBoundary
-                        fallback={mapFallback}
-                        onError={(error) => {
-                          const message = error?.message || String(error);
-                          if (isKnownGoogleMapsWarning(message)) {
-                            setMapUnavailable(true);
-                            return;
-                          }
-                          setMapUnavailable(true);
-                        }}
-                      >
-                        <GoogleMap
-                          mapContainerStyle={MAP_CONTAINER_STYLE}
-                          center={selectedMarker ? { lat: selectedMarker.mapLat, lng: selectedMarker.mapLng } : DEFAULT_CENTER}
-                          zoom={6}
-                          onLoad={(map) => setMapInstance(map)}
-                          options={{
-                            scrollwheel: false,
-                            mapTypeId: 'roadmap',
-                            streetViewControl: false,
-                            fullscreenControl: false,
+                    <MapContainer
+                      center={DEFAULT_CENTER}
+                      zoom={DEFAULT_ZOOM}
+                      scrollWheelZoom
+                      className="public-hotel-results__leaflet-map"
+                      data-testid="public-hotel-leaflet-map"
+                    >
+                      <TileLayer
+                        attribution='&copy; OpenStreetMap contributors'
+                        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                      />
+                      <HotelMapViewport hotels={mapHotels} selectedHotel={selectedMarker} />
+                      {mapHotels.map((hotel) => (
+                        <Marker
+                          key={hotel.id}
+                          position={[hotel.mapLat, hotel.mapLng]}
+                          icon={buildPriceMarkerIcon(hotel, hotel.id === selectedMarkerId)}
+                          eventHandlers={{
+                            click: () => handleMarkerSelect(hotel.id),
                           }}
-                        >
-                          {markerHotels.map((hotel) => (
-                            <Marker
-                              key={hotel.id}
-                              position={{ lat: hotel.mapLat, lng: hotel.mapLng }}
-                              onClick={() => setSelectedMarkerId(hotel.id)}
-                            />
-                          ))}
-
-                          {selectedMarker ? (
-                            <InfoWindow
-                              position={{ lat: selectedMarker.mapLat, lng: selectedMarker.mapLng }}
-                              onCloseClick={() => setSelectedMarkerId(null)}
-                            >
-                              <div className="public-hotel-map-popup" data-testid="public-hotel-map-popup">
-                                <Link to={buildHotelDetailsLink(selectedMarker.id)} className="public-hotel-map-popup__image">
-                                  <ImageWithBasePath
-                                    className="img-fluid w-100"
-                                    alt={selectedMarker.title || 'Hotel image'}
-                                    src={selectedMarker.image || getHotelImages(selectedMarker)[0]}
-                                    fallbackSrc={getCategoryFallbackSrc('hotels')}
-                                  />
-                                </Link>
-                                <div className="public-hotel-map-popup__content">
-                                  <h6 className="mb-1">
-                                    <Link to={buildHotelDetailsLink(selectedMarker.id)} tabIndex={-1}>
-                                      {selectedMarker.title}
-                                    </Link>
-                                  </h6>
-                                  <p className="mb-2">{buildHotelLocation(selectedMarker)}</p>
-                                  <div className="d-flex align-items-center justify-content-between gap-2">
-                                    <span className="text-primary fw-semibold">
-                                      {formatHotelPrice(
-                                        {
-                                          priceFrom: selectedMarker.priceFrom ?? selectedMarker.price,
-                                          priceCurrency: selectedMarker.priceCurrency,
-                                          priceUnit: selectedMarker.priceUnit,
-                                        },
-                                        { prefix: 'From', fallbackLabel: 'Price available soon', includeFinalNote: false },
-                                      ).headline}
-                                    </span>
-                                    <div className="d-flex gap-2">
-                                      <Link to={buildHotelDetailsLink(selectedMarker.id)} className="btn btn-light btn-sm">
-                                        View Details
-                                      </Link>
-                                      <button type="button" className="btn btn-primary btn-sm" onClick={() => handlePrimaryAction(selectedMarker)}>
-                                        {selectedMarker.bookingMode === 'pay_now' ? 'Pay Now' : 'Request'}
-                                      </button>
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
-                            </InfoWindow>
-                          ) : null}
-                        </GoogleMap>
-                      </MapErrorBoundary>
-                    )}
+                        />
+                      ))}
+                    </MapContainer>
                   </div>
                 </div>
               ) : null}

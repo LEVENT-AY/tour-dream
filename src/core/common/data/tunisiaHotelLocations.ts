@@ -9,6 +9,12 @@ export type ManualHotelLocationFields = {
   city?: string;
   location?: string;
   address?: string;
+  region?: string;
+  destination?: string;
+  title?: string;
+  name?: string;
+  hotelName?: string;
+  propertyName?: string;
 };
 
 export const TUNISIA_HOTEL_LOCATIONS: TunisiaHotelLocation[] = [
@@ -59,9 +65,12 @@ const phraseContainsAlias = (value: string, alias: string): boolean => {
 
 const DESTINATION_ALIAS_MAP: Record<string, string[]> = {
   tunis: ['tunis', 'bardo', 'le bardo', 'la soukra', 'ariana', 'carthage', 'la marsa', 'gammarth'],
-  sousse: ['sousse'],
-  hammamet: ['hammamet'],
-  djerba: ['djerba', 'midoun', 'houmt souk'],
+  sousse: ['sousse', 'port el kantaoui', 'kantaoui', 'zone touristique sousse'],
+  hammamet: ['hammamet', 'nabeul', 'yasmine hammamet', 'nabeul governorate'],
+  djerba: ['djerba', 'midoun', 'houmt souk', 'medenine', 'mezzraya'],
+  monastir: ['monastir', 'skanes', 'zone touristique monastir'],
+  mahdia: ['mahdia'],
+  tozeur: ['tozeur', 'nefta'],
 };
 
 export const findTunisiaHotelLocation = (label: string): TunisiaHotelLocation | undefined => {
@@ -89,7 +98,7 @@ export const matchesTunisiaHotelDestination = (
   const aliases = getTunisiaHotelDestinationAliases(destination);
   if (!aliases.length) return true;
 
-  const searchableValues = [hotel.city, hotel.location, hotel.address]
+  const searchableValues = [hotel.destination, hotel.city, hotel.region, hotel.location, hotel.address, hotel.title, hotel.name, hotel.hotelName, hotel.propertyName]
     .filter(Boolean)
     .map((value) => String(value));
 

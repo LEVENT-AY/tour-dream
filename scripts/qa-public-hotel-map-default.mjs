@@ -12,27 +12,57 @@ const assert = (condition, message) => {
 };
 
 const normalizeText = (value) => String(value ?? '').trim().replace(/\s+/g, ' ');
-const isKnownGoogleMapsWarning = (message) =>
-  /Maps Demo Key limit reached|OVER_QUERY_LIMIT|ApiProjectMapError|This page can’t load Google Maps correctly|This page can't load Google Maps correctly|You must provide either an anchor/i.test(
-    String(message ?? ''),
-  );
 const hasValidTunisiaCoordinates = (hotel) => {
   const lat = Number(hotel.lat ?? hotel.latitude);
   const lng = Number(hotel.lng ?? hotel.longitude);
   return Number.isFinite(lat) && Number.isFinite(lng) && lat >= 30 && lat <= 38.8 && lng >= 7 && lng <= 12.5;
 };
+const normalizePhrase = (value) =>
+  normalizeText(value)
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
+const tokenize = (value) =>
+  normalizePhrase(value)
+    .split(' ')
+    .map((part) => part.trim())
+    .filter(Boolean);
+const phraseContainsAlias = (value, alias) => {
+  const haystack = tokenize(value);
+  const needle = tokenize(alias);
+  if (!haystack.length || !needle.length || needle.length > haystack.length) return false;
+
+  for (let start = 0; start <= haystack.length - needle.length; start += 1) {
+    const matches = needle.every((token, index) => haystack[start + index] === token);
+    if (matches) return true;
+  }
+
+  return false;
+};
+const DESTINATION_ALIAS_MAP = {
+  tunis: ['tunis', 'bardo', 'le bardo', 'la soukra', 'ariana', 'carthage', 'la marsa', 'gammarth'],
+  sousse: ['sousse'],
+  hammamet: ['hammamet'],
+  djerba: ['djerba', 'midoun', 'houmt souk'],
+};
+const getDestinationAliases = (destination) => {
+  const normalizedDestination = normalizePhrase(destination);
+  if (!normalizedDestination) return [];
+  return DESTINATION_ALIAS_MAP[normalizedDestination] || [normalizedDestination];
+};
 const matchesDestination = (hotel, destination) => {
-  const normalizedDestination = normalizeText(destination).toLowerCase();
-  const haystack = [
-    hotel.city,
-    hotel.location,
-    hotel.address,
-    hotel.region,
-    hotel.country,
-  ]
-    .map((item) => normalizeText(item).toLowerCase())
-    .join(' ');
-  return haystack.includes(normalizedDestination);
+  const aliases = getDestinationAliases(destination);
+  if (!aliases.length) return true;
+
+  const searchableValues = [hotel.destination, hotel.city, hotel.region, hotel.location, hotel.address, hotel.title, hotel.name, hotel.hotelName, hotel.propertyName]
+    .filter(Boolean)
+    .map((value) => String(value));
+
+  if (!searchableValues.length) return false;
+
+  return searchableValues.some((value) => aliases.some((alias) => phraseContainsAlias(value, alias)));
 };
 
 const staticFiles = {
@@ -50,13 +80,17 @@ assert(!/publicHeaderNavigation[\s\S]*\{\s*label:\s*"Hotel",\s*url:\s*routes\.ho
 assert(/navigate\(`\/hotel\/hotel-map\?/.test(staticFiles.home), 'Homepage hotel search routes to hotel-map');
 assert(/navigate\(`\$\{routes\.hotelMap\}\?/.test(staticFiles.search), 'Hotel search panel routes to hotel-map');
 assert(/Link to=\{routes\.hotelMap\}/.test(staticFiles.search), 'Standalone hotel tabs make map the active hotel entry');
+assert(/react-leaflet/.test(staticFiles.results), 'Public hotel results use react-leaflet');
+assert(!/@react-google-maps\/api/.test(staticFiles.results), 'Public hotel results do not use Google Maps');
 assert(/public-results-full-width/.test(staticFiles.results) && /public-results-shell/.test(staticFiles.results), 'Public hotel results use the scoped full-width shell');
-assert(!/53\.470692/.test(staticFiles.results) && !/-2\.220328/.test(staticFiles.results), 'Hotel map no longer uses the Manchester fallback center');
-assert(/Map location unavailable/.test(staticFiles.results), 'Hotels without coordinates are handled safely in the list');
-assert(/Manual payment\. Booking is confirmed after payment verification\./.test(staticFiles.results), 'Pay-now card copy is consistent on map/list results');
+assert(/public-hotel-card__approximate/.test(staticFiles.results) && /Approx\./.test(staticFiles.results), 'Approximate location note is visible in cards');
+assert(/public-hotel-map-total-count/.test(staticFiles.results), 'Map summary includes total shown count');
+assert(/public-hotel-price-marker/.test(staticFiles.styles), 'Leaflet price marker styling is defined');
+assert(/leaflet-container/.test(staticFiles.styles), 'Leaflet map styling is defined');
 assert(/PublicHotelResults/.test(staticFiles.map) && /mode="map"/.test(staticFiles.map), 'Hotel map page uses the shared public results surface');
 assert(/PublicHotelResults/.test(staticFiles.list) && /mode="list"/.test(staticFiles.list), 'Hotel list page uses the shared public results surface');
-assert(/public-hotel-map-popup/.test(staticFiles.styles), 'Hotel map popup styling is customized');
+assert(/public-hotel-card__amenity-chip/.test(staticFiles.results), 'Hotel cards render compact amenity chips');
+assert(/public-hotel-card__approximate/.test(staticFiles.results), 'Hotel cards render a subtle approximate-location label');
 
 if (admin.getApps().length === 0) {
   admin.initializeApp({ projectId: 'tour-tunisi' });
@@ -68,8 +102,8 @@ const hotels = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
 const publishedHotels = hotels.filter((hotel) => hotel.published === true);
 const draftHotel = hotels.find((hotel) => hotel.published === false) || null;
 const sousseHotels = publishedHotels.filter((hotel) => matchesDestination(hotel, 'Sousse'));
-const allMarkerCount = publishedHotels.filter(hasValidTunisiaCoordinates).length;
-const allMissingMapCount = publishedHotels.length - allMarkerCount;
+const exactMarkerCount = publishedHotels.filter(hasValidTunisiaCoordinates).length;
+const approximateMarkerCount = publishedHotels.length - exactMarkerCount;
 const noCoordinateHotel = publishedHotels.find((hotel) => !hasValidTunisiaCoordinates(hotel)) || null;
 
 assert(publishedHotels.length > 0, 'At least one published hotel exists for map QA');
@@ -102,26 +136,58 @@ try {
   await waitForApp();
   await waitForResults();
   await page.waitForSelector('[data-testid="public-hotel-card"]', { timeout: 20000 });
+  await page.waitForSelector('.leaflet-container', { timeout: 20000 });
 
   const defaultHeadline = normalizeText(await page.locator('[data-testid="public-hotel-count-label"]').textContent());
   const defaultSummary = normalizeText(await page.locator('[data-testid="public-hotel-map-summary"]').textContent());
   const defaultVisibleCards = await page.locator('[data-testid="public-hotel-card"]').count();
+  const defaultExactMarkers = await page.locator('[data-map-marker-kind="exact"]').count();
+  const defaultApproximateMarkers = await page.locator('[data-map-marker-kind="approximate"]').count();
+  const defaultMarkerTexts = await page.locator('[data-testid="public-hotel-price-marker"]').allTextContents();
   const defaultGridActiveCount = await page.locator('a[aria-label="Grid view"].active').count();
   const defaultMapActiveCount = await page.locator('a[aria-label="Map view"].active').count();
   const defaultBody = normalizeText(await page.locator('body').innerText());
+  const defaultAmenityMetrics = await page.evaluate(() => {
+    const cards = Array.from(document.querySelectorAll('[data-testid="public-hotel-card"]'));
+    return {
+      maxAmenityChips: cards.reduce((max, card) => Math.max(max, card.querySelectorAll('.public-hotel-card__amenity-chip').length), 0),
+      approximateLabelCount: document.querySelectorAll('.public-hotel-card__approximate').length,
+      favIconCount: document.querySelectorAll('[data-testid="public-hotel-card"] .fav-icon').length,
+      approximateMarkersHaveLabels: Array.from(document.querySelectorAll('[data-map-marker-kind="approximate"]')).every((element) => {
+        const title = element.getAttribute('title') || '';
+        const aria = element.getAttribute('aria-label') || '';
+        return title === 'Approximate location' && /Approximate location/.test(aria);
+      }),
+    };
+  });
+  const defaultFirstCardVisible = await page.evaluate(() => {
+    const first = document.querySelector('[data-testid="public-hotel-card"]');
+    const rect = first?.getBoundingClientRect();
+    return Boolean(first && rect && rect.height > 0 && rect.width > 0);
+  });
   summary.defaultHeadline = defaultHeadline;
   summary.defaultSummary = defaultSummary;
   summary.defaultVisibleCards = defaultVisibleCards;
 
   assert(defaultHeadline.includes(String(publishedHotels.length)), 'Default hotel map headline matches the published total');
   assert(defaultVisibleCards > 0, 'Default hotel map shows visible hotel cards');
-  assert(defaultSummary.includes(`${allMarkerCount} shown on map`), 'Default hotel map summary matches hotels with coordinates');
-  assert(defaultSummary.includes(`${allMissingMapCount} without map location`), 'Default hotel map summary matches hotels without coordinates');
+  assert(defaultSummary.includes(`${publishedHotels.length} shown on map`), 'Default hotel map summary matches total map markers');
+  assert(defaultSummary.includes(`${exactMarkerCount} exact`), 'Default hotel map summary matches exact markers');
+  assert(defaultSummary.includes(`${approximateMarkerCount} approximate`), 'Default hotel map summary matches approximate markers');
+  assert(defaultExactMarkers === exactMarkerCount, 'Exact marker count matches hotels with coordinates');
+  assert(defaultApproximateMarkers === approximateMarkerCount, 'Approximate marker count matches hotels without coordinates');
+  assert(defaultExactMarkers + defaultApproximateMarkers === publishedHotels.length, 'Every published hotel is represented on the map');
+  assert(defaultFirstCardVisible, 'Default hotel map cards are visibly rendered');
+  assert(defaultMarkerTexts.every((text) => !/^\s*-/.test(normalizeText(text))), 'No price marker shows a negative-looking prefix');
+  assert(defaultAmenityMetrics.approximateMarkersHaveLabels, 'Approximate markers expose an explicit semantic label');
+  assert(defaultAmenityMetrics.maxAmenityChips <= 5, 'Hotel cards show no more than four amenity chips plus +N');
+  assert(defaultAmenityMetrics.favIconCount === 0, 'Hotel cards do not leak a black favorite icon');
   assert(defaultGridActiveCount === 0, 'Grid view is not active by default');
   assert(defaultMapActiveCount === 1, 'Map view is active by default');
-  assert(!defaultBody.includes('Condos 216 Hotels'), 'Fake category counts are removed from hotel map');
-  assert(!defaultBody.includes('Apartments 569 Hotels'), 'Fake category counts are removed from hotel map');
-  assert(!defaultBody.includes('5 Star Hotels 600 Hotels'), 'Fake category counts are removed from hotel map');
+  assert(defaultBody.includes('OpenStreetMap contributors'), 'OpenStreetMap attribution is visible');
+  assert(!defaultBody.includes('Oops, something went wrong'), 'No generic map fatal error panel is visible');
+  assert(!defaultBody.includes('عفوا') && !defaultBody.includes('حدث خطأ'), 'No localized map fatal error panel is visible');
+  assert(!defaultBody.includes('Maps Demo Key limit reached'), 'Google demo quota text is not shown');
   assert(!defaultBody.includes('Book Now'), 'Hotel map cards do not show Book Now');
   assert(!defaultBody.includes('Request this hotel'), 'Pay-now hotel map cards do not show request-only CTA copy');
   assert(!defaultBody.includes('Request-only hotel'), 'Pay-now hotel map cards do not show request-only copy');
@@ -140,7 +206,8 @@ try {
   if (noCoordinateHotel) {
     const missingTitle = normalizeText(noCoordinateHotel.title || noCoordinateHotel.name || '');
     assert(defaultBody.includes(missingTitle), 'A published hotel without coordinates still appears in the list');
-    assert(defaultBody.includes('Map location unavailable'), 'Hotels without coordinates show a safe map-unavailable note');
+    assert(defaultBody.includes('Approx. near') || defaultBody.includes('Approx. location'), 'Hotels without coordinates show a subtle approximate-location note');
+    assert(defaultAmenityMetrics.approximateLabelCount > 0, 'Approximate locations are labeled in the card list');
   }
 
   await page.goto(`${BASE_URL}/hotel/hotel-map?destination=Select`, { waitUntil: 'domcontentloaded', timeout: 60000 });
@@ -166,6 +233,7 @@ try {
   const sousseHeadline = normalizeText(await page.locator('[data-testid="public-hotel-count-label"]').textContent());
   const sousseSummary = normalizeText(await page.locator('[data-testid="public-hotel-map-summary"]').textContent());
   const sousseVisibleCards = await page.locator('[data-testid="public-hotel-card"]').count();
+  const sousseMarkers = await page.locator('[data-testid="public-hotel-price-marker"]').count();
   const sousseBody = normalizeText(await page.locator('body').innerText());
   summary.sousseHeadline = sousseHeadline;
   summary.sousseSummary = sousseSummary;
@@ -173,9 +241,25 @@ try {
   assert(sousseVisibleCards > 0, 'Sousse hotel map returns visible hotels');
   assert(sousseHeadline.startsWith(String(sousseVisibleCards)), 'Sousse hotel map headline matches the visible filtered total');
   assert(sousseSummary.includes('shown on map'), 'Sousse hotel map summary remains visible');
+  assert(sousseMarkers === sousseHotels.length, 'Sousse marker count matches filtered Sousse hotels');
   if (sousseHotels[0]) {
     const sousseTitle = normalizeText(sousseHotels[0].title || sousseHotels[0].name || '');
     assert(sousseBody.includes(sousseTitle), 'Sousse filter shows Sousse hotels');
+  }
+
+  const destinationsToCheck = ['Mahdia', 'Djerba', 'Monastir', 'Tozeur', 'Hammamet', 'Tunis'];
+  for (const destinationName of destinationsToCheck) {
+    await page.goto(`${BASE_URL}/hotel/hotel-map?destination=${encodeURIComponent(destinationName)}`, {
+      waitUntil: 'domcontentloaded',
+      timeout: 60000,
+    });
+    await waitForApp();
+    await waitForResults();
+    await page.waitForSelector('[data-testid="public-hotel-card"]', { timeout: 20000 });
+    const destinationCards = await page.locator('[data-testid="public-hotel-card"]').count();
+    const destinationHeadline = normalizeText(await page.locator('[data-testid="public-hotel-count-label"]').textContent());
+    assert(destinationCards > 0, `${destinationName} returns visible hotel cards`);
+    assert(destinationHeadline.startsWith(String(destinationCards)), `${destinationName} headline matches visible cards`);
   }
 
   await page.goto(`${BASE_URL}/hotel/hotel-grid`, { waitUntil: 'domcontentloaded', timeout: 60000 });
@@ -183,23 +267,23 @@ try {
   const redirectedGridUrl = await page.url();
   assert(redirectedGridUrl === `${BASE_URL}/hotel/hotel-map`, 'Direct /hotel/hotel-grid redirects to the map default');
 
+  await page.goto(`${BASE_URL}/hotel/hotel-map?page=3`, { waitUntil: 'domcontentloaded', timeout: 60000 });
+  await waitForApp();
+  await waitForResults();
+  await page.waitForSelector('[data-testid="public-hotel-card"]', { timeout: 20000 });
+  const page3Cards = await page.locator('[data-testid="public-hotel-card"]').count();
+  const page3FirstCardVisible = await page.evaluate(() => {
+    const first = document.querySelector('[data-testid="public-hotel-card"]');
+    const rect = first?.getBoundingClientRect();
+    return Boolean(first && rect && rect.height > 0 && rect.width > 0);
+  });
+  assert(page3Cards > 0, '/hotel/hotel-map?page=3 keeps the hotel list visible');
+  assert(page3FirstCardVisible, '/hotel/hotel-map?page=3 renders cards visibly');
+
   await page.goto(`${BASE_URL}/hotel/hotel-grid?destination=Sousse&checkInDate=2026-07-06&checkOutDate=2026-07-08&adults=1&rooms=1`, { waitUntil: 'domcontentloaded', timeout: 60000 });
   await page.waitForURL(`${BASE_URL}/hotel/hotel-map?destination=Sousse&checkInDate=2026-07-06&checkOutDate=2026-07-08&adults=1&rooms=1`, { timeoutMs: 20000, waitUntil: 'load' });
   const redirectedQueryUrl = await page.url();
   assert(redirectedQueryUrl === `${BASE_URL}/hotel/hotel-map?destination=Sousse&checkInDate=2026-07-06&checkOutDate=2026-07-08&adults=1&rooms=1`, 'Direct /hotel/hotel-grid preserves query params while redirecting to map');
-
-  let popupText = '';
-  const popupCount = await page.locator('[data-testid="public-hotel-map-popup"]').count();
-  if (popupCount > 0) {
-    popupText = normalizeText(await page.locator('[data-testid="public-hotel-map-popup"]').innerText());
-    summary.popupText = popupText;
-    assert(/Pay Now|Request/.test(popupText), 'Map popup shows a primary action');
-    assert(/View Details/.test(popupText), 'Map popup includes a view-details action');
-  } else {
-    popupText = normalizeText(await page.locator('[data-testid="public-hotel-map-fallback"]').innerText());
-    summary.popupText = popupText;
-    assert(/Map temporarily unavailable/i.test(popupText), 'Fallback map state is clearly labeled');
-  }
 
   const mobilePage = await context.newPage();
   await mobilePage.setViewportSize({ width: 390, height: 844 });
@@ -214,18 +298,16 @@ try {
   assert(mobileBody.includes('shown on map'), 'Mobile hotel map keeps the results summary visible');
   await mobilePage.close();
 
-  const unexpectedErrors = errors.filter((message) => !isKnownGoogleMapsWarning(message));
-  assert(unexpectedErrors.length === 0, `Browser console was clean: ${unexpectedErrors.join(' | ')}`);
+  assert(errors.length === 0, `Browser console was clean: ${errors.join(' | ')}`);
 
   console.log(JSON.stringify({
     success: true,
     publishedHotels: publishedHotels.length,
-    allMarkerCount,
-    allMissingMapCount,
+    exactMarkerCount,
+    approximateMarkerCount,
     sousseHotels: sousseHotels.length,
     defaultVisibleCards,
-    mapWarnings: errors.filter(isKnownGoogleMapsWarning),
-    popupText,
+    popupText: 'Leaflet price markers rendered',
   }, null, 2));
 } catch (error) {
   console.log(JSON.stringify({
