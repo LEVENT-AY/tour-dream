@@ -12,6 +12,7 @@ import {
 const TrendingList = () => {
   const [favorites, setFavorites] = useState<Record<string, boolean>>({});
   const [cards, setCards] = useState<TrendingSectionCards>(TRENDING_FALLBACK_DATA);
+  const [loadingCards, setLoadingCards] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
@@ -25,6 +26,10 @@ const TrendingList = () => {
       } catch {
         if (!cancelled) {
           setCards(TRENDING_FALLBACK_DATA);
+        }
+      } finally {
+        if (!cancelled) {
+          setLoadingCards(false);
         }
       }
     };
@@ -44,160 +49,173 @@ const TrendingList = () => {
   };
 
   const renderFlightCard = (flight: TrendingSectionCards["flights"][number]) => (
-    <div className="col-xxl-3 col-lg-4 col-md-6" key={flight.id}>
-      <div className="trending-list-item">
-        <div className="place-img">
-          <Link to={flight.route}>
-            <ImageWithBasePath
-              src={flight.image}
-              className="img-fluid"
-              alt={flight.title}
-              fallbackSrc={getCategoryFallbackSrc("flights")}
-            />
-          </Link>
-          <div className="fav-item d-flex align-items-center gap-2 flex-wrap">
-            {flight.badge ? (
-              <span className="badge bg-info d-inline-flex align-items-center">
-                <i className="isax isax-ranking me-1" />
-                {flight.badge}
-              </span>
-            ) : null}
-            <span className="badge bg-white text-dark">{flight.seatsLabel}</span>
-            <button
-              className={`fav-icon border-0 ${favorites[`flight:${flight.id}`] ? "selected" : ""}`}
-              onClick={() => toggleFavorite(`flight:${flight.id}`)}
-              type="button"
-            >
-              <i className="isax isax-heart5" />
-            </button>
+    <div className="col-xxl-3 col-lg-4 col-md-6 d-flex" key={flight.id} data-testid="trending-flight-card">
+      <article className="trending-list-item trending-list-item--compact trending-list-item--flight w-100">
+        <div className="flight-card-top">
+          <div className="d-flex align-items-center justify-content-between gap-2 flex-wrap">
+            <span className="badge bg-white text-dark border">{flight.stopsLabel}</span>
+            <span className="badge bg-info d-inline-flex align-items-center">
+              <i className="isax isax-airplane me-1" />
+              {flight.cabinClass || "economy"}
+            </span>
+          </div>
+          <div className="flight-card-accent">
+            <span className="flight-card-accent-icon">
+              <i className="isax isax-airplane rotate-45" />
+            </span>
+            <p className="flight-card-accent-text mb-0">Real daily fares from Tunisia</p>
           </div>
         </div>
-        <div className="place-content">
-          <h3 className="text-truncate mb-2 home-eight-title">
-            <Link to={flight.route}>{flight.title}</Link>
-          </h3>
-          <div className="d-flex align-items-center mb-3">
-            <span className="avatar avatar-sm me-2">
-              <ImageWithBasePath
-                src="assets/img/icons/airindia.svg"
-                className="rounded-circle"
-                alt="icon"
-              />
-            </span>
-            <p className="fs-14 mb-0">{flight.airline}</p>
-            <p className="fs-14 d-inline-flex align-items-center mb-0">
-              <i className="fa-solid fa-circle fs-6 text-primary mx-2" />
-              {flight.stopInfo}
-            </p>
+        <div className="place-content d-flex flex-column h-100">
+          <div className="d-flex align-items-start justify-content-between gap-3 mb-2">
+            <div className="overflow-hidden flex-grow-1">
+              <h3 className="text-truncate mb-1 home-eight-title">
+                <Link to={flight.route}>{flight.title}</Link>
+              </h3>
+              <p className="fs-14 mb-0 text-muted text-truncate">
+                {flight.airline}
+                {flight.airlineIata ? ` (${flight.airlineIata})` : ""}
+              </p>
+            </div>
+            <h5 className="text-primary mb-0 text-nowrap">{flight.price}</h5>
           </div>
-          <div className="flight-loc d-flex align-items-center justify-content-between mb-3">
-            <span className="loc-name d-inline-flex align-items-center">
+          <div className="flight-loc d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+            <span className="loc-name d-inline-flex align-items-center text-truncate">
               <i className="isax isax-airplane rotate-45 me-2" />
-              {flight.departureCity}
+              {flight.originLabel}
             </span>
             <span className="arrow-icon">
               <i className="isax isax-arrow-2" />
             </span>
-            <span className="loc-name d-inline-flex align-items-center">
+            <span className="loc-name d-inline-flex align-items-center text-truncate">
               <i className="isax isax-airplane rotate-135 me-2" />
-              {flight.arrivalCity}
+              {flight.destinationLabel}
             </span>
           </div>
-          <div className="d-flex align-items-center justify-content-between border-top pt-3">
-            <div className="d-flex align-items-center gap-2">
-              <span className="badge badge-warning badge-xs text-gray-9 fs-13 fw-medium rounded">
-                {flight.rating}
-              </span>
-              <span className="fs-14 text-gray-5">{flight.reviewsLabel}</span>
+          <div className="d-flex align-items-center justify-content-between flex-wrap gap-2 border-top pt-3 mt-auto">
+            <div className="d-flex flex-wrap align-items-center gap-2">
+              <span className="badge badge-light text-dark border">{flight.travelDateLabel}</span>
+              {flight.departureLabel ? <span className="fs-14 text-gray-5">{flight.departureLabel}</span> : null}
+              {flight.arrivalLabel ? <span className="fs-14 text-gray-5">-&gt; {flight.arrivalLabel}</span> : null}
+              {flight.durationLabel ? <span className="fs-14 text-gray-5">{flight.durationLabel}</span> : null}
             </div>
-            <div className="d-flex align-items-center">
-              <span className="fs-14 text-gray-5 me-2">From</span>
-              <span className="fs-18 fw-semibold text-primary">{flight.price}</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-
-  const renderHotelCard = (hotel: TrendingSectionCards["hotels"][number]) => (
-    <div className="col-xl-3 col-md-6 d-flex" key={hotel.id}>
-      <div className="trending-list-item">
-        <div className="place-img">
-          <div className="img-slide">
-            <div className="slide-images">
-              <Link to={hotel.route}>
-                <ImageWithBasePath
-                  src={hotel.image}
-                  className="img-fluid"
-                  alt={hotel.title}
-                  fallbackSrc={getCategoryFallbackSrc("hotels")}
-                />
-              </Link>
-            </div>
-          </div>
-          <div className="fav-item">
-            {hotel.badge ? (
-              <span className="badge bg-info d-inline-flex align-items-center">
-                <i className="isax isax-ranking me-1" />
-                {hotel.badge}
-              </span>
-            ) : null}
-            <button
-              className={`fav-icon border-0 ${favorites[`hotel:${hotel.id}`] ? "" : "selected"}`}
-              onClick={() => toggleFavorite(`hotel:${hotel.id}`)}
-              type="button"
-            >
-              <i className="isax isax-heart5" />
-            </button>
-          </div>
-        </div>
-        <div className="place-content">
-          <div className="d-flex align-items-center mb-1">
-            <span className="badge badge-warning badge-xs text-gray-9 fs-13 fw-medium me-2">
-              {hotel.rating}
-            </span>
-            <p className="fs-14">{hotel.reviewsLabel}</p>
-          </div>
-          <h5 className="mb-1 text-truncate">
-            <Link to={hotel.route}>{hotel.title}</Link>
-          </h5>
-          <p className="d-flex align-items-center mb-2">
-            <i className="isax isax-location5 me-2" />
-            {hotel.location}
-          </p>
-          <div className="border-top pt-2 mb-2">
-            <h6 className="d-flex align-items-center">
-              Facillities :
-              <i className="isax isax-home-wifi ms-2 me-2 text-primary" />
-              <i className="isax isax-scissor me-2 text-primary" />
-              <i className="isax isax-profile-2user me-2 text-primary" />
-              <i className="isax isax-wind-2 me-2 text-primary" />
-              <Link to="#" className="fs-14 fw-normal text-default d-inline-block">
-                +2
-              </Link>
-            </h6>
-          </div>
-          <div className="d-flex align-items-center justify-content-between border-top pt-3">
-            <h5 className="text-primary text-nowrap me-2">
-              {hotel.price}{" "}
-              <span className="fs-14 fw-normal text-default">{hotel.priceSuffix}</span>
-            </h5>
-            <Link to="#" className="d-flex align-items-center overflow-hidden">
-              <span className="avatar avatar-md flex-shrink-0 me-2">
-                <ImageWithBasePath
-                  src={hotel.hostAvatar}
-                  className="rounded-circle"
-                  alt="img"
-                />
-              </span>
-              <p className="fs-14">{hotel.hostName}</p>
+            <Link to={flight.route} className="btn btn-primary btn-sm">
+              Search Flights
             </Link>
           </div>
         </div>
-      </div>
+      </article>
     </div>
   );
+
+  const renderHotelCard = (hotel: TrendingSectionCards["hotels"][number]) => {
+    const isPayNowHotel = hotel.bookingMode === "pay_now";
+    const hasPayableAmount = isPayNowHotel && Number(hotel.priceFrom ?? 0) > 0 && Boolean(hotel.priceCurrency);
+    const hasReviewScore = Number(hotel.rating) > 0 || !/\(0 Reviews\)/i.test(hotel.reviewsLabel);
+    const actionRoute = (() => {
+      if (!isPayNowHotel || !hasPayableAmount) return hotel.route;
+      const params = new URLSearchParams();
+      params.set("provider", "manual");
+      params.set("source", "manual");
+      params.set("hotelId", hotel.id);
+      params.set("hotelName", hotel.title);
+      params.set("priceFrom", String(hotel.priceFrom ?? ""));
+      if (hotel.priceCurrency) params.set("priceCurrency", hotel.priceCurrency);
+      if (hotel.priceUnit) params.set("priceUnit", hotel.priceUnit);
+      params.set("bookingMode", "pay_now");
+      params.set("paymentMode", "manual_payment");
+      return `${all_routes.hotelRequest}?${params.toString()}`;
+    })();
+    const priceInfo = {
+      headline: hotel.priceFrom && hotel.priceCurrency
+        ? `Starts From ${hotel.priceFrom} ${hotel.priceCurrency}${hotel.priceUnit ? ` / ${hotel.priceUnit}` : ""}`
+        : (isPayNowHotel ? "Price available soon" : "Price on request"),
+      note: hotel.priceNote || (isPayNowHotel && hasPayableAmount
+        ? "Manual payment. Booking is confirmed after payment verification."
+        : isPayNowHotel
+          ? "Price required before payment"
+          : "Request this hotel for final confirmation."),
+    };
+
+    return (
+    <div className="col-xl-3 col-md-6 d-flex" key={hotel.id} data-testid="trending-hotel-card">
+        <article className="trending-list-item trending-list-item--compact trending-list-item--hotel w-100">
+          <div className="place-img">
+            <div className="img-slide">
+              <div className="slide-images">
+                <Link to={hotel.route}>
+                  <ImageWithBasePath
+                    src={hotel.image}
+                    className="img-fluid"
+                    alt={hotel.title}
+                    fallbackSrc={getCategoryFallbackSrc("hotels")}
+                  />
+                </Link>
+              </div>
+            </div>
+            <div className="fav-item d-flex align-items-center justify-content-between gap-2 flex-wrap">
+              {hotel.featured ? (
+                <span className="badge bg-info d-inline-flex align-items-center">
+                  <i className="isax isax-ranking me-1" />
+                  Trending
+                </span>
+              ) : (
+                <span />
+              )}
+              {isPayNowHotel ? (
+                <span className="badge bg-white text-dark">Pay Now</span>
+              ) : null}
+            </div>
+          </div>
+          <div className="place-content d-flex flex-column h-100">
+            {hasReviewScore ? (
+              <div className="d-flex align-items-center mb-2">
+                <span className="badge badge-warning badge-xs text-gray-9 fs-13 fw-medium me-2">
+                  {hotel.rating}
+                </span>
+                <p className="fs-14 mb-0">{hotel.reviewsLabel}</p>
+              </div>
+            ) : (
+              <div className="hotel-card-kicker mb-2">Source-backed hotel</div>
+            )}
+            <h5 className="mb-2 text-truncate">
+              <Link to={hotel.route}>{hotel.title}</Link>
+            </h5>
+            <p className="d-flex align-items-center mb-2 text-truncate hotel-card-location">
+              <i className="isax isax-location5 me-2" />
+              {hotel.location}
+            </p>
+            {hotel.description ? (
+              <p className="fs-14 text-muted hotel-card-description mb-3">{hotel.description}</p>
+            ) : null}
+            <div className="d-flex flex-wrap gap-2 mb-3 hotel-card-amenities">
+              {hotel.amenities.slice(0, 3).map((amenity) => (
+                <span key={amenity} className="badge rounded-pill bg-light text-dark border">
+                  {amenity}
+                </span>
+              ))}
+            </div>
+            <div className="d-flex align-items-center justify-content-between border-top pt-3 mt-auto gap-2 hotel-card-footer">
+              <div className="me-2 hotel-card-price">
+                <h5 className="text-primary text-nowrap mb-1">{priceInfo.headline}</h5>
+                <div className="fs-12 text-muted">{priceInfo.note}</div>
+              </div>
+              <div className="d-flex align-items-center gap-2 hotel-card-actions">
+                <Link to={hotel.route} className="btn btn-light btn-sm">
+                  View Details
+                </Link>
+                {isPayNowHotel && hasPayableAmount ? (
+                  <Link to={actionRoute} className="btn btn-primary btn-sm">
+                    Pay Now
+                  </Link>
+                ) : null}
+              </div>
+            </div>
+          </div>
+        </article>
+      </div>
+    );
+  };
 
   const renderCarCard = (car: TrendingSectionCards["cars"][number]) => (
     <div className="col-xxl-3 col-xl-4 col-md-6 d-flex" key={car.id}>
@@ -641,56 +659,124 @@ const TrendingList = () => {
               />{" "}
               Best Sellers
             </h2>
+            <p className="trending-section-subtitle mb-0">
+              Real hotels with imagery, and real flight deals presented as clean data cards.
+            </p>
           </div>
           <div className="d-flex align-items-center justify-content-center mb-4 px-2 gap-2 wow fadeInUp">
             <ul className="nav">
               <li>
-                <Link to="#" className="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-1">
+                <Link
+                  to="#"
+                  className="nav-link active"
+                  data-bs-toggle="tab"
+                  data-bs-target="#tab-1"
+                  data-testid="trending-tab-flights"
+                >
                   Flights
                 </Link>
               </li>
               <li>
-                <Link to="#" className="nav-link" data-bs-toggle="tab" data-bs-target="#tab-2">
+                <Link
+                  to="#"
+                  className="nav-link"
+                  data-bs-toggle="tab"
+                  data-bs-target="#tab-2"
+                  data-testid="trending-tab-hotels"
+                >
                   Hotels
                 </Link>
               </li>
               <li>
-                <Link to="#" className="nav-link" data-bs-toggle="tab" data-bs-target="#tab-3">
+                <Link
+                  to="#"
+                  className="nav-link"
+                  data-bs-toggle="tab"
+                  data-bs-target="#tab-3"
+                  data-testid="trending-tab-cars"
+                >
                   Cars
                 </Link>
               </li>
               <li>
-                <Link to="#" className="nav-link" data-bs-toggle="tab" data-bs-target="#tab-4">
+                <Link
+                  to="#"
+                  className="nav-link"
+                  data-bs-toggle="tab"
+                  data-bs-target="#tab-4"
+                  data-testid="trending-tab-cruise"
+                >
                   Cruise
                 </Link>
               </li>
               <li>
-                <Link to="#" className="nav-link" data-bs-toggle="tab" data-bs-target="#tab-5">
+                <Link
+                  to="#"
+                  className="nav-link"
+                  data-bs-toggle="tab"
+                  data-bs-target="#tab-5"
+                  data-testid="trending-tab-tour"
+                >
                   Tour
                 </Link>
               </li>
               <li>
-                <Link to="#" className="nav-link" data-bs-toggle="tab" data-bs-target="#tab-6">
+                <Link
+                  to="#"
+                  className="nav-link"
+                  data-bs-toggle="tab"
+                  data-bs-target="#tab-6"
+                  data-testid="trending-tab-activity"
+                >
                   Activity
                 </Link>
               </li>
               <li>
-                <Link to="#" className="nav-link" data-bs-toggle="tab" data-bs-target="#tab-7">
+                <Link
+                  to="#"
+                  className="nav-link"
+                  data-bs-toggle="tab"
+                  data-bs-target="#tab-7"
+                  data-testid="trending-tab-visa"
+                >
                   Visa
                 </Link>
               </li>
             </ul>
           </div>
           <div className="tab-content wow fadeInUp">
-            <div className="tab-pane fade active show" id="tab-1">
-              <div className="row justify-content-center">{cards.flights.map(renderFlightCard)}</div>
+            <div className="tab-pane fade active show" id="tab-1" data-testid="trending-flights-pane">
+              {loadingCards ? (
+                <div className="text-center py-5">
+                  <div className="spinner-border text-primary mb-3" role="status">
+                    <span className="visually-hidden">Loading...</span>
+                  </div>
+                  <p className="text-muted mb-0">Loading today's real flight deals...</p>
+                </div>
+              ) : cards.flights.length > 0 ? (
+                <div className="row justify-content-center row-gap-4">{cards.flights.map(renderFlightCard)}</div>
+              ) : (
+                <div className="text-center py-5">
+                  <p className="mb-2 text-muted">Unable to load today&apos;s flight deals.</p>
+                  <Link to={all_routes.flightGrid} className="btn btn-outline-primary btn-sm">
+                    Search Flights
+                  </Link>
+                </div>
+              )}
             </div>
-            <div className="tab-pane fade" id="tab-2">
-              {cards.hotels.length > 0 ? (
+            <div className="tab-pane fade" id="tab-2" data-testid="trending-hotels-pane">
+              {loadingCards ? (
+                <div className="text-center py-5">
+                  <div className="spinner-border text-primary mb-3" role="status">
+                    <span className="visually-hidden">Loading...</span>
+                  </div>
+                  <p className="text-muted mb-0">Loading featured hotels...</p>
+                </div>
+              ) : cards.hotels.length > 0 ? (
                 <div className="row row-gap-4 justify-content-center">{cards.hotels.map(renderHotelCard)}</div>
               ) : (
                 <div className="text-center py-5">
-                  <p className="mb-2 text-muted">No featured hotels are available right now.</p>
+                  <p className="mb-2 text-muted">No published hotels are available right now.</p>
                   <Link to={all_routes.hotelGrid} className="btn btn-outline-primary btn-sm">
                     View all hotels
                   </Link>

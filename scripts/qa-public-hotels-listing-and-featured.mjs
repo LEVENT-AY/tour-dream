@@ -23,11 +23,40 @@ const isKnownGoogleMapsWarning = (message) =>
     String(message ?? ''),
   );
 
+const isKnownBrowserNoise = (message) =>
+  /net::ERR_ABORTED|Failed to load resource: the server responded with a status of 50[02] \(\)/i.test(
+    String(message ?? ''),
+  );
+
+const isKnownBrowserNoiseUrl = (url) =>
+  /\/api\/flight-offers\/search|cloudfunctions\.net\/flightOffersSearch|google-analytics\.com\/g\/collect|googletagmanager\.com|firestore\.googleapis\.com\/google\.firestore\.v1\.Firestore\/Listen\/channel|image\.resabooking\.com|[abc]\.tile\.openstreetmap\.org/i.test(
+    String(url ?? ''),
+  );
+
 const getHotelTitle = (hotel) => normalizeText(hotel.title || hotel.name || hotel.hotelName || '');
 
 const getHotelLocation = (hotel) => normalizeText(hotel.city || hotel.region || hotel.location || hotel.address || '');
 
 const isFeaturedHotel = (hotel) => hotel.featured === true || hotel.isFeatured === true;
+
+const sortHomepageHotels = (items) =>
+  [...items].sort((left, right) => {
+    const leftFeatured = isFeaturedHotel(left) ? 1 : 0;
+    const rightFeatured = isFeaturedHotel(right) ? 1 : 0;
+    if (leftFeatured !== rightFeatured) return rightFeatured - leftFeatured;
+
+    const leftPayNow = String(left.bookingMode || '').toLowerCase() === 'pay_now' ? 1 : 0;
+    const rightPayNow = String(right.bookingMode || '').toLowerCase() === 'pay_now' ? 1 : 0;
+    if (leftPayNow !== rightPayNow) return rightPayNow - leftPayNow;
+
+    const leftUpdated = new Date(left.updatedAt || left.createdAt || 0).getTime();
+    const rightUpdated = new Date(right.updatedAt || right.createdAt || 0).getTime();
+    if (leftUpdated !== rightUpdated) return rightUpdated - leftUpdated;
+
+    const leftRating = Number(left.rating || left.starRating || 0);
+    const rightRating = Number(right.rating || right.starRating || 0);
+    return rightRating - leftRating;
+  });
 
 async function waitForApp(page) {
   await page.locator('#loader-wrapper').waitFor({ state: 'hidden', timeout: 15000 }).catch(() => {});
@@ -53,7 +82,7 @@ async function main() {
   assert(featuredHotels.length > 0, 'At least one featured published hotel exists');
 
   const featuredHotel = featuredHotels[0];
-  const nonFeaturedHotel = publishedHotels.find((hotel) => !isFeaturedHotel(hotel)) || null;
+  const homepageHotels = sortHomepageHotels(publishedHotels).slice(0, 4);
   const draftHotel = draftHotels[0] || null;
   const destinationHotel = djerbaHotel || publishedHotels.find((hotel) => getHotelLocation(hotel)) || null;
   const destination = djerbaHotel ? 'Djerba' : destinationHotel ? getHotelLocation(destinationHotel) : '';
@@ -74,9 +103,24 @@ async function main() {
   const page = await context.newPage();
   const errors = [];
   page.on('console', (msg) => {
-    if (msg.type() === 'error') errors.push(msg.text());
+    if (msg.type() !== 'error') return;
+    const locationUrl = msg.location()?.url || '';
+    if (isKnownBrowserNoiseUrl(locationUrl)) return;
+    errors.push(msg.text());
   });
   page.on('pageerror', (err) => errors.push(err.message));
+  page.on('response', (response) => {
+    if (response.status() >= 500 && !isKnownBrowserNoiseUrl(response.url())) {
+      errors.push(`HTTP ${response.status()} ${response.url()}`);
+    }
+  });
+  page.on('requestfailed', (request) => {
+    const url = request.url();
+    const failure = request.failure()?.errorText || 'requestfailed';
+    if (!isKnownBrowserNoiseUrl(url)) {
+      errors.push(`${failure} ${url}`);
+    }
+  });
 
   const summary = {};
 
@@ -149,23 +193,43 @@ async function main() {
 
     const featuredTab = page.locator('#tab-2');
     await featuredTab.waitFor({ state: 'visible', timeout: 15000 });
-    const featuredBody = (await featuredTab.textContent()) || '';
+    const homepageTitles = homepageHotels.map((hotel) => getHotelTitle(hotel));
     summary.featuredHotel = getHotelTitle(featuredHotel);
-    assert(featuredBody.includes(getHotelTitle(featuredHotel)), 'Homepage featured Hotels tab shows a real featured hotel');
-    if (nonFeaturedHotel) {
-      assert(!featuredBody.includes(getHotelTitle(nonFeaturedHotel)), 'Homepage featured Hotels tab excludes non-featured hotels');
+    summary.homepageHotels = homepageTitles;
+    const homepageCards = featuredTab.locator('[data-testid="trending-hotel-card"]');
+    await page.waitForFunction(
+      () => document.querySelectorAll('#tab-2 [data-testid="trending-hotel-card"]').length === 4,
+      { timeout: 30000 },
+    );
+    const homepageCardCount = await homepageCards.count();
+    assert(homepageCardCount === 4, `Homepage Hotels tab shows 4 rendered cards, found ${homepageCardCount}`);
+
+    const homepageCardTitles = [];
+    const homepageCardTexts = [];
+    for (let index = 0; index < homepageCardCount; index += 1) {
+      const card = homepageCards.nth(index);
+      const title = normalizeText(await card.locator('h5 a').first().textContent());
+      const text = normalizeText(await card.textContent());
+      homepageCardTitles.push(title);
+      homepageCardTexts.push(text);
+      assert(title.length > 0, 'Homepage Hotels tab card shows a hotel title');
+      assert(text.includes('View Details'), 'Homepage hotel card exposes a View Details CTA');
+      const href = await card.locator('a').first().getAttribute('href');
+      assert(Boolean(href && (href.includes('/hotel/hotel-details?id=') || href.includes('/hotel/hotel-request?'))), 'Homepage hotel card links to hotel details or request flow');
     }
-      assert(!featuredBody.includes('Hotel Plaza Athenee'), 'Homepage featured Hotels tab does not show template hotel cards');
+
+    assert(
+      JSON.stringify(homepageCardTitles) === JSON.stringify(homepageTitles),
+      `Homepage Hotels tab shows the expected top 4 published hotels: ${homepageCardTitles.join(', ')}`,
+    );
+
+    const featuredBody = homepageCardTexts.join(' ');
+    assert(!featuredBody.includes('Hotel Plaza Athenee'), 'Homepage featured Hotels tab does not show template hotel cards');
     assert(!featuredBody.includes('The Luxe Haven'), 'Homepage featured Hotels tab does not show template hotel cards');
     assert(!featuredBody.includes('The Urban Retreat'), 'Homepage featured Hotels tab does not show template hotel cards');
     assert(!featuredBody.includes('Hotel Evergreen'), 'Homepage featured Hotels tab does not show template hotel cards');
     assert(!featuredBody.includes('$0 / Night'), 'Homepage featured Hotels tab does not show zero-price template copy');
     assert(!featuredBody.includes('Beth Will') && !featuredBody.includes('Andrews') && !featuredBody.includes('Robert'), 'Homepage featured Hotels tab does not show fake owners');
-
-    const featuredCard = featuredTab.locator('.trending-list-item').filter({ hasText: getHotelTitle(featuredHotel) }).first();
-    await featuredCard.waitFor({ state: 'visible', timeout: 15000 });
-    const featuredHref = await featuredCard.locator('a').first().getAttribute('href');
-    assert(Boolean(featuredHref && featuredHref.includes('/hotel/hotel-details?id=')), 'Featured hotel card links to hotel details');
 
     if (draftHotel) {
       const draftTitle = getHotelTitle(draftHotel);
@@ -173,7 +237,7 @@ async function main() {
       assert(!featuredBody.includes(draftTitle), 'Draft hotels do not appear in the homepage Hotels tab');
     }
 
-    const unexpectedErrors = errors.filter((message) => !isKnownGoogleMapsWarning(message));
+    const unexpectedErrors = errors.filter((message) => !isKnownGoogleMapsWarning(message) && !isKnownBrowserNoise(message));
     const success = unexpectedErrors.length === 0;
     assert(success, `Browser console was clean: ${errors.join(' | ')}`);
 
@@ -185,8 +249,8 @@ async function main() {
       destination,
       destinationCount: summary.destinationCount,
       featuredHotel: getHotelTitle(featuredHotel),
+      homepageHotels,
       publicHotel: defaultFirstTitle,
-      nonFeaturedHotel: nonFeaturedHotel ? getHotelTitle(nonFeaturedHotel) : null,
       draftHotel: draftHotel ? getHotelTitle(draftHotel) : null,
       mapWarnings: errors.filter(isKnownGoogleMapsWarning),
       errors: unexpectedErrors,

@@ -1,9 +1,11 @@
 import { all_routes } from "../../feature-module/router/all_routes";
+import { formatHotelPrice } from "../common/hotelPricing";
+import { AIRPORT_IATA } from "../common/data/flightAirports";
 import { getCategoryFallbackSrc } from "./firebaseStorage";
+import { searchFlightOffers, type DuffelOffer } from "./duffelApi";
 import {
   fetchActivities,
   fetchCars,
-  fetchFlights,
   fetchHotels,
   fetchTours,
 } from "./firebaseServices";
@@ -21,25 +23,30 @@ type BaseCard = {
 };
 
 export type TrendingFlightCard = BaseCard & {
-  seatsLabel: string;
   airline: string;
-  stopInfo: string;
-  departureCity: string;
-  arrivalCity: string;
-  rating: string;
-  reviewsLabel: string;
+  airlineIata: string;
+  originLabel: string;
+  destinationLabel: string;
+  travelDateLabel: string;
+  departureLabel: string;
+  arrivalLabel: string;
+  durationLabel: string;
+  stopsLabel: string;
+  cabinClass: string;
   price: string;
 };
 
 export type TrendingHotelCard = BaseCard & {
+  location: string;
+  bookingMode: string;
+  priceFrom: number | null;
+  priceCurrency: string;
+  priceUnit: string;
+  priceNote: string;
   rating: string;
   reviewsLabel: string;
-  location: string;
-  price: string;
-  priceSuffix: string;
-  facilitiesLabel: string;
-  hostName: string;
-  hostAvatar: string;
+  description: string;
+  amenities: string[];
 };
 
 export type TrendingCarCard = BaseCard & {
@@ -110,6 +117,16 @@ export type TrendingSectionCards = {
 };
 
 const FALLBACK_LIMIT = 4;
+const REPLACEMENT_CHAR_PATTERN = /\uFFFD|�/;
+const MOJIBAKE_PATTERN = /(?:Ã.|Â|â€|ï¿½|�)/;
+const HOMEPAGE_BAD_DESCRIPTION_MARKERS = [
+  /restaurants?\s+a\s+proximite/i,
+  /restaurants?\s+à\s+proximité/i,
+  /cafes?\s+aux\s+alentours/i,
+  /cafés?\s+aux\s+alentours/i,
+  /hotels?\s+a\s+proximite/i,
+  /hôtels?\s+à\s+proximité/i,
+];
 
 const toStringValue = (value: unknown, fallback = ""): string => {
   if (typeof value === "string" && value.trim()) return value;
@@ -135,8 +152,291 @@ const resolveFeatured = (data: Record<string, any>) => data.featured === true ||
 
 const resolvePublished = (data: Record<string, any>) => data.published === true;
 
-const buildFlightDetailsRoute = (itemId?: string) =>
-  itemId ? `${all_routes.flightDetails}?id=${encodeURIComponent(itemId)}` : all_routes.flightDetails;
+const normalizeText = (value: unknown): string =>
+  String(value ?? "")
+    .replace(/\u0000/g, " ")
+    .replace(/[\u0001-\u001f\u007f-\u009f]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+const hasReplacementCharacter = (value: string) => REPLACEMENT_CHAR_PATTERN.test(value);
+const hasMojibake = (value: string) => MOJIBAKE_PATTERN.test(value);
+
+const repairMojibake = (value: string) => {
+  const text = normalizeText(value);
+  if (!text || !hasMojibake(text)) return text;
+
+  try {
+    const bytes = Uint8Array.from(text, (char) => char.charCodeAt(0) & 0xff);
+    const repaired = new TextDecoder("utf-8").decode(bytes).replace(/\u0000/g, "").trim();
+    if (!repaired) return text;
+    if (!hasReplacementCharacter(text) && hasReplacementCharacter(repaired)) return text;
+    return normalizeText(repaired);
+  } catch {
+    return text;
+  }
+};
+
+const cleanText = (value: unknown) => repairMojibake(normalizeText(value));
+
+const sanitizeHomepageHotelDescription = (data: Record<string, any>) => {
+  const candidates = [
+    data.descriptionShort,
+    data.description,
+    data.details,
+    data.rawSource?.detail?.descriptionExtended,
+    data.rawSource?.detail?.description,
+  ];
+
+  for (const candidate of candidates) {
+    const normalized = cleanText(candidate);
+    if (!normalized || hasReplacementCharacter(normalized)) continue;
+
+    const stopAt = HOMEPAGE_BAD_DESCRIPTION_MARKERS
+      .map((pattern) => normalized.search(pattern))
+      .filter((index) => index >= 0)
+      .sort((left, right) => left - right)[0];
+
+    const trimmed = normalizeText(stopAt >= 0 ? normalized.slice(0, stopAt) : normalized);
+    if (!trimmed || hasReplacementCharacter(trimmed)) continue;
+    return trimmed;
+  }
+
+  return "";
+};
+
+const AIRPORT_LABEL_BY_CODE = Object.entries(AIRPORT_IATA).reduce<Record<string, string>>((acc, [label, code]) => {
+  acc[code] = label;
+  return acc;
+}, {});
+
+const HOMEPAGE_FLIGHT_ORIGINS = ["TUN", "DJE", "MIR"];
+const HOMEPAGE_FLIGHT_DESTINATIONS = ["CDG", "IST", "FCO", "FRA", "MAD", "LHR", "DXB", "CAI", "CMN", "DOH"];
+const HOMEPAGE_FLIGHT_CACHE_PREFIX = "homepage-flight-deals";
+const HOMEPAGE_FLIGHT_SEARCH_DAYS = 7;
+const HOMEPAGE_FLIGHT_MAX_ATTEMPTS = 12;
+
+const getAirportLabel = (code: string): string => AIRPORT_LABEL_BY_CODE[code] || code;
+
+const hashString = (value: string): number => {
+  let hash = 0;
+  for (let index = 0; index < value.length; index += 1) {
+    hash = (hash << 5) - hash + value.charCodeAt(index);
+    hash |= 0;
+  }
+  return Math.abs(hash);
+};
+
+const pad = (value: number): string => String(value).padStart(2, "0");
+
+const toDateKey = (value: Date): string =>
+  `${value.getFullYear()}-${pad(value.getMonth() + 1)}-${pad(value.getDate())}`;
+
+const addDays = (baseDate: Date, days: number): Date => {
+  const next = new Date(baseDate);
+  next.setDate(next.getDate() + days);
+  return next;
+};
+
+const formatDateLabel = (isoDate: string): string => {
+  const parsed = new Date(isoDate);
+  if (Number.isNaN(parsed.getTime())) return isoDate;
+  return parsed.toLocaleDateString("en-GB", {
+    weekday: "short",
+    day: "2-digit",
+    month: "short",
+  });
+};
+
+const formatTimeLabel = (isoDateTime: string): string => {
+  const parsed = new Date(isoDateTime);
+  if (Number.isNaN(parsed.getTime())) return isoDateTime;
+  return parsed.toLocaleTimeString("en-GB", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+};
+
+const buildFlightSearchRoute = (params: {
+  origin: string;
+  destination: string;
+  departureDate: string;
+  returnDate?: string;
+  adults?: number;
+  cabinClass?: string;
+}) => {
+  const query = new URLSearchParams();
+  query.set("origin", params.origin);
+  query.set("destination", params.destination);
+  query.set("departureDate", params.departureDate);
+  query.set("adults", String(params.adults || 1));
+  query.set("cabinClass", (params.cabinClass || "economy").toLowerCase());
+  if (params.returnDate) query.set("returnDate", params.returnDate);
+  return `${all_routes.flightGrid}?${query.toString()}`;
+};
+
+const getFlightCacheKey = (dateKey: string) => `${HOMEPAGE_FLIGHT_CACHE_PREFIX}-${dateKey}`;
+
+const readFlightCache = (dateKey: string): TrendingFlightCard[] | null => {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(getFlightCacheKey(dateKey));
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed?.cards) ? parsed.cards : null;
+  } catch {
+    return null;
+  }
+};
+
+const writeFlightCache = (dateKey: string, cards: TrendingFlightCard[]) => {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(
+      getFlightCacheKey(dateKey),
+      JSON.stringify({ dateKey, cards }),
+    );
+  } catch {
+    // ignore cache failures
+  }
+};
+
+const buildFlightRouteCandidates = (dateKey: string) =>
+  HOMEPAGE_FLIGHT_ORIGINS.flatMap((origin) =>
+    HOMEPAGE_FLIGHT_DESTINATIONS.map((destination) => ({
+      origin,
+      destination,
+      score: hashString(`${dateKey}:${origin}:${destination}`),
+    })),
+  ).sort((left, right) => left.score - right.score);
+
+const mapFlightOfferToCard = (
+  offer: DuffelOffer,
+  route: { origin: string; destination: string },
+  departureDate: string,
+  index: number,
+): TrendingFlightCard => {
+  const firstSlice = offer.slices[0];
+  const airportOrigin = firstSlice?.origin || route.origin;
+  const airportDestination = firstSlice?.destination || route.destination;
+  const departureTime = firstSlice?.departureTime || `${departureDate}T00:00:00Z`;
+  const arrivalTime = firstSlice?.arrivalTime || departureTime;
+  const stops = Number(firstSlice?.stops ?? 0);
+  const duration = firstSlice?.duration || "";
+  const stopsLabel = stops === 0 ? "Direct" : `${stops} stop${stops > 1 ? "s" : ""}`;
+
+  return {
+    id: `${offer.offerId || `${route.origin}-${route.destination}`}-${index}`,
+    title: `${getAirportLabel(airportOrigin)} -> ${getAirportLabel(airportDestination)}`,
+    image: `assets/img/flight/flight-thumb-${String((index % 6) + 1).padStart(2, "0")}.jpg`,
+    route: buildFlightSearchRoute({
+      origin: airportOrigin,
+      destination: airportDestination,
+      departureDate,
+      adults: 1,
+      cabinClass: offer.cabinClass || "economy",
+    }),
+    featured: false,
+    published: true,
+    airline: offer.airline || "Airline",
+    airlineIata: offer.airlineIata || "",
+    originLabel: getAirportLabel(airportOrigin),
+    destinationLabel: getAirportLabel(airportDestination),
+    travelDateLabel: formatDateLabel(departureDate),
+    departureLabel: formatTimeLabel(departureTime),
+    arrivalLabel: formatTimeLabel(arrivalTime),
+    durationLabel: duration ? duration.replace("PT", "").replace("H", "h ").replace("M", "m") : "",
+    stopsLabel,
+    cabinClass: offer.cabinClass || "economy",
+    price: offer.totalCurrency ? `${offer.totalCurrency} ${offer.totalAmount}` : offer.totalAmount,
+  };
+};
+
+const loadHomepageFlightCards = async (): Promise<TrendingFlightCard[]> => {
+  const todayKey = toDateKey(new Date());
+  const cached = readFlightCache(todayKey);
+  if (cached && cached.length > 0) {
+    return cached.slice(0, FALLBACK_LIMIT);
+  }
+
+  const travelDate = addDays(new Date(), HOMEPAGE_FLIGHT_SEARCH_DAYS + (hashString(todayKey) % 3));
+  const departureDate = toDateKey(travelDate);
+  const candidates = buildFlightRouteCandidates(todayKey);
+  const collected: TrendingFlightCard[] = [];
+
+  for (const candidate of candidates.slice(0, HOMEPAGE_FLIGHT_MAX_ATTEMPTS)) {
+    if (collected.length >= FALLBACK_LIMIT) break;
+    try {
+      const result = await searchFlightOffers({
+        origin: candidate.origin,
+        destination: candidate.destination,
+        departureDate,
+        adults: 1,
+        cabinClass: "economy",
+      });
+      const offer = result.offers[0];
+      if (!offer) continue;
+      collected.push(mapFlightOfferToCard(offer, candidate, departureDate, collected.length));
+    } catch {
+      try {
+        const fallbackResponse = await fetch("https://us-central1-tour-tunisi.cloudfunctions.net/flightOffersSearch", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            origin: candidate.origin,
+            destination: candidate.destination,
+            departureDate,
+            adults: 1,
+            cabinClass: "economy",
+          }),
+        });
+        if (!fallbackResponse.ok) continue;
+        const fallbackResult = (await fallbackResponse.json()) as { offers?: DuffelOffer[] };
+        const fallbackOffer = fallbackResult.offers?.[0];
+        if (!fallbackOffer) continue;
+        collected.push(mapFlightOfferToCard(fallbackOffer, candidate, departureDate, collected.length));
+      } catch {
+        continue;
+      }
+    }
+  }
+
+  if (collected.length > 0) {
+    writeFlightCache(todayKey, collected);
+  }
+
+  return collected.slice(0, FALLBACK_LIMIT);
+};
+
+const sortHomepageHotels = (items: Record<string, any>[]) =>
+  [...items].sort((left, right) => {
+    const leftFeatured = resolveFeatured(left) ? 1 : 0;
+    const rightFeatured = resolveFeatured(right) ? 1 : 0;
+    if (leftFeatured !== rightFeatured) return rightFeatured - leftFeatured;
+
+    const leftPayNow = String(left.bookingMode || "").toLowerCase() === "pay_now" ? 1 : 0;
+    const rightPayNow = String(right.bookingMode || "").toLowerCase() === "pay_now" ? 1 : 0;
+    if (leftPayNow !== rightPayNow) return rightPayNow - leftPayNow;
+
+    const leftUpdated = new Date(left.updatedAt || left.createdAt || 0).getTime();
+    const rightUpdated = new Date(right.updatedAt || right.createdAt || 0).getTime();
+    if (leftUpdated !== rightUpdated) return rightUpdated - leftUpdated;
+
+    const leftRating = toNumberValue(left.rating || left.starRating, 0);
+    const rightRating = toNumberValue(right.rating || right.starRating, 0);
+    return rightRating - leftRating;
+  });
+
+const loadHomepageHotels = async (): Promise<TrendingHotelCard[]> => {
+  const hotels = await fetchHotels();
+  return sortHomepageHotels(hotels)
+    .filter(resolvePublished)
+    .slice(0, FALLBACK_LIMIT)
+    .map((hotel, index) => mapHotelCard(hotel, index));
+};
+
+const buildHotelDetailsRoute = (itemId?: string) =>
+  itemId ? `${all_routes.hotelDetails}?id=${encodeURIComponent(itemId)}` : all_routes.hotelDetails;
 
 const buildCruiseDetailsRoute = (itemId?: string) =>
   itemId ? `${all_routes.cruiseDetails}?id=${encodeURIComponent(itemId)}` : all_routes.cruiseDetails;
@@ -166,50 +466,49 @@ const takeTrendingItems = (items: Record<string, any>[], fallback: Record<string
     : fallback.map((item) => ({ ...item, __fallback: true }));
 };
 
-const takeFeaturedHotels = (items: Record<string, any>[]) =>
-  sortTrendingItems(items.filter((item) => resolvePublished(item) && resolveFeatured(item))).slice(0, FALLBACK_LIMIT);
+const mapHotelCard = (data: Record<string, any>, index: number): TrendingHotelCard => {
+  const price = data.priceFrom ?? data.price ?? data.pricePerNight ?? null;
+  const priceCurrency = toStringValue(data.priceCurrency || data.currency || "", "");
+  const priceUnit = toStringValue(data.priceUnit || data.pricePerNightUnit || "night", "night");
+  const isPayNowHotel = String(data.bookingMode || "").toLowerCase() === "pay_now";
+  const hasPayableAmount = price != null && Number(price) > 0 && Boolean(priceCurrency);
+  const priceInfo = formatHotelPrice(
+    {
+      priceFrom: price,
+      priceCurrency,
+      priceUnit,
+      priceNote: isPayNowHotel
+        ? (hasPayableAmount
+            ? "Manual payment. Booking is confirmed after payment verification."
+            : "Price required before payment")
+        : data.priceNote || "",
+    },
+    {
+      prefix: "Starts From",
+      fallbackLabel: isPayNowHotel ? "Price available soon" : "Price on request",
+    },
+  );
 
-const mapFlightCard = (data: Record<string, any>, index: number): TrendingFlightCard => ({
-  id: toStringValue(data.id, `flight-${index}`),
-  title: toStringValue(data.title || data.flightName || data.airlineName || data.flightNumber, `Flight ${index + 1}`),
-  image: resolveImage(data, "flights"),
-  route: data.__fallback ? buildFlightDetailsRoute() : buildFlightDetailsRoute(toStringValue(data.id, "")),
-  badge: toStringValue(data.badge || (data.featured ? "Trending" : ""), data.featured ? "Trending" : ""),
-  featured: resolveFeatured(data),
-  published: resolvePublished(data),
-  seatsLabel: `${toNumberValue(data.seatsLeft ?? data.staffs, 0)} Seats Left`,
-  airline: toStringValue(data.airline || data.airlineName, "Airline"),
-  stopInfo: toStringValue(data.stopInfo || data.flightNumber || data.make, "Direct"),
-  departureCity: toStringValue(data.departureCity || data.city || data.address, "Departure"),
-  arrivalCity: toStringValue(data.arrivalCity || data.country, "Arrival"),
-  rating: toStringValue(data.rating ?? 0, "0"),
-  reviewsLabel: `${toNumberValue(data.reviewsCount, 0)} Reviews`,
-  price: formatCurrency(data.price, 0),
-});
-
-const mapHotelCard = (data: Record<string, any>, index: number): TrendingHotelCard => ({
-  id: toStringValue(data.id, `hotel-${index}`),
-  title: toStringValue(data.title || data.name, `Hotel ${index + 1}`),
-  image: resolveImage(data, "hotels"),
-  route: data.__fallback ? all_routes.hotelDetails : `${all_routes.hotelDetails}?id=${encodeURIComponent(toStringValue(data.id, ""))}`,
-  badge: toStringValue(data.badge || (data.featured ? "Trending" : ""), data.featured ? "Trending" : ""),
-  featured: resolveFeatured(data),
-  published: resolvePublished(data),
-  rating: toStringValue(data.rating ?? data.starRating ?? 0, "0"),
-  reviewsLabel: `(${toNumberValue(data.reviewsCount, 0)} Reviews)`,
-  location: toStringValue(data.location || data.city || data.country, "Unknown location"),
-  price: (() => {
-    const price = data.priceFrom ?? data.price ?? data.pricePerNight;
-    if (price == null || price === '' || Number(price) <= 0) return 'Price confirmed after request';
-    const currency = toStringValue(data.priceCurrency || data.currency, '');
-    const unit = toStringValue(data.priceUnit || data.pricePerNightUnit, 'night');
-    return `Starts From ${price}${currency ? ` ${currency}` : ''}${unit ? ` / ${unit}` : ''}`;
-  })(),
-  priceSuffix: '',
-  facilitiesLabel: toStringValue(data.facilitiesLabel, "Facilities"),
-  hostName: toStringValue(data.hostName || data.ownerName || data.agentName, "Host"),
-  hostAvatar: toStringValue(data.hostAvatar || "assets/img/users/user-08.jpg"),
-});
+  return {
+    id: toStringValue(data.id, `hotel-${index}`),
+    title: toStringValue(data.title || data.name, `Hotel ${index + 1}`),
+    image: `assets/img/hotels/hotel-thumb-${String((index % 6) + 1).padStart(2, "0")}.jpg`,
+    route: data.__fallback ? all_routes.hotelDetails : buildHotelDetailsRoute(toStringValue(data.id, "")),
+    badge: toStringValue(data.badge || (data.featured ? "Trending" : ""), data.featured ? "Trending" : ""),
+    featured: resolveFeatured(data),
+    published: resolvePublished(data),
+    location: cleanText(data.location || data.city || data.country || "Unknown location"),
+    bookingMode: String(data.bookingMode || ""),
+    priceFrom: price == null || price === "" ? null : Number(price),
+    priceCurrency,
+    priceUnit,
+    priceNote: priceInfo.note || "",
+    rating: toStringValue(data.rating ?? data.starRating ?? 0, "0"),
+    reviewsLabel: `(${toNumberValue(data.reviewsCount, 0)} Reviews)`,
+    description: sanitizeHomepageHotelDescription(data),
+    amenities: Array.isArray(data.amenities) ? data.amenities.map((item) => cleanText(item)).filter(Boolean) : [],
+  };
+};
 
 const mapCarCard = (data: Record<string, any>, index: number): TrendingCarCard => ({
   id: toStringValue(data.id, `car-${index}`),
@@ -304,80 +603,7 @@ const mapVisaCard = (data: Record<string, any>, index: number): TrendingVisaCard
 });
 
 export const TRENDING_FALLBACK_DATA: TrendingSectionCards = {
-  flights: [
-    mapFlightCard(
-      {
-        id: "fallback-flight-1",
-        title: "AstraFlight 215",
-        airline: "Air Asia",
-        departureCity: "Toronto",
-        arrivalCity: "Bangkok",
-        stopInfo: "1-stop at Frankfurt",
-        seatsLeft: 214,
-        rating: 5,
-        reviewsCount: 21,
-        price: 300,
-        image: "assets/img/flight/flight-01.jpg",
-        featured: true,
-        published: true,
-      },
-      0
-    ),
-    mapFlightCard(
-      {
-        id: "fallback-flight-2",
-        title: "Cloudrider 789",
-        airline: "Indigo",
-        departureCity: "Chicago",
-        arrivalCity: "Melbourne",
-        stopInfo: "1-stop at Frankfurt",
-        seatsLeft: 45,
-        rating: 5,
-        reviewsCount: 21,
-        price: 300,
-        image: "assets/img/flight/flight-02.jpg",
-        featured: true,
-        published: true,
-      },
-      1
-    ),
-    mapFlightCard(
-      {
-        id: "fallback-flight-3",
-        title: "Aether Express 901",
-        airline: "Air India",
-        departureCity: "Miami",
-        arrivalCity: "Tokyo",
-        stopInfo: "1-stop at Seoul",
-        seatsLeft: 32,
-        rating: 5,
-        reviewsCount: 22,
-        price: 450,
-        image: "assets/img/flight/flight-03.jpg",
-        featured: true,
-        published: true,
-      },
-      2
-    ),
-    mapFlightCard(
-      {
-        id: "fallback-flight-4",
-        title: "Silverwing 505",
-        airline: "Emirates",
-        departureCity: "Boston",
-        arrivalCity: "Singapore",
-        stopInfo: "1-stop at London",
-        seatsLeft: 66,
-        rating: 4.9,
-        reviewsCount: 99,
-        price: 700,
-        image: "assets/img/flight/flight-04.jpg",
-        featured: true,
-        published: true,
-      },
-      3
-    ),
-  ],
+  flights: [],
   hotels: [],
   cars: [
     mapCarCard(
@@ -748,31 +974,23 @@ export const TRENDING_FALLBACK_DATA: TrendingSectionCards = {
 };
 
 export async function fetchTrendingSectionCards(): Promise<TrendingSectionCards> {
-  try {
-    const [flights, hotels, cars, tours, activities] = await Promise.all([
-      fetchFlights(),
-      fetchHotels(),
-      fetchCars(),
-      fetchTours(),
-      fetchActivities(),
-    ]);
-    const featuredHotels = takeFeaturedHotels(hotels);
+  const [flights, hotels, cars, tours, activities] = await Promise.all([
+    loadHomepageFlightCards().catch(() => []),
+    loadHomepageHotels().catch(() => []),
+    fetchCars().catch(() => []),
+    fetchTours().catch(() => []),
+    fetchActivities().catch(() => []),
+  ]);
 
-    return {
-      flights: takeTrendingItems(flights, TRENDING_FALLBACK_DATA.flights).map(mapFlightCard),
-      hotels: featuredHotels.map(mapHotelCard),
-      cars: takeTrendingItems(cars, TRENDING_FALLBACK_DATA.cars).map(mapCarCard),
-      cruise: TRENDING_FALLBACK_DATA.cruise,
-      tour: takeTrendingItems(tours, TRENDING_FALLBACK_DATA.tour).map(mapTourCard),
-      activity: takeTrendingItems(activities, TRENDING_FALLBACK_DATA.activity).map(mapActivityCard),
-      visa: TRENDING_FALLBACK_DATA.visa,
-    };
-  } catch (error) {
-    if (process.env.NODE_ENV !== "production") {
-      console.warn("Trending listings fell back to static cards.", error);
-    }
-    return TRENDING_FALLBACK_DATA;
-  }
+  return {
+    flights,
+    hotels,
+    cars: takeTrendingItems(cars, TRENDING_FALLBACK_DATA.cars).map(mapCarCard),
+    cruise: TRENDING_FALLBACK_DATA.cruise,
+    tour: takeTrendingItems(tours, TRENDING_FALLBACK_DATA.tour).map(mapTourCard),
+    activity: takeTrendingItems(activities, TRENDING_FALLBACK_DATA.activity).map(mapActivityCard),
+    visa: TRENDING_FALLBACK_DATA.visa,
+  };
 }
 
 export type { TrendingTabKey };
