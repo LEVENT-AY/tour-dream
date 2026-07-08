@@ -182,7 +182,7 @@ const FlightSearch = ({ onSearch }: { onSearch?: (active: boolean) => void }) =>
     }
   };
 
-  const handleRequestFlight = (offer: DuffelOffer) => {
+  const handleCheckoutFlight = (offer: DuffelOffer) => {
     sessionStorage.setItem('duffelOffer', JSON.stringify(offer));
     navigate('/flight/flight-booking');
   };
@@ -660,8 +660,8 @@ const FlightSearch = ({ onSearch }: { onSearch?: (active: boolean) => void }) =>
                   ))}
                   <div className="d-flex justify-content-between align-items-center mt-3">
                     <span className="fs-12 text-muted">Expires: {formatTime(offer.expiresAt)}</span>
-                    <button className="btn btn-primary btn-sm" onClick={() => handleRequestFlight(offer)}>
-                      Request this flight
+                    <button className="btn btn-primary btn-sm" onClick={() => handleCheckoutFlight(offer)}>
+                      Pay Now
                     </button>
                   </div>
                 </div>
